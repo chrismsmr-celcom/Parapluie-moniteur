@@ -392,11 +392,11 @@ select{
   <div class="cards" id="kpiCards">
   <div class="card">
     <h3>CA Total</h3>
-    <p id="totalCA">0 €</p>
+    <p id="totalCA">0 </p>
   </div>
   <div class="card">
     <h3>Bénéfice Net</h3>
-    <p id="totalProfit">0 €</p>
+    <p id="totalProfit">0 </p>
   </div>
   <div class="card">
     <h3>Quantité Vendue</h3>
@@ -408,7 +408,7 @@ select{
   </div>
   <div class="card">
     <h3>Dépenses Totales</h3>
-    <p id="totalExpenses">0 €</p>
+    <p id="totalExpenses">0 </p>
   </div>
 </div>
     
@@ -462,16 +462,7 @@ toggleBtn.addEventListener('click', () => {
 });
 
 // --- Devise dynamique depuis sales.html ---
-let dashboardCurrency = localStorage.getItem('currentCurrency') || 'EUR';
-total.toLocaleString('fr-FR', {
-  style: 'currency',
-  currency: dashboardCurrency
-});
-window.addEventListener('storage', (e)=>{
-  if(e.key === 'currentCurrency'){
-    location.reload();
-  }
-});
+let dashboardCurrency = localStorage.getItem('currentCurrency') || 'USD';
 
 // --- Récupérer les données ---
 function getInventory(){ return JSON.parse(localStorage.getItem('inventoryData'))||[]; }
