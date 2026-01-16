@@ -275,7 +275,7 @@ document.getElementById('verifyOTP').addEventListener('click', ()=>{
 document.getElementById('verifyAdmin').addEventListener('click', ()=>{
   const input=document.getElementById('adminID').value.trim();
   const msg=document.getElementById('adminMsg');
-  if(input===adminSecret){ msg.textContent="Connexion Admin réussie ! Redirection…"; msg.style.color="green"; setTimeout(()=>{ window.location.href="index.html"; },1000);}
+  if(input===adminSecret){ msg.textContent="Connexion Admin réussie ! Redirection…"; msg.style.color="green"; setTimeout(()=>{ window.location.href="dashboard.html"; },1000);}
   else{ msg.textContent="ID Admin incorrect !"; msg.style.color="red"; }
 });
 </script>
