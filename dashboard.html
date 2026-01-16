@@ -462,7 +462,16 @@ toggleBtn.addEventListener('click', () => {
 });
 
 // --- Devise dynamique depuis sales.html ---
-let dashboardCurrency = localStorage.getItem('currentCurrency')||'EUR';
+let dashboardCurrency = localStorage.getItem('currentCurrency') || 'EUR';
+total.toLocaleString('fr-FR', {
+  style: 'currency',
+  currency: dashboardCurrency
+});
+window.addEventListener('storage', (e)=>{
+  if(e.key === 'currentCurrency'){
+    location.reload();
+  }
+});
 
 // --- Récupérer les données ---
 function getInventory(){ return JSON.parse(localStorage.getItem('inventoryData'))||[]; }
