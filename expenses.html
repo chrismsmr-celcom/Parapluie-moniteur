@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moniteo Umbrella</title>
+<link href="https://cdn.jsdelivr.net/npm/chart.js" rel="stylesheet">
+<link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+<style>
+/* --- Navbar Premium --- */
+.navbar {
+  position: fixed;           /* reste visible au scroll */
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: flex-start; /* logo à gauche, liens après */
+  align-items: center;
+  padding: 0.8rem 2rem;      /* compact mais respirant */
+  background: #1f3c63;       /* bleu premium */
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2); /* plus “premium” */
+  z-index: 999;
+  min-height: 80px;
+  max-height: 80px;
+}
+
+/* --- Logo --- */
+.navbar .logo {
+  display: flex;
+  align-items: center;
+  margin-right: 2rem;        /* espace avec les liens */
+}
+.navbar .logo img {
+  max-height: 250px;           /* s’adapte à la navbar */
+  width: auto;                /* garde les proportions */
+  display: block;
+}
+
+/* --- Liens --- */
+.navbar .nav-links {
+  display: flex;
+  gap: 1.5rem;               /* espacement régulier */
+  flex-wrap: wrap;            /* passe à la ligne si besoin */
+  overflow-x: auto;           /* scroll horizontal si trop petit */
+  -webkit-overflow-scrolling: touch; /* smooth scroll mobile */
+}
+
+.navbar .nav-links a {
+  color: #e5e7eb;
+  text-decoration: none;
+  font-weight: 700;
+  white-space: nowrap;        /* empêche retour ligne */
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  transition: background 0.3s, color 0.3s;
+  align: right
+}
+
+.navbar .nav-links a:hover {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+}
+
+/* --- Contenu principal --- */
+.section {
+  max-width: 1200px;
+  margin: 100px auto 2rem auto; /* marge top = navbar */
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* --- Table --- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: #fff;
+}
+th, td {
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  text-align: left;
+}
+th {
+  background: #f0f3f7;
+  color: #1f3c63;
+}
+
+/* --- Boutons --- */
+button, select, input {
+  padding: 0.4rem 0.8rem;
+  margin: 0.3rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: 0.3s;
+}
+button {
+  background: #1f3c63;
+  color: #fff;
+  border: none;
+}
+button:hover {
+  background: #2f4d82;
+}
+
+/* --- Alertes --- */
+#alertList li {
+  margin-bottom: 0.3rem;
+  color: #e74c3c;
+  font-weight: 500;
+}
+
+/* --- Graphiques --- */
+canvas {
+  width: 100%;
+  max-width: 1200px;
+  height: 400px;
+  margin-top: 1rem;
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.5rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+</style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="logo"><img src="https://i.postimg.cc/RCdvV8Pj/Moniteo-20260115-214112-0000-removebg-preview.png" alt="Logo"></div>
+  <div class="nav-links">
+    <a href="index.html">Acceuil</a>
+    <a href="sales.html">Ventes</a>
+    <a href="inventory.html">Inventaire</a>
+    <a href="staff.html">Staff</a>
+    <a href="reporting.html">Reporting</a>
+    <a href="history.html">Historique</a>
+    <a href="expenses.html">Depenses</a>
+  </div>
+</nav>
+
+<!-- CONTENT -->
+<section class="section">
+<h2>Dépenses / Passif de l’entreprise</h2>
+
+<!-- FORM -->
+<div>
+  <input type="date" id="expenseDate">
+  <input id="expenseLabel" placeholder="Libellé dépense">
+  <select id="expenseCategory">
+    <option value="Fixe">Fixe</option>
+    <option value="Variable">Variable</option>
+    <option value="RH">RH</option>
+    <option value="Marketing">Marketing</option>
+  </select>
+  <select id="expenseSource">
+    <option value="Manuel">Manuel</option>
+    <option value="RH">RH</option>
+    <option value="Sales">Sales</option>
+  </select>
+  <input type="number" id="expenseAmount" placeholder="Montant">
+  <select id="expenseCurrency">
+    <option value="EUR">EUR €</option>
+    <option value="USD">USD $</option>
+    <option value="CDF">CDF</option>
+  </select>
+  <button onclick="addExpense()">Ajouter</button>
+  <button onclick="exportExpensesExcel()">Export Excel</button>
+  <button onclick="exportExpensesPDF()">Export PDF</button>
+</div>
+
+<!-- TABLE -->
+<table>
+<thead>
+<tr>
+  <th>Date</th>
+  <th>Libellé</th>
+  <th>Catégorie</th>
+  <th>Source</th>
+  <th>Montant</th>
+  <th>Converti</th>
+  <th>Action</th>
+</tr>
+</thead>
+<tbody id="expensesTable"></tbody>
+</table>
+
+<h3 id="expensesTotal"></h3>
+</section>
+
+<script>
+// ================== CONFIG ==================
+const exchangeRates = { EUR:1, USD:0.92, CDF:0.00037 };
+const baseCurrency = 'EUR';
+
+// ================== DATA ==================
+let expenses = JSON.parse(localStorage.getItem('expensesData')) || [];
+
+// ================== UTILS ==================
+function convertToBase(amount,currency){
+  return amount * (exchangeRates[currency] || 1);
+}
+
+// ================== ADD ==================
+function addExpense(){
+  const e = {
+    id: Date.now(),
+    date: expenseDate.value,
+    label: expenseLabel.value,
+    category: expenseCategory.value,
+    source: expenseSource.value,
+    amount: parseFloat(expenseAmount.value),
+    currency: expenseCurrency.value
+  };
+
+  if(!e.label || !e.amount || !e.date){
+    alert("Champs manquants");
+    return;
+  }
+
+  e.amountBase = convertToBase(e.amount,e.currency);
+  expenses.push(e);
+  saveExpenses();
+}
+
+// ================== DELETE ==================
+function deleteExpense(id){
+  if(!confirm("Supprimer cette dépense ?")) return;
+  expenses = expenses.filter(e=>e.id!==id);
+  saveExpenses();
+}
+
+// ================== SAVE / RENDER ==================
+function saveExpenses(){
+  localStorage.setItem('expensesData',JSON.stringify(expenses));
+  renderExpenses();
+}
+
+function renderExpenses(){
+  expensesTable.innerHTML='';
+  let total = 0;
+
+  expenses.forEach(e=>{
+    total += e.amountBase;
+    expensesTable.innerHTML += `
+      <tr>
+        <td>${e.date}</td>
+        <td>${e.label}</td>
+        <td>${e.category}</td>
+        <td>${e.source}</td>
+        <td>${e.amount.toFixed(2)} ${e.currency}</td>
+        <td>${e.amountBase.toFixed(2)} ${baseCurrency}</td>
+        <td><button onclick="deleteExpense(${e.id})">🗑</button></td>
+      </tr>
+    `;
+  });
+
+  expensesTotal.textContent =
+    `Total passif : ${total.toLocaleString('fr-FR',{style:'currency',currency:baseCurrency})}`;
+}
+
+// ================== EXPORT ==================
+function exportExpensesExcel(){
+  const wsData=[["Date","Libellé","Catégorie","Source","Montant","Devise","Converti"]];
+  expenses.forEach(e=>wsData.push([e.date,e.label,e.category,e.source,e.amount,e.currency,e.amountBase]));
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Expenses");
+  XLSX.writeFile(wb,"expenses.xlsx");
+}
+
+function exportExpensesPDF(){
+  const {jsPDF}=window.jspdf;
+  const pdf=new jsPDF();
+  pdf.text("Rapport Dépenses",10,10);
+  let y=20;
+  expenses.forEach(e=>{
+    pdf.text(`${e.date} - ${e.label} - ${e.amountBase.toFixed(2)} ${baseCurrency}`,10,y);
+    y+=8;
+  });
+  pdf.save("expenses.pdf");
+}
+
+// ================== INIT ==================
+renderExpenses();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moniteo Umbrella - staff</title>
+<link href="https://cdn.jsdelivr.net/npm/chart.js" rel="stylesheet">
+<link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+/* --- Navbar Premium --- */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0.8rem 2rem;
+  background: #1f3c63;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  z-index: 999;
+  min-height: 80px;
+  max-height: 80px;
+}
+.navbar .logo { display: flex; align-items: center; margin-right: 2rem; }
+.navbar .logo img { max-height: 250px; width: auto; display: block; }
+.navbar .nav-links { display: flex; gap: 1.5rem; flex-wrap: wrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.navbar .nav-links a { color: #e5e7eb; text-decoration: none; font-weight: 700; white-space: nowrap; padding: 0.4rem 0.6rem; border-radius: 6px; transition: background 0.3s, color 0.3s; }
+.navbar .nav-links a:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+/* --- Contenu principal --- */
+.section { max-width: 1200px; margin: 100px auto 2rem auto; padding: 1.5rem; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+/* --- Table --- */
+table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+th, td { padding: 0.5rem; border: 1px solid #e2e8f0; text-align: left; }
+th { background: #f0f3f7; color: #1f3c63; }
+.status-active { color: #27ae60; font-weight:700; }
+.status-inactive { color: #e74c3c; font-weight:700; }
+
+/* --- Boutons / Inputs --- */
+button, select, input { padding: 0.4rem 0.8rem; margin: 0.3rem; border-radius: 6px; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.3s; }
+button { background: #1f3c63; color: #fff; border: none; }
+button:hover { background: #2f4d82; }
+#searchInput { width: 200px; margin-bottom: 0.5rem; padding:0.4rem; }
+
+/* --- Graphiques --- */
+canvas { width: 100%; max-width: 1200px; height: 400px; margin-top: 1rem; border-radius: 12px; background: #fff; padding: 0.5rem; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+
+/* --- Modal dossier employé --- */
+#employeeModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:9999; }
+#employeeModal .modal-content { background:#fff; padding:2rem; border-radius:12px; max-width:600px; width:90%; position:relative; }
+#employeeModal .modal-content button.close { position:absolute; top:10px; right:10px; cursor:pointer; }
+
+/* --- Dépense RH --- */
+#expenses { margin-top: 1rem; font-weight:700; font-size:1.1rem; }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logo"><img src="https://i.postimg.cc/RCdvV8Pj/Moniteo-20260115-214112-0000-removebg-preview.png" alt="Logo"></div>
+  <div class="nav-links">
+    <a href="index.html">Acceuil</a>
+    <a href="sales.html">Ventes</a>
+    <a href="inventory.html">Inventaire</a>
+    <a href="staff.html">Staff</a>
+    <a href="reporting.html">Reporting</a>
+    <a href="history.html">Historique</a>
+    <a href="expenses.html">Depenses</a>
+  </div>
+</nav>
+
+<div class="section" id="staffSection">
+<h2>Gestion du Personnel</h2>
+    
+
+<div>
+  <button onclick="addEmployee()">Ajouter un employé</button>
+  <button onclick="exportStaffExcel()">Exporter Excel</button>
+  <button onclick="exportStaffPDF()">Exporter PDF</button>
+  <input type="file" id="importStaff" accept=".xlsx,.xls"/>
+  <input type="text" id="searchInput" placeholder="Rechercher..." oninput="filterStaff()"/>
+</div>
+
+<table>
+<thead>
+<tr>
+  <th>Nom</th>
+  <th>Rôle / Fonction</th>
+  <th>Département</th>
+  <th>Statut</th>
+  <th>Contact</th>
+  <th>Salaire ($)</th>
+  <th>Actions</th>
+</tr>
+</thead>
+<tbody id="staffTable"></tbody>
+</table>
+
+<div id="expenses">Dépense totale RH : 0 €</div>
+
+<h3>Graphiques RH</h3>
+<canvas id="deptChart"></canvas>
+<canvas id="statusChart"></canvas>
+</div>
+
+<!-- Modal dossier employé -->
+<div id="employeeModal">
+  <div class="modal-content">
+    <button class="close" onclick="closeModal()">X</button>
+    <h2 id="modalName">Nom Employé</h2>
+    <img id="modalPhoto" src="" alt="Photo Employé" style="width:150px;height:150px;border-radius:50%;object-fit:cover;">
+    <p><strong>Rôle :</strong> <span id="modalRole"></span></p>
+    <p><strong>Département :</strong> <span id="modalDept"></span></p>
+    <p><strong>Statut :</strong> <span id="modalStatus"></span></p>
+    <p><strong>Contact :</strong> <span id="modalContact"></span></p>
+    <p><strong>Contrat :</strong> <a id="modalContract" href="#" target="_blank">Voir PDF</a></p>
+    <p><strong>Salaire ($) :</strong> <span id="modalSalary"></span></p>
+    <input type="file" id="uploadPhoto" accept="image/*"/>
+    <input type="file" id="uploadContract" accept="application/pdf"/>
+  </div>
+</div>
+
+<script>
+let staffData = JSON.parse(localStorage.getItem('staffData')) || [];
+
+// --- Rendu tableau ---
+function renderStaff() {
+  const tbody = document.getElementById('staffTable');
+  tbody.innerHTML = '';
+  staffData.forEach((e,index)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="cursor:pointer;color:#1f3c63;font-weight:700;" onclick="openEmployeeModal(${index})">${e.name}</td>
+      <td contenteditable="true">${e.role}</td>
+      <td contenteditable="true">${e.department}</td>
+      <td class="${e.status==='actif'?'status-active':'status-inactive'}" onclick="toggleStatus(${index})">${e.status}</td>
+      <td contenteditable="true">${e.contact}</td>
+      <td contenteditable="true">${e.salary||0}</td>
+      <td><button onclick="removeEmployee(${index})">Supprimer</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  saveStaff();
+  updateCharts();
+  updateExpenses();
+}
+
+// --- Ajouter / Supprimer ---
+function addEmployee(){
+  staffData.push({name:'', role:'', department:'', status:'actif', contact:'', salary:0});
+  renderStaff();
+}
+function removeEmployee(i){
+  if(confirm("Supprimer cet employé ?")){
+    staffData.splice(i,1);
+    renderStaff();
+  }
+}
+
+// --- Statut actif/inactif ---
+function toggleStatus(i){
+  staffData[i].status = staffData[i].status==='actif'?'inactif':'actif';
+  renderStaff();
+}
+
+// --- Sauvegarde ---
+function saveStaff(){
+  const tbody = document.getElementById('staffTable');
+  tbody.querySelectorAll('tr').forEach((tr,i)=>{
+    staffData[i].name = tr.children[0].textContent;
+    staffData[i].role = tr.children[1].textContent;
+    staffData[i].department = tr.children[2].textContent;
+    staffData[i].contact = tr.children[4].textContent;
+    staffData[i].salary = parseFloat(tr.children[5].textContent) || 0;
+  });
+  localStorage.setItem('staffData',JSON.stringify(staffData));
+}
+
+// --- Filtre recherche ---
+function filterStaff(){
+  const val = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('#staffTable tr').forEach(tr=>{
+    tr.style.display = tr.textContent.toLowerCase().includes(val)?'':'none';
+  });
+}
+
+// --- Import Excel ---
+document.getElementById('importStaff').addEventListener('change',function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = evt=>{
+    const data = evt.target.result;
+    const wb = XLSX.read(data,{type:'binary'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws,{header:1});
+    rows.forEach((row,i)=>{
+      if(i===0) return;
+      const [name,role,dept,status,contact,salary] = row;
+      staffData.push({name, role, department:dept, status:status||'actif', contact, salary:parseFloat(salary)||0});
+    });
+    renderStaff();
+  };
+  reader.readAsBinaryString(file);
+});
+
+// --- Export Excel ---
+function exportStaffExcel(){
+  const wsData=[["Nom","Rôle","Département","Statut","Contact","Salaire"]];
+  staffData.forEach(e=>wsData.push([e.name,e.role,e.department,e.status,e.contact,e.salary]));
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Staff");
+  XLSX.writeFile(wb,`staff_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// --- Export PDF ---
+function exportStaffPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p','pt','a4');
+  const pdfWidth = doc.internal.pageSize.getWidth();
+  const pdfHeight = doc.internal.pageSize.getHeight();
+  const logoImg = new Image();
+  logoImg.src = "https://i.postimg.cc/DwsrT2x5/Moniteo_20260115_205657_0000_removebg_preview.png";
+  logoImg.onload=()=>{
+    const maxLogoHeight = 60;
+    let logoWidth = logoImg.width/logoImg.height*maxLogoHeight;
+    if(logoWidth>pdfWidth-40) logoWidth=pdfWidth-40;
+    const logoHeight = logoWidth/(logoImg.width/logoImg.height);
+    const logoX = (pdfWidth-logoWidth)/2;
+    const logoY = 10;
+    doc.addImage(logoImg,'PNG',logoX,logoY,logoWidth,logoHeight);
+    const section = document.getElementById('staffSection');
+    html2canvas(section,{scale:2}).then(canvas=>{
+      const imgData = canvas.toDataURL('image/png');
+      const imgProps = doc.getImageProperties(imgData);
+      const sectionWidth = pdfWidth;
+      const sectionHeight = (imgProps.height*sectionWidth)/imgProps.width;
+      let positionY = logoY + logoHeight + 20;
+      let remainingHeight = sectionHeight;
+      while(remainingHeight>0){
+        const renderHeight = Math.min(remainingHeight,pdfHeight-positionY-20);
+        doc.addImage(imgData,'PNG',0,positionY,sectionWidth,renderHeight,'FAST');
+        remainingHeight-=renderHeight;
+        if(remainingHeight>0){ doc.addPage(); positionY=20; }
+      }
+      doc.save(`staff_${new Date().toISOString().slice(0,10)}.pdf`);
+    });
+  };
+}
+
+// --- Modal dossier employé ---
+function openEmployeeModal(index){
+  const e = staffData[index];
+  document.getElementById('modalName').textContent = e.name;
+  document.getElementById('modalRole').textContent = e.role;
+  document.getElementById('modalDept').textContent = e.department;
+  document.getElementById('modalStatus').textContent = e.status;
+  document.getElementById('modalContact').textContent = e.contact;
+  document.getElementById('modalSalary').textContent = e.salary;
+  document.getElementById('modalPhoto').src = e.photo||'https://via.placeholder.com/150';
+  document.getElementById('modalContract').href = e.contract||'#';
+  document.getElementById('employeeModal').style.display='flex';
+
+  document.getElementById('uploadPhoto').onchange=function(evt){
+    const file = evt.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = e2=>{
+      staffData[index].photo = e2.target.result;
+      document.getElementById('modalPhoto').src = e2.target.result;
+      saveStaff();
+    };
+    reader.readAsDataURL(file);
+  };
+
+  document.getElementById('uploadContract').onchange=function(evt){
+    const file = evt.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = e2=>{
+      staffData[index].contract = e2.target.result;
+      document.getElementById('modalContract').href = e2.target.result;
+      saveStaff();
+    };
+    reader.readAsBinaryString(file);
+  };
+}
+function closeModal(){ document.getElementById('employeeModal').style.display='none'; }
+
+// --- Graphiques RH ---
+const deptChart = new Chart(document.getElementById('deptChart'),{
+  type:'bar',
+  data:{labels:[], datasets:[{label:'Employés par département', data:[], backgroundColor:'rgba(31,60,99,0.7)'}]}
+});
+const statusChart = new Chart(document.getElementById('statusChart'),{
+  type:'pie',
+  data:{labels:[], datasets:[{label:'Statut', data:[], backgroundColor:['rgba(46,204,113,0.7)','rgba(231,76,60,0.7)']}]}
+});
+
+function updateCharts(){
+  const deptCount={};
+  const statusCount={actif:0,inactif:0};
+  staffData.forEach(e=>{
+    deptCount[e.department]= (deptCount[e.department]||0)+1;
+    statusCount[e.status] = (statusCount[e.status]||0)+1;
+  });
+  deptChart.data.labels=Object.keys(deptCount);
+  deptChart.data.datasets[0].data=Object.values(deptCount);
+  deptChart.update();
+  statusChart.data.labels=['Actif','Inactif'];
+  statusChart.data.datasets[0].data=[statusCount.actif,statusCount.inactif];
+  statusChart.update();
+}
+
+// --- Calcul dépenses RH ---
+function updateExpenses(){
+  const totalSalary = staffData.reduce((sum,e)=>sum + (parseFloat(e.salary)||0),0);
+  document.getElementById('expenses').textContent = `Dépense totale RH : ${totalSalary.toLocaleString('fr-FR',{style:'currency',currency:'USD'})}`;
+}
+
+// --- Édition directe ---
+document.getElementById('staffTable').addEventListener('input',()=>{
+  saveStaff(); updateExpenses(); updateCharts();
+});
+
+// --- Initialisation ---
+renderStaff();
+</script>
+</body>
+</html>

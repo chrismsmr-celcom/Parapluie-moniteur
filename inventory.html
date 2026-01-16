@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moniteo Umbrella - Inventaire</title>
+<link href="https://cdn.jsdelivr.net/npm/chart.js" rel="stylesheet">
+<link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<style>
+/* --- Navbar Premium --- */
+.navbar {
+  position: fixed;           /* reste visible au scroll */
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: flex-start; /* logo à gauche, liens après */
+  align-items: center;
+  padding: 0.8rem 2rem;      /* compact mais respirant */
+  background: #1f3c63;       /* bleu premium */
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2); /* plus “premium” */
+  z-index: 999;
+  min-height: 80px;
+  max-height: 80px;
+}
+
+/* --- Logo --- */
+.navbar .logo {
+  display: flex;
+  align-items: center;
+  margin-right: 2rem;        /* espace avec les liens */
+}
+.navbar .logo img {
+  max-height: 250px;           /* s’adapte à la navbar */
+  width: auto;                /* garde les proportions */
+  display: block;
+}
+
+/* --- Liens --- */
+.navbar .nav-links {
+  display: flex;
+  gap: 1.5rem;               /* espacement régulier */
+  flex-wrap: wrap;            /* passe à la ligne si besoin */
+  overflow-x: auto;           /* scroll horizontal si trop petit */
+  -webkit-overflow-scrolling: touch; /* smooth scroll mobile */
+}
+
+.navbar .nav-links a {
+  color: #e5e7eb;
+  text-decoration: none;
+  font-weight: 700;
+  white-space: nowrap;        /* empêche retour ligne */
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  transition: background 0.3s, color 0.3s;
+  align: right
+}
+
+.navbar .nav-links a:hover {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+}
+
+/* --- Contenu principal --- */
+.section {
+  max-width: 1200px;
+  margin: 100px auto 2rem auto; /* marge top = navbar */
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* --- Table --- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: #fff;
+}
+th, td {
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  text-align: left;
+}
+th {
+  background: #f0f3f7;
+  color: #1f3c63;
+}
+
+/* --- Boutons --- */
+button, select, input {
+  padding: 0.4rem 0.8rem;
+  margin: 0.3rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: 0.3s;
+}
+button {
+  background: #1f3c63;
+  color: #fff;
+  border: none;
+}
+button:hover {
+  background: #2f4d82;
+}
+
+/* --- Alertes --- */
+#alertList li {
+  margin-bottom: 0.3rem;
+  color: #e74c3c;
+  font-weight: 500;
+}
+
+/* --- Graphiques --- */
+canvas {
+  width: 100%;
+  max-width: 1200px;
+  height: 400px;
+  margin-top: 1rem;
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.5rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logo"><img src="https://i.postimg.cc/RCdvV8Pj/Moniteo-20260115-214112-0000-removebg-preview.png" alt="Logo"></div>
+  <div class="nav-links">
+    <a href="index.html">Acceuil</a>
+    <a href="sales.html">Ventes</a>
+    <a href="inventory.html">Inventaire</a>
+    <a href="staff.html">Staff</a>
+    <a href="reporting.html">Reporting</a>
+    <a href="history.html">Historique</a>
+    <a href="expenses.html">Depenses</a>
+  </div>
+</nav>
+
+<div class="section">
+<h2>Gestion de l'Inventaire</h2>
+
+<div>
+  <input type="file" id="importInventory" accept=".xlsx,.xls"/>
+  <button onclick="exportInventory()">Exporter Excel</button>
+  <button onclick="clearInventory()">Nettoyer Inventaire</button>
+  <button onclick="deleteSelectedRow()">Supprimer sélection</button>
+<button onclick="undo()">Annuler</button>
+</div>
+
+<table>
+<thead>
+<tr>
+  <th>Sélect</th>
+  <th>Produit</th>
+  <th>Quantité</th>
+  <th>Prix Achat</th>
+  <th>Prix Vente</th>
+</tr>
+</thead>
+<tbody id="inventoryTable"></tbody>
+</table>
+
+<h3>Alertes</h3>
+<ul id="alertList"></ul>
+</div>
+
+<script>
+const inventoryTable = document.getElementById('inventoryTable');
+let inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
+let salesData = JSON.parse(localStorage.getItem('salesData')) || [];
+
+// --- Mettre à jour les alertes ---
+function updateAlerts() {
+  const alertList = document.getElementById('alertList');
+  alertList.innerHTML = '';
+  inventoryData.forEach(item => {
+    const qty = parseInt(item.qty) || 0;
+    if(qty <= 0) alertList.innerHTML += `<li>⚠️ Rupture de stock pour ${item.product}</li>`;
+    else if(qty <= 5) alertList.innerHTML += `<li>⚠️ Stock faible pour ${item.product}: ${qty}</li>`;
+  });
+}
+
+// --- Rendu tableau ---
+function renderInventory() {
+  inventoryTable.innerHTML = '';
+  inventoryData.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><input type="checkbox"></td>
+                    <td contenteditable="true">${item.product}</td>
+                    <td contenteditable="true">${item.qty}</td>
+                    <td contenteditable="true">${item.buy}</td>
+                    <td contenteditable="true">${item.sell}</td>`;
+    inventoryTable.appendChild(tr);
+  });
+  updateAlerts();
+  saveInventory();
+}
+
+// --- Sauvegarde localStorage ---
+function saveInventory() {
+  const data = [];
+  inventoryTable.querySelectorAll('tr').forEach(tr => {
+    data.push({
+      product: tr.children[1].textContent,
+      qty: parseInt(tr.children[2].textContent)||0,
+      buy: parseFloat(tr.children[3].textContent)||0,
+      sell: parseFloat(tr.children[4].textContent)||0
+    });
+  });
+  inventoryData = data;
+  localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+  updateAlerts();
+}
+
+// --- Import Excel ---
+document.getElementById('importInventory').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    const data = evt.target.result;
+    const wb = XLSX.read(data,{type:'binary'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws,{header:1});
+    rows.forEach((row,i)=>{
+      if(i===0) return; // Skip header
+      const product = row[0], qty = parseInt(row[1]||0), buy=parseFloat(row[2]||0), sell=parseFloat(row[3]||0);
+      const existing = inventoryData.find(p => p.product === product);
+      if(existing){
+        const diff = qty - existing.qty;
+        if(diff>0) alert(`📈 Surplus détecté pour ${product}: +${diff}`);
+        if(diff<0) alert(`📉 Manque détecté pour ${product}: ${diff}`);
+        existing.qty = qty; 
+        existing.buy = buy;
+        existing.sell = sell;
+      } else {
+        inventoryData.push({product, qty, buy, sell});
+      }
+    });
+    renderInventory();
+  };
+  reader.readAsBinaryString(file);
+});
+
+// --- Export Excel ---
+function exportInventory() {
+  const wsData = [["Produit","Quantité","Prix Achat","Prix Vente"]];
+  inventoryData.forEach(item => wsData.push([item.product,item.qty,item.buy,item.sell]));
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Inventaire");
+  XLSX.writeFile(wb, `inventaire_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// --- Nettoyer inventaire ---
+function clearInventory() {
+  if(confirm("Nettoyer l'inventaire ?")){
+    inventoryData = [];
+    localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+    renderInventory();
+  }
+}
+// --- Pile pour Undo ---
+let undoStack = [];
+
+// --- Sauvegarder pour Undo ---
+function saveUndo() {
+    undoStack.push(JSON.stringify(inventoryData));
+    if(undoStack.length > 20) undoStack.shift(); // limite à 20 actions
+}
+
+// --- Annuler ---
+function undo() {
+    if(undoStack.length > 0) {
+        inventoryData = JSON.parse(undoStack.pop());
+        renderInventory();
+    } else {
+        alert("Rien à annuler !");
+    }
+}
+
+// --- Supprimer lignes sélectionnées ---
+function deleteSelectedRow() {
+    const checkboxes = inventoryTable.querySelectorAll('tr input[type="checkbox"]');
+    let anySelected = false;
+    saveUndo(); // sauvegarde avant suppression
+    checkboxes.forEach((cb, i) => {
+        if(cb.checked) {
+            inventoryData.splice(i,1);
+            anySelected = true;
+        }
+    });
+    if(anySelected) {
+        renderInventory();
+    } else {
+        alert("Veuillez sélectionner au moins une ligne !");
+    }
+}
+
+// --- Édition directe dans tableau ---
+inventoryTable.addEventListener('input', saveInventory);
+
+// --- Initialisation ---
+// Mettre à jour automatiquement depuis les ventes
+salesData.forEach(s=>{
+  const existing = inventoryData.find(p=>p.product===s.product);
+  if(existing){
+    existing.qty -= s.qty;
+  } else {
+    inventoryData.push({product:s.product, qty:0, buy:s.buy, sell:s.sell});
+  }
+});
+inventoryTable.addEventListener('input', () => {
+    saveUndo();
+    saveInventory();
+});
+renderInventory();
+</script>
+</body>
+</html>

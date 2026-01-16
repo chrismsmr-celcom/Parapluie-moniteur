@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<<title>Moniteo Umbrella</title>
+<link href="https://cdn.jsdelivr.net/npm/chart.js" rel="stylesheet">
+<link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<style>
+/* --- Navbar Premium --- */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0.8rem 2rem;
+  background: #1f3c63;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  z-index: 999;
+  min-height: 80px;
+  max-height: 80px;
+}
+.navbar .logo {
+  display: flex;
+  align-items: center;
+  margin-right: 2rem;
+}
+.navbar .logo img {
+  max-height: 250px;
+  width: auto;
+  display: block;
+}
+.navbar .nav-links {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.navbar .nav-links a {
+  color: #e5e7eb;
+  text-decoration: none;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  transition: background 0.3s, color 0.3s;
+}
+.navbar .nav-links a:hover {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+}
+
+/* --- Contenu principal --- */
+.section {
+  max-width: 1200px;
+  margin: 100px auto 2rem auto;
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* --- Barre de contrôle --- */
+#reportingControls {
+  display:flex; gap:1rem; align-items:center; margin-bottom:1rem; flex-wrap:wrap;
+}
+#reportingControls label, #reportingControls input, #reportingControls select { font-weight:500; }
+
+/* --- KPI --- */
+.kpi { display:flex; gap:1rem; margin-bottom:1rem; flex-wrap:wrap; }
+.kpi div { flex:1; background:#1f3c63; color:#fff; padding:1rem; border-radius:12px; text-align:center; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+.kpi div h3 { margin:0; font-size:1rem; font-weight:500; }
+.kpi div p { margin:0; font-size:1.3rem; font-weight:700; }
+
+/* --- Table --- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: #fff;
+}
+th, td {
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  text-align: left;
+}
+th { background: #f0f3f7; color: #1f3c63; }
+
+/* --- Boutons --- */
+button, select, input {
+  padding: 0.4rem 0.8rem;
+  margin: 0.3rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: 0.3s;
+}
+button {
+  background: #1f3c63;
+  color: #fff;
+  border: none;
+}
+button:hover { background: #2f4d82; }
+
+/* --- Graphiques --- */
+canvas {
+  width: 100%;
+  max-width: 1200px;
+  height: 400px;
+  margin-top: 1rem;
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.5rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logo"><img src="https://i.postimg.cc/RCdvV8Pj/Moniteo-20260115-214112-0000-removebg-preview.png" alt="Logo"></div>
+  <div class="nav-links">
+    <a href="index.html">Acceuil</a>
+    <a href="sales.html">Ventes</a>
+    <a href="inventory.html">Inventaire</a>
+    <a href="staff.html">Staff</a>
+    <a href="reporting.html">Reporting</a>
+    <a href="history.html">Historique</a>
+    <a href="expenses.html">Depenses</a>
+  </div>
+</nav>
+
+<div class="section" id="reportingSection">
+<h2>Reporting des Ventes</h2>
+
+<!-- Barre de contrôle -->
+<div id="reportingControls">
+  <label>Devise :
+    <select id="currencySelector">
+      <option value="€" selected>€</option>
+      <option value="$">$</option>
+      <option value="FC">FC</option>
+    </select>
+  </label>
+
+  <label>Taux de change :</label>
+  <input type="number" id="exchangeRate" value="1" step="0.01" style="width:80px;"/>
+
+  <label>Marché :</label>
+  <select id="marketSelector">
+    <option value="all" selected>Tous</option>
+    <option value="local">Local</option>
+    <option value="export">Export</option>
+  </select>
+
+  <button onclick="exportReportingExcel()">Exporter Excel</button>
+  <button onclick="exportPDF()">Exporter PDF</button>
+</div>
+
+<!-- KPI -->
+<div class="kpi">
+  <div><h3>Chiffre d'affaires</h3><p id="kpiCA">0</p></div>
+  <div><h3>Bénéfice total</h3><p id="kpiProfit">0</p></div>
+  <div><h3>Produit top vente</h3><p id="kpiTopProduct">-</p></div>
+</div>
+
+<!-- Graphiques -->
+<h3>Ventes par jour</h3>
+<canvas id="dailySalesChart"></canvas>
+
+<h3>Ventes par mois</h3>
+<canvas id="monthlySalesChart"></canvas>
+
+<h3>Produits les plus vendus</h3>
+<canvas id="topProductsChart"></canvas>
+
+<h3>Bénéfices par jour</h3>
+<canvas id="dailyProfitChart"></canvas>
+
+<h3>Bénéfices par mois</h3>
+<canvas id="monthlyProfitChart"></canvas>
+
+</div>
+
+<script>
+let salesData = JSON.parse(localStorage.getItem('salesData')) || [];
+
+const currencySelector = document.getElementById('currencySelector');
+const exchangeRateInput = document.getElementById('exchangeRate');
+const marketSelector = document.getElementById('marketSelector');
+
+const kpiCA = document.getElementById('kpiCA');
+const kpiProfit = document.getElementById('kpiProfit');
+const kpiTopProduct = document.getElementById('kpiTopProduct');
+
+const dailySalesChart = new Chart(document.getElementById('dailySalesChart'), {type:'bar', data:{labels:[], datasets:[{label:'Ventes par jour', data:[], backgroundColor:'rgba(31,60,99,0.7)'}]}, options:{responsive:true}});
+const monthlySalesChart = new Chart(document.getElementById('monthlySalesChart'), {type:'line', data:{labels:[], datasets:[{label:'Ventes par mois', data:[], borderColor:'rgba(31,60,99,0.8)', backgroundColor:'rgba(31,60,99,0.2)', fill:true, tension:0.2}]}});
+const topProductsChart = new Chart(document.getElementById('topProductsChart'), {type:'bar', data:{labels:[], datasets:[{label:'Quantité vendue', data:[], backgroundColor:'rgba(46,204,113,0.7)'}]}});
+const dailyProfitChart = new Chart(document.getElementById('dailyProfitChart'), {type:'line', data:{labels:[], datasets:[{label:'Bénéfice par jour', data:[], borderColor:'rgba(231,76,60,0.8)', backgroundColor:'rgba(231,76,60,0.2)', fill:true, tension:0.2}]}});
+const monthlyProfitChart = new Chart(document.getElementById('monthlyProfitChart'), {type:'line', data:{labels:[], datasets:[{label:'Bénéfice par mois', data:[], borderColor:'rgba(231,76,60,0.8)', backgroundColor:'rgba(231,76,60,0.2)', fill:true, tension:0.2}]}});
+
+function convertCurrency(value){
+  const rate = parseFloat(exchangeRateInput.value)||1;
+  return (value*rate).toFixed(2);
+}
+
+function groupBy(data, keyFn){
+  return data.reduce((acc, item)=>{
+    const key = keyFn(item);
+    acc[key] = (acc[key] || 0) + ((item.sell - item.buy) * item.qty);
+    return acc;
+  },{});
+}
+
+function groupQtyBy(data,keyFn){
+  return data.reduce((acc,item)=>{
+    const key = keyFn(item);
+    acc[key] = (acc[key] || 0) + item.qty;
+    return acc;
+  },{});
+}
+
+function updateKPI(filteredData){
+  const totalCA = filteredData.reduce((sum,s)=>sum+s.sell*s.qty,0);
+  const totalProfit = filteredData.reduce((sum,s)=>sum+(s.sell-s.buy)*s.qty,0);
+  kpiCA.textContent = convertCurrency(totalCA);
+  kpiProfit.textContent = convertCurrency(totalProfit);
+  const productsQty = groupQtyBy(filteredData,s=>s.product);
+  const top = Object.entries(productsQty).sort((a,b)=>b[1]-a[1])[0];
+  kpiTopProduct.textContent = top?top[0]:'-';
+}
+
+function updateReporting(){
+  const selectedMarket = marketSelector.value;
+  let filteredData = salesData;
+  if(selectedMarket!=='all') filteredData = salesData.filter(s=>s.market===selectedMarket);
+  updateKPI(filteredData);
+
+  const salesByDay = groupQtyBy(filteredData,s=>s.date);
+  const dailySalesLabels = Object.keys(salesByDay).sort();
+  const dailySalesValues = dailySalesLabels.map(d=>salesByDay[d]);
+  dailySalesChart.data.labels = dailySalesLabels;
+  dailySalesChart.data.datasets[0].data = dailySalesValues;
+  dailySalesChart.update();
+
+  const salesByMonth = groupQtyBy(filteredData,s=>s.date.slice(0,7));
+  const monthlyLabels = Object.keys(salesByMonth).sort();
+  const monthlyValues = monthlyLabels.map(m=>salesByMonth[m]);
+  monthlySalesChart.data.labels = monthlyLabels;
+  monthlySalesChart.data.datasets[0].data = monthlyValues;
+  monthlySalesChart.update();
+
+  const productsQty = groupQtyBy(filteredData,s=>s.product);
+  const sortedProducts = Object.entries(productsQty).sort((a,b)=>b[1]-a[1]);
+  topProductsChart.data.labels = sortedProducts.map(e=>e[0]);
+  topProductsChart.data.datasets[0].data = sortedProducts.map(e=>e[1]);
+  topProductsChart.update();
+
+  const profitByDay = groupBy(filteredData,s=>s.date);
+  dailyProfitChart.data.labels = Object.keys(profitByDay).sort();
+  dailyProfitChart.data.datasets[0].data = Object.keys(profitByDay).sort().map(d=>convertCurrency(profitByDay[d]));
+  dailyProfitChart.update();
+
+  const profitByMonth = groupBy(filteredData,s=>s.date.slice(0,7));
+  monthlyProfitChart.data.labels = Object.keys(profitByMonth).sort();
+  monthlyProfitChart.data.datasets[0].data = Object.keys(profitByMonth).sort().map(m=>convertCurrency(profitByMonth[m]));
+  monthlyProfitChart.update();
+}
+
+function exportReportingExcel(){
+  const wsData=[["Date","Produit","Quantité","Prix Vente","Prix Achat","Bénéfice"]];
+  let filteredData = salesData;
+  if(marketSelector.value!=='all') filteredData = salesData.filter(s=>s.market===marketSelector.value);
+  filteredData.forEach(s=>{
+    wsData.push([s.date,s.product,s.qty,convertCurrency(s.sell),convertCurrency(s.buy),convertCurrency((s.sell-s.buy)*s.qty)]);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Reporting");
+  XLSX.writeFile(wb,`reporting_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'pt', 'a4');
+  const pdfWidth = doc.internal.pageSize.getWidth();
+  const pdfHeight = doc.internal.pageSize.getHeight();
+
+  // Ajouter logo en haut
+  const logoImg = new Image();
+  logoImg.src = "https://i.postimg.cc/DwsrT2x5/Moniteo_20260115_205657_0000_removebg_preview.png";
+  logoImg.onload = () => {
+    const maxLogoHeight = 60; // hauteur maximale
+    let logoWidth = logoImg.width / logoImg.height * maxLogoHeight;
+    if (logoWidth > pdfWidth - 40) logoWidth = pdfWidth - 40; // marge horizontale
+    const logoHeight = logoWidth / (logoImg.width / logoImg.height);
+    const logoX = (pdfWidth - logoWidth) / 2;
+    const logoY = 10;
+
+    doc.addImage(logoImg, 'PNG', logoX, logoY, logoWidth, logoHeight);
+
+    // Capturer la section reporting avec html2canvas
+    const section = document.getElementById('reportingSection');
+    html2canvas(section, { scale: 2 }).then(canvas => {
+      const imgData = canvas.toDataURL('image/png');
+      const imgProps = doc.getImageProperties(imgData);
+      const sectionWidth = pdfWidth;
+      const sectionHeight = (imgProps.height * sectionWidth) / imgProps.width;
+
+      let positionY = logoY + logoHeight + 20; // position sous le logo
+      let remainingHeight = sectionHeight;
+
+      // Si la section dépasse la page, découper sur plusieurs pages
+      while (remainingHeight > 0) {
+        const renderHeight = Math.min(remainingHeight, pdfHeight - positionY - 20); // marge bas
+        doc.addImage(
+          imgData,
+          'PNG',
+          0,
+          positionY,
+          sectionWidth,
+          renderHeight,
+          undefined,
+          'FAST'
+        );
+        remainingHeight -= renderHeight;
+        if (remainingHeight > 0) {
+          doc.addPage();
+          positionY = 20; // nouvelle page
+        }
+      }
+
+      doc.save(`reporting_${new Date().toISOString().slice(0,10)}.pdf`);
+    });
+  };
+}
+
+currencySelector.addEventListener('change',updateReporting);
+exchangeRateInput.addEventListener('input',updateReporting);
+marketSelector.addEventListener('change',updateReporting);
+
+updateReporting();
+</script>
+</body>
+</html>

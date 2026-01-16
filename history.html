@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moniteo Umbrella - historique</title>
+<link href="https://cdn.jsdelivr.net/npm/chart.js" rel="stylesheet">
+<link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+/* --- Navbar Premium --- */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0.8rem 2rem;
+  background: #1f3c63;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  z-index: 999;
+  min-height: 80px;
+  max-height: 80px;
+}
+.navbar .logo { display: flex; align-items: center; margin-right: 2rem; }
+.navbar .logo img { max-height: 250px; width: auto; display: block; }
+.navbar .nav-links { display: flex; gap: 1.5rem; flex-wrap: wrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.navbar .nav-links a { color: #e5e7eb; text-decoration: none; font-weight: 700; white-space: nowrap; padding: 0.4rem 0.6rem; border-radius: 6px; transition: background 0.3s, color 0.3s; }
+.navbar .nav-links a:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+/* --- Contenu principal --- */
+.section { max-width: 1200px; margin: 100px auto 2rem auto; padding: 1.5rem; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+th, td { padding: 0.5rem; border: 1px solid #e2e8f0; text-align: left; }
+th { background: #f0f3f7; color: #1f3c63; }
+button, select, input { padding: 0.4rem 0.8rem; margin: 0.3rem; border-radius: 6px; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.3s; }
+button { background: #1f3c63; color: #fff; border: none; }
+button:hover { background: #2f4d82; }
+#searchInput, #searchExpenses { width: 250px; margin-bottom: 0.5rem; }
+
+/* --- Graphiques --- */
+canvas { width: 100%; max-width: 1200px; height: 400px; margin-top: 1rem; border-radius: 12px; background: #fff; padding: 0.5rem; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+
+/* --- KPI --- */
+#profitSummary, #totalExpenses { font-weight:700; font-size:1.1rem; margin-top:1rem; }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logo"><img src="https://i.postimg.cc/RCdvV8Pj/Moniteo-20260115-214112-0000-removebg-preview.png" alt="Logo"></div>
+  <div class="nav-links">
+    <a href="index.html">Acceuil</a>
+    <a href="sales.html">Ventes</a>
+    <a href="inventory.html">Inventaire</a>
+    <a href="staff.html">Staff</a>
+    <a href="reporting.html">Reporting</a>
+    <a href="history.html">Historique</a>
+    <a href="expenses.html">Depenses</a>
+  </div>
+</nav>
+
+<div class="section" id="historySection">
+<h2>Historique des ventes</h2>
+<div>
+  <input type="text" id="searchInput" placeholder="Rechercher produit..." oninput="filterHistory()"/>
+  <button onclick="exportHistoryExcel()">Exporter Excel</button>
+  <button onclick="exportHistoryPDF()">Exporter PDF</button>
+</div>
+
+<table>
+<thead>
+<tr>
+  <th>Date</th>
+  <th>Produit</th>
+  <th>Quantité</th>
+  <th>Prix Achat (|$)</th>
+  <th>Prix Vente ($)</th>
+  <th>Bénéfice ($)</th>
+</tr>
+</thead>
+<tbody id="historyTable"></tbody>
+</table>
+
+<div id="profitSummary">Bénéfice total : 0 $</div>
+
+<h3>Graphiques historiques</h3>
+<canvas id="dailyChart"></canvas>
+<canvas id="topProductsChart"></canvas>
+
+<hr style="margin:2rem 0;">
+
+<h2>Dépenses / Passif</h2>
+<div>
+  <input type="text" id="searchExpenses" placeholder="Rechercher dépense..." oninput="filterExpenses()"/>
+  <button onclick="exportExpensesExcel()">Exporter Excel</button>
+</div>
+
+<table>
+<thead>
+<tr>
+  <th>Date</th>
+  <th>Dépense</th>
+  <th>Catégorie</th>
+  <th>Montant ($)</th>
+</tr>
+</thead>
+<tbody id="expensesTable"></tbody>
+</table>
+<div id="totalExpenses">Total dépenses : 0 €</div>
+</div>
+
+<script>
+// --- Historique Ventes ---
+let historyData = JSON.parse(localStorage.getItem('salesData')) || [];
+
+function computeProfit(sale){ return (sale.sell - sale.buy) * sale.qty; }
+
+function renderHistory(){
+  const tbody = document.getElementById('historyTable');
+  tbody.innerHTML = '';
+  let totalProfit = 0;
+  historyData.forEach(sale=>{
+    const profit = computeProfit(sale);
+    totalProfit += profit;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${sale.date}</td><td>${sale.product}</td><td>${sale.qty}</td><td>${sale.buy}</td><td>${sale.sell}</td><td>${profit.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('profitSummary').textContent = `Bénéfice total : ${totalProfit.toLocaleString('fr-FR',{style:'currency',currency:'USD'})}`;
+  updateCharts();
+}
+
+function filterHistory(){
+  const val = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('#historyTable tr').forEach(tr=>{ tr.style.display = tr.textContent.toLowerCase().includes(val)?'':'none'; });
+}
+
+function exportHistoryExcel(){
+  const wsData=[["Date","Produit","Quantité","Prix Achat","Prix Vente","Bénéfice"]];
+  historyData.forEach(s=>wsData.push([s.date,s.product,s.qty,s.buy,s.sell,computeProfit(s)]));
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Historique");
+  XLSX.writeFile(wb,`historique_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function exportHistoryPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p','pt','a4');
+  const pdfWidth = doc.internal.pageSize.getWidth();
+  const logoImg = new Image();
+  logoImg.src = "https://i.postimg.cc/DwsrT2x5/Moniteo_20260115_205657_0000_removebg_preview.png";
+  logoImg.onload=()=>{
+    const maxLogoHeight = 60;
+    let logoWidth = logoImg.width/logoImg.height*maxLogoHeight;
+    if(logoWidth>pdfWidth-40) logoWidth=pdfWidth-40;
+    const logoHeight = logoWidth/(logoImg.width/logoImg.height);
+    const logoX = (pdfWidth-logoWidth)/2;
+    const logoY = 10;
+    doc.addImage(logoImg,'PNG',logoX,logoY,logoWidth,logoHeight);
+    html2canvas(document.getElementById('historySection'),{scale:2}).then(canvas=>{
+      const imgData = canvas.toDataURL('image/png');
+      const imgProps = doc.getImageProperties(imgData);
+      const sectionWidth = pdfWidth;
+      const sectionHeight = (imgProps.height*sectionWidth)/imgProps.width;
+      let positionY = logoY + logoHeight + 20;
+      let remainingHeight = sectionHeight;
+      while(remainingHeight>0){
+        const renderHeight = Math.min(remainingHeight, doc.internal.pageSize.getHeight()-positionY-20);
+        doc.addImage(imgData,'PNG',0,positionY,sectionWidth,renderHeight,'FAST');
+        remainingHeight-=renderHeight;
+        if(remainingHeight>0){ doc.addPage(); positionY=20; }
+      }
+      doc.save(`historique_${new Date().toISOString().slice(0,10)}.pdf`);
+    });
+  };
+}
+
+// --- Graphiques ---
+const dailyChart = new Chart(document.getElementById('dailyChart'),{
+  type:'line',
+  data:{labels:[], datasets:[{label:'Chiffre d’affaires par jour', data:[], borderColor:'#1f3c63', backgroundColor:'rgba(31,60,99,0.2)', fill:true}]}
+});
+
+const topProductsChart = new Chart(document.getElementById('topProductsChart'),{
+  type:'bar',
+  data:{labels:[], datasets:[{label:'Top Produits', data:[], backgroundColor:'rgba(31,60,99,0.7)'}]}
+});
+
+function updateCharts(){
+  const dailyData={}, productData={};
+  historyData.forEach(s=>{
+    dailyData[s.date]=(dailyData[s.date]||0)+s.sell*s.qty;
+    productData[s.product]=(productData[s.product]||0)+s.qty;
+  });
+  dailyChart.data.labels = Object.keys(dailyData);
+  dailyChart.data.datasets[0].data = Object.values(dailyData);
+  dailyChart.update();
+  topProductsChart.data.labels = Object.keys(productData);
+  topProductsChart.data.datasets[0].data = Object.values(productData);
+  topProductsChart.update();
+}
+
+// --- Dépenses / Passif ---
+let expensesData = JSON.parse(localStorage.getItem('expensesData')) || [];
+
+function addExpense(name, category, amount, date){
+  expensesData.push({name, category, amount: parseFloat(amount), date});
+  saveExpenses(); renderExpenses();
+}
+
+function saveExpenses(){ localStorage.setItem('expensesData', JSON.stringify(expensesData)); }
+
+function renderExpenses(){
+  const tbody = document.getElementById('expensesTable');
+  tbody.innerHTML='';
+  let total=0;
+  expensesData.forEach(exp=>{
+    total+=exp.amount;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${exp.date}</td><td>${exp.name}</td><td>${exp.category}</td><td>${exp.amount.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('totalExpenses').textContent = `Total dépenses : ${total.toLocaleString('fr-FR',{style:'currency', currency:'USD'})}`;
+}
+
+function filterExpenses(){
+  const val = document.getElementById('searchExpenses').value.toLowerCase();
+  document.querySelectorAll('#expensesTable tr').forEach(tr=>{ tr.style.display = tr.textContent.toLowerCase().includes(val)?'':'none'; });
+}
+
+function exportExpensesExcel(){
+  const wsData=[["Date","Dépense","Catégorie","Montant"]];
+  expensesData.forEach(e=>wsData.push([e.date,e.name,e.category,e.amount]));
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Dépenses");
+  XLSX.writeFile(wb,`depenses_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// --- Initialisation ---
+renderHistory(); renderExpenses();
+</script>
+</body>
+</html>

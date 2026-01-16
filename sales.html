@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moniteo Umbrella - ventes</title>
+<link href="https://cdn.jsdelivr.net/npm/chart.js" rel="stylesheet">
+<link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<style>
+/* --- Navbar Premium --- */
+.navbar {
+  position: fixed;           /* reste visible au scroll */
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: flex-start; /* logo à gauche, liens après */
+  align-items: center;
+  padding: 0.8rem 2rem;      /* compact mais respirant */
+  background: #1f3c63;       /* bleu premium */
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2); /* plus “premium” */
+  z-index: 999;
+  min-height: 80px;
+  max-height: 80px;
+}
+
+/* --- Logo --- */
+.navbar .logo {
+  display: flex;
+  align-items: center;
+  margin-right: 2rem;        /* espace avec les liens */
+}
+.navbar .logo img {
+  max-height: 250px;           /* s’adapte à la navbar */
+  width: auto;                /* garde les proportions */
+  display: block;
+}
+
+/* --- Liens --- */
+.navbar .nav-links {
+  display: flex;
+  gap: 1.5rem;               /* espacement régulier */
+  flex-wrap: wrap;            /* passe à la ligne si besoin */
+  overflow-x: auto;           /* scroll horizontal si trop petit */
+  -webkit-overflow-scrolling: touch; /* smooth scroll mobile */
+}
+
+.navbar .nav-links a {
+  color: #e5e7eb;
+  text-decoration: none;
+  font-weight: 700;
+  white-space: nowrap;        /* empêche retour ligne */
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  transition: background 0.3s, color 0.3s;
+  align: right
+}
+
+.navbar .nav-links a:hover {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+}
+
+/* --- Contenu principal --- */
+.section {
+  max-width: 1200px;
+  margin: 100px auto 2rem auto; /* marge top = navbar */
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* --- Table --- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: #fff;
+}
+th, td {
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  text-align: left;
+}
+th {
+  background: #f0f3f7;
+  color: #1f3c63;
+}
+
+/* --- Boutons --- */
+button, select, input {
+  padding: 0.4rem 0.8rem;
+  margin: 0.3rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: 0.3s;
+}
+button {
+  background: #1f3c63;
+  color: #fff;
+  border: none;
+}
+button:hover {
+  background: #2f4d82;
+}
+
+/* --- Alertes --- */
+#alertList li {
+  margin-bottom: 0.3rem;
+  color: #e74c3c;
+  font-weight: 500;
+}
+
+/* --- Graphiques --- */
+canvas {
+  width: 100%;
+  max-width: 1200px;
+  height: 400px;
+  margin-top: 1rem;
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.5rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logo"><img src="https://i.postimg.cc/RCdvV8Pj/Moniteo-20260115-214112-0000-removebg-preview.png" alt="Logo"></div>
+  <div class="nav-links">
+    <a href="index.html">Acceuil</a>
+    <a href="sales.html">Ventes</a>
+    <a href="inventory.html">Inventaire</a>
+    <a href="staff.html">Staff</a>
+    <a href="reporting.html">Reporting</a>
+    <a href="history.html">Historique</a>
+    <a href="expenses.html">Depenses</a>
+  </div>
+</nav>
+
+<div class="section">
+<h2>Gestion des Ventes</h2>
+
+<div>
+  Devise: 
+  <select id="currencySelect">
+    <option value="€">€ Euro</option>
+    <option value="$">$ Dollar</option>
+    <option value="£">£ Livre</option>
+    <option value="FC">FC Franc</option>
+  </select>
+</div>
+
+<div>
+  <button onclick="addRow()">Ajouter Vente</button>
+  <button onclick="deleteSelectedRow()">Supprimer Ligne</button>
+  <button onclick="clearTable()">Nettoyer</button>
+  <button onclick="undo()">Annuler</button>
+  <button onclick="closeDay()">Clôturer Journée</button>
+  <input type="file" id="importSales" accept=".xlsx,.xls"/>
+  <button onclick="exportExcel()">Exporter Excel</button>
+  <button onclick="exportPDF('corporate')">Exporter PDF</button>
+</div>
+
+<div>Filtrer par produit: <input type="text" id="filterProduct" oninput="filterTable()" placeholder="Nom du produit"></div>
+
+<table>
+<thead>
+<tr>
+  <th>Sélect</th>
+  <th>Produit</th>
+  <th>Date</th>
+  <th>Prix Achat</th>
+  <th>Prix Vente</th>
+  <th>Quantité</th>
+  <th>Bénéfice</th>
+</tr>
+</thead>
+<tbody id="salesTable"></tbody>
+</table>
+
+<div style="margin-top:1rem;font-weight:bold;">
+Total Ventes: <span id="totalSales">0</span> |
+Total Bénéfices: <span id="totalProfit">0</span> |
+Total Produits: <span id="totalQuantity">0</span>
+</div>
+
+<h3>Alertes</h3>
+<ul id="alertList"></ul>
+
+<h3>Graphiques</h3>
+<canvas id="salesChart"></canvas>
+<canvas id="profitChart"></canvas>
+
+</div>
+
+<script>
+// --- Données persistantes ---
+let salesData = JSON.parse(localStorage.getItem('salesData')) || [];
+let inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
+let historyData = JSON.parse(localStorage.getItem('historyData')) || [];
+let undoStack = [];
+let currentCurrency = localStorage.getItem('currency') || '€';
+document.getElementById('currencySelect').value = currentCurrency;
+
+// --- Devise ---
+document.getElementById('currencySelect').addEventListener('change', e=>{
+    currentCurrency = e.target.value;
+    localStorage.setItem('currency', currentCurrency);
+    renderTable();
+});
+
+// --- Ajouter ligne ---
+function addRow(){
+    saveUndo();
+    salesData.push({product:'', date:new Date().toISOString().slice(0,10), buy:0, sell:0, qty:0});
+    renderTable();
+}
+
+// --- Supprimer ligne sélectionnée ---
+function deleteSelectedRow(){
+    saveUndo();
+    const table = document.getElementById('salesTable');
+    table.querySelectorAll('tr').forEach((tr,i)=>{
+        const checkbox = tr.querySelector('input[type="checkbox"]');
+        if(checkbox && checkbox.checked) salesData.splice(i,1);
+    });
+    renderTable();
+}
+
+// --- Nettoyer tableau ---
+function clearTable(){
+    if(confirm("Supprimer toutes les ventes ?")){
+        saveUndo();
+        salesData=[];
+        renderTable();
+    }
+}
+
+// --- Undo ---
+function saveUndo(){
+    undoStack.push(JSON.stringify(salesData));
+    if(undoStack.length>20) undoStack.shift();
+}
+function undo(){
+    if(undoStack.length>0){
+        salesData = JSON.parse(undoStack.pop());
+        renderTable();
+    } else alert("Rien à annuler !");
+}
+
+// --- Import Excel ---
+document.getElementById('importSales').addEventListener('change', function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = evt=>{
+        const wb = XLSX.read(evt.target.result,{type:'binary'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws,{header:1});
+        saveUndo();
+        rows.forEach((row,i)=>{
+            if(i===0) return; // header
+            const [product, date, buy, sell, qty] = row;
+            salesData.push({product, date: date||new Date().toISOString().slice(0,10), buy:parseFloat(buy)||0, sell:parseFloat(sell)||0, qty:parseInt(qty)||0});
+            // MAJ inventaire
+            const inv = inventoryData.find(p=>p.product===product);
+            if(inv) inv.qty -= parseInt(qty)||0;
+            else inventoryData.push({product, qty:0, buy:parseFloat(buy)||0, sell:parseFloat(sell)||0});
+        });
+        localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+        renderTable();
+    };
+    reader.readAsBinaryString(file);
+});
+
+// --- Filtrer tableau ---
+function filterTable(){
+    const filter = document.getElementById('filterProduct').value.toLowerCase();
+    renderTable(filter);
+}
+
+// --- Calcul totaux ---
+function calculateTotals(){
+    let totalSales=0, totalProfit=0, totalQty=0;
+    salesData.forEach(s=>{
+        const profit = (s.sell - s.buy) * s.qty;
+        totalSales += s.sell * s.qty;
+        totalProfit += profit;
+        totalQty += s.qty;
+    });
+    document.getElementById('totalSales').textContent = totalSales.toFixed(2)+" "+currentCurrency;
+    document.getElementById('totalProfit').textContent = totalProfit.toFixed(2)+" "+currentCurrency;
+    document.getElementById('totalQuantity').textContent = totalQty;
+}
+
+// --- Alertes stock faible ---
+function updateAlerts(){
+    const alertList = document.getElementById('alertList');
+    alertList.innerHTML = '';
+    inventoryData.forEach(i=>{
+        if(i.qty <= 5 && i.qty>0) alertList.innerHTML += `<li>⚠️ Stock faible pour ${i.product}: ${i.qty}</li>`;
+        if(i.qty<=0) alertList.innerHTML += `<li>⚠️ Rupture de stock pour ${i.product}</li>`;
+    });
+}
+
+// --- Rendu tableau ---
+function renderTable(filter=''){
+    const tbody = document.getElementById('salesTable');
+    tbody.innerHTML='';
+    salesData.forEach((s)=>{
+        if(s.product.toLowerCase().includes(filter)){
+            const tr = document.createElement('tr');
+            const profit = (s.sell - s.buy) * s.qty;
+            tr.innerHTML = `<td><input type="checkbox"></td>
+                            <td contenteditable="true">${s.product}</td>
+                            <td contenteditable="true">${s.date}</td>
+                            <td contenteditable="true">${s.buy}</td>
+                            <td contenteditable="true">${s.sell}</td>
+                            <td contenteditable="true">${s.qty}</td>
+                            <td>${profit.toFixed(2)}</td>`;
+            tbody.appendChild(tr);
+        }
+    });
+    calculateTotals();
+    updateAlerts();
+    saveLocal();
+    updateCharts();
+}
+
+// --- Sauvegarde localStorage ---
+function saveLocal(){
+    const tableRows = document.querySelectorAll('#salesTable tr');
+    tableRows.forEach((tr,i)=>{
+        salesData[i].product = tr.children[1].textContent;
+        salesData[i].date = tr.children[2].textContent;
+        salesData[i].buy = parseFloat(tr.children[3].textContent)||0;
+        salesData[i].sell = parseFloat(tr.children[4].textContent)||0;
+        salesData[i].qty = parseInt(tr.children[5].textContent)||0;
+    });
+    localStorage.setItem('salesData', JSON.stringify(salesData));
+}
+
+// --- Clôturer journée ---
+function closeDay(){
+    if(confirm("Clôturer la journée ? Les données seront figées.")){
+        const snapshot = {date: new Date().toISOString().slice(0,10), sales: [...salesData], currency: currentCurrency};
+        historyData.push(snapshot);
+        localStorage.setItem('historyData', JSON.stringify(historyData));
+        salesData=[];
+        localStorage.setItem('salesData', JSON.stringify(salesData));
+        alert("Journée clôturée !");
+        renderTable();
+    }
+}
+
+// --- Graphiques ---
+let salesChart, profitChart;
+function updateCharts(){
+    const ctxSales = document.getElementById('salesChart').getContext('2d');
+    const ctxProfit = document.getElementById('profitChart').getContext('2d');
+    const labels = salesData.map(s=>s.product);
+    const qtyData = salesData.map(s=>s.qty);
+    const profitData = salesData.map(s=>(s.sell-s.buy)*s.qty);
+
+    if(salesChart) salesChart.destroy();
+    salesChart = new Chart(ctxSales,{type:'bar',data:{labels,datasets:[{label:'Quantité vendue', data:qtyData, backgroundColor:'rgba(31,60,99,0.7)'}]},options:{responsive:true,plugins:{legend:{display:false}}}});
+
+    if(profitChart) profitChart.destroy();
+    profitChart = new Chart(ctxProfit,{type:'line',data:{labels,datasets:[{label:'Bénéfices', data:profitData, borderColor:'rgba(46,204,113,0.8)', fill:false, tension:0.2}]}});
+}
+
+// --- Export Excel ---
+function exportExcel(){
+    const wsData = [["Produit","Date","Prix Achat","Prix Vente","Quantité","Bénéfice"]];
+    salesData.forEach(s=>wsData.push([s.product,s.date,s.buy,s.sell,s.qty,((s.sell-s.buy)*s.qty).toFixed(2)]));
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Ventes");
+    XLSX.writeFile(wb, `ventes_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// --- Export PDF Premium / Corporate ---
+function exportPDF(style){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    const logoURL = 'https://i.postimg.cc/DwsrT2x5/Moniteo_20260115_205657_0000_removebg_preview.png';
+    const imgWidth = 50;
+    const imgHeight = 50;
+    doc.addImage(logoURL, 'PNG', pageWidth - imgWidth - 10, 0, imgWidth, imgHeight);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    const title = style === 'premium' ? "Maniteo - Rapport Ventes" : "Maniteo - Rapport Ventes";
+    doc.text(title, 20, 20);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("Date: "+new Date().toLocaleDateString(), 14, 27);
+
+    const head = [["Produit","Date","Prix Achat","Prix Vente","Quantité","Bénéfice"]];
+    const body = salesData.map(s=>[s.product,s.date,s.buy,s.sell,s.qty,((s.sell-s.buy)*s.qty).toFixed(2)]);
+
+    const theme = style === 'premium' ? 'grid' : 'striped';
+
+    doc.autoTable({
+        head, body, startY: 40,
+        theme: theme,
+        headStyles: {fillColor: style==='premium'?[31,60,99]:[200,200,200], textColor:255, fontStyle:'bold'},
+        bodyStyles: {textColor:20},
+        alternateRowStyles: {fillColor: style==='premium'?[240,240,240]:[245,245,245]},
+        styles: {fontSize:10}
+    });
+
+    doc.save(`ventes_${style}_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+// --- Édition directe déclenche save ---
+document.getElementById('salesTable').addEventListener('input', saveLocal);
+
+// --- Initialisation ---
+renderTable();
+</script>
+</body>
+</html>

@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moniteo Umbrella - Dashboard</title>
+<link href="https://cdn.jsdelivr.net/npm/chart.js" rel="stylesheet">
+<link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+<style>
+/* ===== GLOBAL ===== */
+*{box-sizing:border-box;margin:0;padding:0;font-family:"Inter",sans-serif;}
+body{display:flex;background:#f4f6f8;color:#1f2937;line-height:1.4;font-size:0.9rem;}
+a{text-decoration:none;color:inherit;}
+h2,h3{font-weight:600;margin-bottom:0.5rem;}
+
+/* ===== SIDEBAR ===== */
+.sidebar{
+  position:fixed;
+  top:0;
+  left:0;
+  width:250px;
+  height:100%;
+  background:#1f3c63;
+  display:flex;
+  flex-direction:column;
+  padding-top:1.5rem;
+  box-shadow:2px 0 6px rgba(0,0,0,0.1);
+  transition:width 0.3s, all 0.3s;
+  z-index:1000;
+  font-size:0.85rem;
+}
+.sidebar.collapsed{
+  width:60px;
+}
+
+/* Logo */
+.sidebar .logo{
+  display:flex;
+  justify-content:center;
+  margin-bottom:1.5rem;
+  transition:all 0.3s;
+}
+.sidebar .logo img{
+  height:250px;
+  width:auto;
+  display:block;
+  transition:all 0.3s;
+}
+.sidebar.collapsed .logo img{
+  height:50px;
+  margin:0 auto;
+}
+
+/* Links */
+.sidebar a{
+  display:flex;
+  align-items:center;
+  padding:0.6rem 0.8rem;
+  margin:0.2rem 0;
+  color:#e5e7eb;
+  font-weight:1000;
+  border-radius:8px;
+  font-size:0.85rem;
+  transition:all 0.3s;
+}
+.sidebar a:hover{
+  background:rgba(255,255,255,0.15);
+}
+.sidebar.collapsed a{
+  justify-content:center;
+  font-size:0;
+  padding:0.6rem 0;
+}
+.sidebar.collapsed a span{
+  display:none;
+}
+
+/* Toggle button */
+.sidebar .toggle-btn{
+  margin-top:auto;
+  cursor:pointer;
+  padding:0.8rem;
+  text-align:center;
+  background:rgba(255,255,255,0.1);
+  border-top:1px solid rgba(255,255,255,0.2);
+  font-size:1.2rem;
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content{
+  margin-left:250px;
+  width: calc(100% - 250px);
+  padding:1rem 1.5rem;
+  transition:margin-left 0.3s, width 0.3s;
+}
+
+/* Si sidebar rétractée */
+.sidebar.collapsed ~ .main-content{
+  margin-left:60px;
+  width:calc(100% - 60px);
+}
+
+/* ===== TOP NAVBAR ===== */
+.top-navbar{
+  position:sticky;
+  top:0;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:0.5rem 1rem;
+  background:#1f3c63;
+  color:#fff;
+  box-shadow:0 2px 6px rgba(0,0,0,.1);
+  z-index:500;
+  margin-bottom:1rem;
+  border-radius:8px;
+  font-size:0.9rem;
+  transition:all 0.3s;
+}
+.top-navbar .actions button{
+  margin-left:0.3rem;
+  padding:0.35rem 0.7rem;
+  border:none;
+  border-radius:6px;
+  background:#2f4d82;
+  color:#fff;
+  cursor:pointer;
+  transition:0.3s;
+  font-size:0.85rem;
+}
+.top-navbar .actions button:hover{
+  background:#3b5a9c;
+}
+
+/* ===== CARDS ===== */
+.cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:0.6rem;
+  margin-bottom:1rem;
+  font-size:0.85rem;
+}
+.card{
+  background:#fff;
+  padding:0.8rem;
+  border-radius:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.08);
+  transition:all 0.3s;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
+  min-height:220px;
+}
+.card:hover{
+  box-shadow:0 6px 14px rgba(0,0,0,0.12);
+}
+.card canvas{
+  width:100% !important;
+  height:180px !important;
+  max-height:180px;
+  object-fit:contain;
+}
+
+/* ===== TABLE ===== */
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:0.5rem;
+  background:#fff;
+  font-size:0.85rem;
+  border-radius:8px;
+  overflow:hidden;
+  box-shadow:0 2px 6px rgba(0,0,0,0.05);
+}
+th,td{
+  padding:0.5rem;
+  text-align:left;
+  border-bottom:1px solid #e2e8f0;
+}
+th{
+  background:#f0f3f7;
+  color:#1f3c63;
+  font-weight:600;
+}
+
+/* ===== SELECT & LABEL ===== */
+label{
+  font-weight:500;
+  font-size:0.85rem;
+  margin-right:0.5rem;
+}
+select{
+  margin-left:0.3rem;
+  padding:0.25rem 0.5rem;
+  border-radius:5px;
+  border:1px solid #e2e8f0;
+  font-size:0.85rem;
+  background:#fff;
+  color:#1f3c63;
+  transition:all 0.3s;
+}
+
+/* ===== KPI CARDS ===== */
+.dashboard-header{
+  display:flex;
+  flex-wrap:wrap;
+  gap:0.8rem;
+  margin-bottom:1rem;
+  justify-content:space-between;
+}
+#kpiCards{
+  flex:1;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:0.6rem;
+}
+#kpiCards .card{
+  background:#fff;
+  padding:0.8rem;
+  border-radius:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.08);
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  min-height:100px;
+  transition:all 0.3s;
+}
+#kpiCards .card:hover{
+  box-shadow:0 6px 14px rgba(0,0,0,0.12);
+}
+#kpiCards .card h3{
+  font-size:0.9rem;
+  font-weight:600;
+  color:#1f3c63;
+  margin-bottom:0.3rem;
+}
+#kpiCards .card p{
+  font-size:1.1rem;
+  font-weight:700;
+  color:#2f4d82;
+}
+
+/* ===== ALERTS ===== */
+#alertsCard{
+  background:#fff;
+  padding:0.8rem;
+  border-radius:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.08);
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  min-height:100px;
+  transition:all 0.3s;
+}
+#alertsCard ul{
+  list-style:none;
+  padding-left:0.8rem;
+  margin-top:0.3rem;
+}
+#alertsCard li{
+  margin-bottom:0.3rem;
+  font-weight:500;
+  color:#e74c3c;
+  display:flex;
+  align-items:center;
+  gap:0.4rem;
+}
+
+/* ===== USER SECTION ===== */
+.user-section{
+  background:#fff;
+  padding:0.8rem;
+  border-radius:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.08);
+  margin-bottom:1rem;
+  transition:all 0.3s;
+}
+.user-section h3{
+  margin-bottom:0.5rem;
+  color:#1f3c63;
+}
+.user-section button{
+  background:#2f4d82;
+  color:#fff;
+  padding:0.35rem 0.7rem;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  transition:0.3s;
+  margin-top:0.3rem;
+}
+.user-section button:hover{
+  background:#3b5a9c;
+}
+/* ===== STAFF CARD ===== */
+#staffCard {
+  background:#fff;
+  padding:0.8rem;
+  border-radius:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.08);
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  min-height:100px;
+  cursor:pointer;
+  transition:all 0.3s;
+
+  /* NOUVEAU */
+  margin-bottom:1.6rem; /* espace entre alert et staff */
+}
+
+#staffCard:hover{
+  box-shadow:0 6px 14px rgba(0,0,0,0.12);
+}
+#staffCard h3{
+  font-size:0.9rem;
+  font-weight:600;
+  color:#1f3c63;
+  margin-bottom:0.3rem;
+}
+#staffCard p{
+  font-size:1.1rem;
+  font-weight:700;
+  color:#2f4d82;
+}
+/* ===== RESPONSIVE ===== */
+@media(max-width:1024px){
+  .sidebar{width:60px;}
+  .main-content{margin-left:60px;width:calc(100% - 60px);}
+  .dashboard-header{flex-direction:column;gap:0.5rem;}
+  #alertsCard{max-width:100%;}
+}
+@media(max-width:768px){
+  .cards{grid-template-columns:repeat(auto-fit,minmax(120px,1fr));}
+  .top-navbar{flex-direction:column;align-items:flex-start;gap:0.4rem;}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo"><img src="https://i.postimg.cc/RCdvV8Pj/Moniteo_20260115_214112_0000_removebg_preview.png" alt="Logo"></div>
+  <a href="index.html">Accueil</a>
+  <a href="sales.html">Ventes</a>
+  <a href="inventory.html">Inventaire</a>
+  <a href="expenses.html">Dépenses</a>
+  <a href="staff.html">Staff</a>
+  <a href="reporting.html">Reporting</a>
+  <a href="history.html">Historique</a>
+  <div class="toggle-btn">≡</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+
+  <!-- TOP NAVBAR -->
+  <div class="top-navbar">
+    <div>Tableau de bord</div>
+    <div class="actions">
+      <button onclick="exportDashboard()">Exporter PDF</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- SECTION UTILISATEUR / ADMIN -->
+<div class="user-section" id="accountSection">
+  <h3>Mon Compte</h3>
+  <div id="accountForm">
+    <label for="accountName">Nom :</label>
+    <input type="text" id="accountName" placeholder="Votre nom">
+    <br><br>
+    <label for="accountDOB">Date de naissance :</label>
+    <input type="date" id="accountDOB">
+    <br><br>
+    <button id="saveAccountBtn">Sauvegarder</button>
+  </div>
+  <div id="accountDisplay" style="display:none;">
+    <p id="displayName"></p>
+    <p id="displayDOB"></p>
+  </div>
+  <p id="accountMsg" style="margin-top:0.5rem;"></p>
+</div>
+    
+  <div class="cards" id="kpiCards">
+  <div class="card">
+    <h3>CA Total</h3>
+    <p id="totalCA">0 €</p>
+  </div>
+  <div class="card">
+    <h3>Bénéfice Net</h3>
+    <p id="totalProfit">0 €</p>
+  </div>
+  <div class="card">
+    <h3>Quantité Vendue</h3>
+    <p id="totalQty">0</p>
+  </div>
+  <div class="card">
+    <h3>Produits en Stock</h3>
+    <p id="totalStock">0</p>
+  </div>
+  <div class="card">
+    <h3>Dépenses Totales</h3>
+    <p id="totalExpenses">0 €</p>
+  </div>
+</div>
+    
+  <!-- CARDS GRAPHIQUES -->
+  <div class="cards">
+    <div class="card">
+      <h3>Ventes par Produit</h3>
+      <canvas id="topProductsChart"></canvas>
+    </div>
+    <div class="card">
+      <h3>Ventes par Jour</h3>
+      <canvas id="salesByDayChart"></canvas>
+    </div>
+    <div class="card">
+      <h3>Dépenses par Catégorie</h3>
+      <canvas id="expensesChart"></canvas>
+    </div>
+  </div>
+<div class="card" onclick="window.location.href='staff.html'" style="cursor:pointer;">
+  <h3>Employés</h3>
+  <p id="totalStaff">0</p>
+</div>
+    
+  <!-- ALERTS & KPI -->
+  <div class="card" id="alertsCard">
+    <h3>Alertes & KPI</h3>
+    <ul id="alertList"></ul>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+<script>
+// --- Sidebar toggle ---
+const sidebar = document.querySelector('.sidebar');
+const mainContent = document.querySelector('.main-content');
+const toggleBtn = document.querySelector('.sidebar .toggle-btn');
+
+toggleBtn.addEventListener('click', () => {
+  sidebar.classList.toggle('collapsed');
+  if(sidebar.classList.contains('collapsed')){
+    mainContent.style.marginLeft = '60px';
+    mainContent.style.width = 'calc(100% - 60px)';
+  } else {
+    mainContent.style.marginLeft = '250px';
+    mainContent.style.width = 'calc(100% - 250px)';
+  }
+});
+
+// --- Devise dynamique depuis sales.html ---
+let dashboardCurrency = localStorage.getItem('currentCurrency')||'EUR';
+
+// --- Récupérer les données ---
+function getInventory(){ return JSON.parse(localStorage.getItem('inventoryData'))||[]; }
+function getSales(){ return JSON.parse(localStorage.getItem('salesData'))||[]; }
+function getExpenses(){ return JSON.parse(localStorage.getItem('expensesData'))||[]; }
+
+// --- Graphiques Chart.js ---
+const topProductsChart=new Chart(document.getElementById('topProductsChart'),{
+  type:'bar',data:{labels:[],datasets:[{label:'Ventes',data:[],backgroundColor:'#1f3c63'}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
+});
+const salesByDayChart=new Chart(document.getElementById('salesByDayChart'),{
+  type:'line',data:{labels:[],datasets:[{label:'CA',data:[],borderColor:'#2f4d82',fill:false}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
+});
+const expensesChart=new Chart(document.getElementById('expensesChart'),{
+  type:'doughnut',data:{labels:[],datasets:[{data:[],backgroundColor:['#2f4d82','#1f3c63','#3b5a9c']}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}
+});
+
+// --- Mettre à jour graphiques ---
+function updateCharts(){
+  const sales=getSales(), expenses=getExpenses(), inventory=getInventory();
+
+  // Top produits
+  const prodCounts={};
+  sales.forEach(s=>{ prodCounts[s.product]=(prodCounts[s.product]||0)+s.qty; });
+  topProductsChart.data.labels=Object.keys(prodCounts);
+  topProductsChart.data.datasets[0].data=Object.values(prodCounts);
+  topProductsChart.update();
+
+  // Ventes par jour
+  const dayCounts={};
+  sales.forEach(s=>{
+    const day=s.date.slice(0,10);
+    dayCounts[day]=(dayCounts[day]||0)+s.qty;
+  });
+  salesByDayChart.data.labels=Object.keys(dayCounts).sort();
+  salesByDayChart.data.datasets[0].data=Object.values(dayCounts);
+  salesByDayChart.update();
+
+  // Dépenses par catégorie
+  const catCounts={};
+  expenses.forEach(e=>{ catCounts[e.category]=(catCounts[e.category]||0)+e.amount; });
+  expensesChart.data.labels=Object.keys(catCounts);
+  expensesChart.data.datasets[0].data=Object.values(catCounts);
+  expensesChart.update();
+}
+
+// --- Alertes dynamiques ---
+function updateAlerts(){
+  const alertList=document.getElementById('alertList');
+  alertList.innerHTML='';
+  const inventory=getInventory();
+  const sales=getSales();
+  const expenses=getExpenses();
+  const today=(new Date()).toISOString().slice(0,10);
+
+  inventory.forEach(i=>{
+    if(i.qty<=0) alertList.innerHTML+=`<li>⚠️ Rupture de stock : ${i.product}</li>`;
+    else if(i.qty<=5) alertList.innerHTML+=`<li>⚠️ Stock faible (${i.qty}) : ${i.product}</li>`;
+  });
+
+  const totalExpToday=expenses.reduce((a,e)=>e.date===today?a+e.amount:a,0);
+  if(totalExpToday>1000) alertList.innerHTML+=`<li>⚠️ Dépenses élevées aujourd'hui : ${totalExpToday.toLocaleString('fr-FR',{style:'currency',currency:dashboardCurrency})}</li>`;
+
+  const salesToday=sales.filter(s=>s.date===today);
+  if(salesToday.length>0){
+    const top=salesToday.reduce((max,s)=>!max||s.qty>max.qty?s:max,null);
+    alertList.innerHTML+=`<li>📈 Top vente aujourd'hui : ${top.product} (${top.qty})</li>`;
+  }
+}
+
+// --- PDF Dashboard ---
+async function sendDashboardMail(){
+  const userEmail=document.getElementById('userEmail').textContent.split(':')[1]?.trim()||'';
+  if(!userEmail){alert('Connecte-toi pour envoyer le dashboard'); return;}
+  const main=document.querySelector('.main-content');
+  const canvas=await html2canvas(main);
+  const imgData=canvas.toDataURL('image/png');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p','mm','a4');
+  const ratio = canvas.width/canvas.height;
+  pdf.addImage(imgData,'PNG',10,10,190,190/ratio);
+  pdf.save(`dashboard_${new Date().toISOString().slice(0,10)}.pdf`);
+  alert(`Dashboard prêt pour ${userEmail} !`);
+}
+function updateKPI(){
+  const sales = getSales();
+  const expenses = getExpenses();
+  const inventory = getInventory();
+
+  let ca = 0, profit = 0, qty = 0;
+  sales.forEach(s=>{
+    ca += (s.sell || 0) * (s.qty || 0);
+    profit += ((s.sell || 0) - (s.buy || 0)) * (s.qty || 0);
+    qty += s.qty || 0;
+  });
+
+  let totalStock = 0;
+  inventory.forEach(i=> totalStock += i.qty || 0);
+
+  let totalExp = expenses.reduce((sum,e)=>sum+(e.amount||0),0);
+
+  document.getElementById('totalCA').textContent = ca.toLocaleString('fr-FR',{style:'currency',currency:dashboardCurrency});
+  document.getElementById('totalProfit').textContent = profit.toLocaleString('fr-FR',{style:'currency',currency:dashboardCurrency});
+  document.getElementById('totalQty').textContent = qty;
+  document.getElementById('totalStock').textContent = totalStock;
+  document.getElementById('totalExpenses').textContent = totalExp.toLocaleString('fr-FR',{style:'currency',currency:dashboardCurrency});
+}
+
+// Mettre à jour le total staff
+function updateStaffCard(){
+  const staff = JSON.parse(localStorage.getItem('staffData')) || [];
+  document.getElementById('totalStaff').textContent = staff.length;
+}
+
+// Appeler après chargement du dashboard
+updateStaffCard();
+
+// --- Appel dans initialisation ---
+updateKPI();
+
+// --- Logout (mock) ---
+function logout(){
+  alert('Déconnexion réussie !');
+  // Optionnel : supprimer les infos du compte stockées localement
+  localStorage.removeItem('currentUser');
+  // Rediriger vers la page login
+  window.location.href = 'login.html';
+}
+
+// Charger les infos du compte si déjà enregistrées
+function loadAccountInfo(){
+  const name = localStorage.getItem('loggedUserName');
+  const dob = localStorage.getItem('loggedUserDOB');
+
+  if(name && dob){
+    showAccountDisplay(name, dob);
+  } else {
+    // Sinon montrer le formulaire
+    document.getElementById('accountForm').style.display = 'block';
+    document.getElementById('accountDisplay').style.display = 'none';
+  }
+}
+
+// Fonction pour afficher les infos et cacher le formulaire
+function showAccountDisplay(name, dob){
+  document.getElementById('displayName').textContent = `Nom : ${name}`;
+  document.getElementById('displayDOB').textContent = `Date de naissance : ${dob}`;
+  document.getElementById('accountForm').style.display = 'none';
+  document.getElementById('accountDisplay').style.display = 'block';
+  document.getElementById('accountMsg').textContent = '';
+}
+
+// Événement sur le bouton sauvegarder
+document.getElementById('saveAccountBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('accountName').value.trim();
+  const dob = document.getElementById('accountDOB').value;
+  const msg = document.getElementById('accountMsg');
+
+  if(!name || !dob){
+    msg.textContent = "Veuillez remplir tous les champs";
+    msg.style.color = "red";
+    return;
+  }
+
+  // Sauvegarde dans localStorage
+  localStorage.setItem('loggedUserName', name);
+  localStorage.setItem('loggedUserDOB', dob);
+
+  // Afficher infos et cacher le formulaire
+  showAccountDisplay(name, dob);
+  msg.textContent = "Informations sauvegardées !";
+  msg.style.color = "green";
+
+  // Mettre à jour section utilisateur
+  loadUserAccount();
+});
+
+// Charger au démarrage
+loadAccountInfo();
+
+// Initialiser au chargement
+loadAccountInfo();
+
+// --- Initialisation ---
+updateCharts();
+updateAlerts();
+</script>
+</body>
+</html>
