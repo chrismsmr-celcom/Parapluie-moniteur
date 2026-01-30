@@ -1,283 +1,209 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Moniteo Umbrella - Login</title>
-<link href="https://cdn.jsdelivr.net/npm/chart.js" rel="stylesheet">
-<link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png" />
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
-<style>
-/* ===== GLOBAL ===== */
-body {
-  margin: 0;
-  font-family: "Inter", sans-serif;
-  height: 100vh;
-  display: flex;
-  background: #1f3c63;
-  color: #fff;
-  overflow: hidden;
-  position: relative;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moniteo Umbrella - Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png" />
+    <style>
+        /* ===== GLOBAL ===== */
+        body {
+            margin: 0; font-family: "Inter", sans-serif; height: 100vh;
+            display: flex; background: #1f3c63; color: #fff; overflow: hidden; position: relative;
+        }
 
-/* ===== BACKGROUND ANIMATION ===== */
-@keyframes constructionBG {
-  0% {background-position: 0 0;}
-  50% {background-position: 200px 200px;}
-  100% {background-position: 0 0;}
-}
-body::before {
-  content: "";
-  position: absolute;
-  top:0; left:0; width:100%; height:100%;
-  background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 2px, transparent 2px, transparent 10px);
-  background-size: 200% 200%;
-  animation: constructionBG 25s linear infinite;
-  z-index:0;
-}
+        /* ===== BACKGROUND ANIMATION ===== */
+        @keyframes constructionBG {
+            0% {background-position: 0 0;}
+            50% {background-position: 200px 200px;}
+            100% {background-position: 0 0;}
+        }
+        body::before {
+            content: ""; position: absolute; top:0; left:0; width:100%; height:100%;
+            background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 2px, transparent 2px, transparent 10px);
+            background-size: 200% 200%; animation: constructionBG 25s linear infinite; z-index:0;
+        }
 
-/* ===== CONTAINER FLEX ===== */
-.container {
-  display: flex;
-  flex: 1;
-  z-index: 1;
-  width: 100%;
-  justify-content: space-between;
-  align-items: center;
-  padding: 2rem;
-}
+        .container { display: flex; flex: 1; z-index: 1; width: 100%; justify-content: space-between; align-items: center; padding: 2rem; }
 
-/* ===== LEFT MARKETING ===== */
-.marketing {
-  flex: 1;
-  padding-left: 3rem;
-}
-.marketing h1 {
-  font-size: 2.2rem;
-  margin-bottom: 1rem;
-  font-weight: 700;
-}
-.marketing p {
-  font-size: 1.1rem;
-  line-height: 1.5;
-  max-width: 400px;
-  color: #cfd8f3;
-}
+        /* ===== LEFT MARKETING ===== */
+        .marketing { flex: 1; padding-left: 3rem; }
+        .marketing h1 { font-size: 2.2rem; margin-bottom: 1rem; font-weight: 700; }
+        .marketing p { font-size: 1.1rem; line-height: 1.5; max-width: 400px; color: #cfd8f3; }
 
-/* ===== LOGIN CARD ===== */
-.login-container {
-  position: relative;
-  z-index:1;
-  background: #fff;
-  color: #1f3c63;
-  padding: 3rem 2.5rem;
-  border-radius: 16px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-  width: 380px;
-  text-align: center;
-}
+        /* ===== LOGIN CARD ===== */
+        .login-container {
+            background: #fff; color: #1f3c63; padding: 2.5rem; border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3); width: 400px; text-align: center;
+        }
 
-/* LOGO */
-.login-container img {
-  width: 320px;
-  margin-bottom: 1rem;
-}
+        .login-container img { width: 280px; margin-bottom: 1rem; }
+        .login-container h2 { margin-bottom: 0.5rem; font-size: 1.6rem; font-weight: 700; }
+        .login-container p { margin-bottom: 1.5rem; font-size: 0.9rem; color: #64748b; }
 
-/* HEADER */
-.login-container h2 {
-  margin-bottom: 0.5rem;
-  font-size: 1.8rem;
-  font-weight: 700;
-}
-.login-container p {
-  margin-bottom: 1.5rem;
-  font-size: 0.95rem;
-  color: #3b5a9c;
-}
+        input {
+            width: 100%; padding: 0.8rem; margin-bottom: 1rem; border-radius: 10px;
+            border: 1px solid #e2e8f0; font-size: 1rem; box-sizing: border-box; outline: none; transition: 0.3s;
+        }
+        input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
 
-/* INPUTS */
-.login-container input[type="email"],
-.login-container input[type="text"] {
-  width: 100%;
-  padding: 0.75rem;
-  margin-bottom: 0.75rem; /* même que le bouton */
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  font-size: 1rem;
-  box-sizing: border-box; /* pour inclure le padding dans la largeur */
-}
-.login-container input::placeholder {
-  color: #999;
-}
+        button {
+            width: 100%; padding: 0.8rem; margin-bottom: 1rem; border: none; border-radius: 10px;
+            background: #1f3c63; color: #fff; font-weight: 600; cursor: pointer; transition: 0.3s;
+        }
+        button:hover { background: #334155; transform: translateY(-1px); }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
 
-/* BUTTONS */
-.login-container button {
-  width: 100%;
-  padding: 0.75rem; /* même que l'input */
-  margin-bottom: 0.75rem; /* même que l'input */
-  border: none;
-  border-radius: 8px; /* même rayon que l'input */
-  background: #1f3c63;
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.3s;
-  box-sizing: border-box; /* cohérence avec input */
-}
-.login-container button:hover {
-  background: #2f4d82;
-}
-}
-.login-container button:hover {
-  background: #2f4d82;
-}
+        #otpSection, #adminSection { 
+            display: none; border-top: 1px solid #f1f5f9; padding-top: 1.5rem; margin-top: 0.5rem; 
+        }
+        
+        .flex-row { display: flex; gap: 8px; }
+        .flex-row input { flex: 2; margin-bottom: 0; }
+        .flex-row button { flex: 1; margin-bottom: 0; font-size: 0.8rem; background: #3b82f6; }
 
-/* MESSAGES */
-#msg, #otpMsg, #adminMsg {
-  font-size: 0.9rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
+        #msg, #otpMsg, #adminMsg { font-size: 0.85rem; margin-top: 5px; font-weight: 500; }
 
-/* OTP & ADMIN */
-#otpSection, #adminSection {
-  display: none;
-  margin-top: 0.5rem;
-}
-#otpSection input, #adminSection input {
-  width: 60%;
-  padding: 0.5rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  margin-bottom: 0.5rem;
-  text-align: center;
-}
-#otpSection button, #adminSection button {
-  width: 35%;
-  margin-left: 1%;
-  padding: 0.5rem;
-  border-radius: 6px;
-  border: none;
-  background: #2f4d82;
-  color: #fff;
-  cursor: pointer;
-}
-#otpSection button:hover, #adminSection button:hover {
-  background: #3b5a9c;
-}
+        footer { position: absolute; bottom: 20px; width: 100%; text-align: center; font-size: 0.8rem; color: rgba(255,255,255,0.6); }
+        footer a { color: #fff; text-decoration: none; margin: 0 10px; opacity: 0.8; }
 
-/* ===== FOOTER ===== */
-footer {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  text-align: center;
-  padding: 0.75rem 0;
-  font-size: 0.8rem;
-  color: rgba(255,255,255,0.7);
-  z-index:1;
-}
-footer a {
-  color: rgba(255,255,255,0.7);
-  margin: 0 0.5rem;
-  text-decoration: none;
-}
-footer a:hover {
-  color: #fff;
-}
+        /* TOAST NOTIFICATION */
+        #dailyToast {
+            display:none; position: fixed; bottom: 20px; right: 20px; 
+            background: rgba(31, 60, 99, 0.95); color: white; padding: 12px 20px; 
+            border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); 
+            z-index: 10000; font-size: 0.85rem; border-left: 4px solid #3b82f6; 
+            transition: opacity 0.5s ease;
+        }
 
-/* ===== RESPONSIVE ===== */
-@media(max-width: 1024px){
-  .container { flex-direction: column; justify-content: center; align-items: center; padding: 2rem;}
-  .marketing { padding-left: 0; margin-bottom: 2rem; text-align: center;}
-}
-</style>
+        @media(max-width: 1024px){
+            .container { flex-direction: column; justify-content: center; }
+            .marketing { padding-left: 0; margin-bottom: 2rem; text-align: center; }
+            .login-container { width: 90%; max-width: 380px; }
+        }
+    </style>
 </head>
 <body>
 
 <div class="container">
-  <!-- MARKETING LEFT -->
-  <div class="marketing">
-    <h1>Suivez en temps réel votre business</h1>
-    <p>Moniteo by Umbrella vous permet de piloter vos ventes, votre inventaire et vos KPI de manière sécurisée et fluide, partout et à tout moment.</p>
-  </div>
-
-  <!-- LOGIN CARD RIGHT -->
-  <div class="login-container">
-    <img src="https://raw.githubusercontent.com/chrismsmr-celcom/Parapluie-moniteur/refs/heads/main/Moniteo_20260115_205657_0000-removebg-preview.png" alt="Logo Moniteo">
-
-    <h2>Connexion</h2>
-    <p>Accédez à votre Dashboard sécurisé</p>
-
-    <input type="email" id="loginEmail" placeholder="Votre email" required>
-    <button id="sendOTP">Envoyer le code OTP</button>
-    <div id="msg"></div>
-
-    <!-- OTP -->
-    <div id="otpSection">
-      <input type="text" id="otpInput" placeholder="Entrez le code OTP">
-      <button id="verifyOTP">Vérifier OTP</button>
-      <div id="otpMsg"></div>
+    <div class="marketing">
+        <h1 id="dynamicTitle">Suivez en temps réel votre business</h1>
+        <p>Moniteo by Umbrella vous permet de piloter vos ventes, votre inventaire et vos KPI de manière sécurisée et fluide.</p>
     </div>
 
-    <!-- ADMIN ID -->
-    <div id="adminSection">
-      <input type="text" id="adminID" placeholder="ID Admin">
-      <button id="verifyAdmin">Valider ID Admin</button>
-      <div id="adminMsg"></div>
+    <div class="login-container">
+        <img src="https://raw.githubusercontent.com/chrismsmr-celcom/Parapluie-moniteur/refs/heads/main/Moniteo_20260115_205657_0000-removebg-preview.png" alt="Logo">
+        <h2>Connexion</h2>
+        <p>Dashboard sécurisé</p>
+
+        <input type="email" id="loginEmail" placeholder="Votre email" required>
+        <button id="sendOTP">Recevoir le code par email</button>
+        <div id="msg"></div>
+
+        <div id="otpSection">
+            <div class="flex-row">
+                <input type="text" id="otpInput" placeholder="Code OTP">
+                <button id="verifyOTP">Vérifier</button>
+            </div>
+            <div id="otpMsg"></div>
+        </div>
+
+        <div id="adminSection">
+            <div class="flex-row">
+                <input type="password" id="adminID" placeholder="ID Admin">
+                <button id="verifyAdmin">Entrer</button>
+            </div>
+            <div id="adminMsg"></div>
+        </div>
     </div>
-  </div>
 </div>
 
-<!-- FOOTER -->
+<div id="dailyToast">
+    <span style="opacity: 0.8;">Clé session (4h) :</span> 
+    <b id="toastCode" style="margin-left: 8px; color: #60a5fa; letter-spacing: 1px;"></b>
+</div>
+
 <footer>
-  &copy; 2026 Moniteo by Umbrella | 
-  <a href="mention.html">Mentions légales</a> | 
-  <a href="condition.html">Conditions d'utilisation</a>
+    &copy; 2026 Moniteo by Umbrella | <a href="#">Mentions légales</a> | <a href="#">Aide</a>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 <script>
-emailjs.init('aXnSd5I8CQ596HHFa');
+    emailjs.init('aXnSd5I8CQ596HHFa');
 
-let generatedOTP='', otpExpiry=0, otpAttempts=0, cooldown=false;
-const MAX_OTP_ATTEMPTS=3, COOLDOWN_TIME=60, adminSecret="ADMIN123";
+    // --- CONFIGURATION SÉCURITÉ TEMPORELLE (Rotation 4h) ---
+    const baseSecret = "MONI"; 
 
-function generateOTP(){ return Math.floor(100000 + Math.random()*900000).toString(); }
-function getExpiry(minutes=15){ otpExpiry=Date.now()+minutes*60000; return new Date().toLocaleTimeString(); }
-function startCooldown(btn){ cooldown=true; let remaining=COOLDOWN_TIME; btn.disabled=true; const interval=setInterval(()=>{ btn.textContent=`Réessayez dans ${remaining}s`; remaining--; if(remaining<0){ clearInterval(interval); btn.textContent="Envoyer le code OTP"; btn.disabled=false; cooldown=false;} },1000); }
+    function getTimedCode() {
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        // On divise la journée en tranches de 4 heures (0-3, 4-7, 8-11, etc.)
+        const period = Math.floor(now.getHours() / 4); 
+        return baseSecret + day + "P" + period;
+    }
 
-document.getElementById('sendOTP').addEventListener('click', ()=>{
-  if(cooldown) return;
-  const email=document.getElementById('loginEmail').value.trim();
-  const msg=document.getElementById('msg'); const btn=document.getElementById('sendOTP');
-  if(!email){ msg.textContent="Veuillez entrer un email valide"; msg.style.color="red"; return; }
+    window.addEventListener('DOMContentLoaded', () => {
+        const toast = document.getElementById('dailyToast');
+        const toastCode = document.getElementById('toastCode');
+        toastCode.textContent = getTimedCode();
+        toast.style.display = 'block';
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => { toast.style.display = 'none'; }, 500);
+        }, 6000); 
+    });
 
-  generatedOTP=generateOTP(); getExpiry();
+    // --- LOGIQUE METIER ---
+    const settings = JSON.parse(localStorage.getItem('appSettings')) || { name: "Votre Business" };
+    if(settings.name) document.getElementById('dynamicTitle').textContent = `Pilotez ${settings.name} en temps réel`;
 
-  emailjs.send('service_nhnfos8','template_6gn4r8h',{ email, passcode: generatedOTP, time: new Date().toLocaleTimeString()})
-  .then(()=>{ msg.textContent="Code OTP envoyé sur votre email"; msg.style.color="green"; document.getElementById('otpSection').style.display='block'; otpAttempts=0; startCooldown(btn); })
-  .catch(err=>{ console.error(err); msg.textContent="Erreur lors de l’envoi du mail"; msg.style.color="red"; });
-});
+    let generatedOTP='', otpExpiry=0, cooldown=false;
+    const COOLDOWN_TIME=60;
 
-document.getElementById('verifyOTP').addEventListener('click', ()=>{
-  const input=document.getElementById('otpInput').value.trim();
-  const msg=document.getElementById('otpMsg');
-  if(Date.now()>otpExpiry){ msg.textContent="Code expiré. Recommencez."; msg.style.color="red"; return; }
-  otpAttempts++; if(otpAttempts>MAX_OTP_ATTEMPTS){ msg.textContent="Nombre max d'essais atteint. Recommencez."; msg.style.color="red"; return; }
-  if(input===generatedOTP){ msg.textContent="OTP correct !"; msg.style.color="green"; document.getElementById('adminSection').style.display='block'; }
-  else{ msg.textContent=`OTP incorrect (${otpAttempts}/${MAX_OTP_ATTEMPTS})`; msg.style.color="red"; }
-});
+    document.getElementById('sendOTP').addEventListener('click', ()=>{
+        if(cooldown) return;
+        const email = document.getElementById('loginEmail').value.trim();
+        const msg = document.getElementById('msg');
+        if(!email || !email.includes('@')){ msg.textContent="Email invalide"; msg.style.color="red"; return; }
 
-document.getElementById('verifyAdmin').addEventListener('click', ()=>{
-  const input=document.getElementById('adminID').value.trim();
-  const msg=document.getElementById('adminMsg');
-  if(input===adminSecret){ msg.textContent="Connexion Admin réussie ! Redirection…"; msg.style.color="green"; setTimeout(()=>{ window.location.href="dashboard.html"; },1000);}
-  else{ msg.textContent="ID Admin incorrect !"; msg.style.color="red"; }
-});
+        generatedOTP = Math.floor(100000 + Math.random()*900000).toString();
+        otpExpiry = Date.now() + 15 * 60000;
+
+        emailjs.send('service_nhnfos8','template_6gn4r8h',{ 
+            email: email, passcode: generatedOTP, time: new Date().toLocaleTimeString() 
+        })
+        .then(()=>{ 
+            msg.textContent="Code envoyé !"; msg.style.color="green";
+            document.getElementById('otpSection').style.display='block';
+            startCooldown(document.getElementById('sendOTP'));
+        });
+    });
+
+    function startCooldown(btn){
+        cooldown=true; let remaining=COOLDOWN_TIME;
+        const interval = setInterval(()=>{
+            btn.disabled=true; btn.textContent=`Renvoyer (${remaining}s)`;
+            if(remaining-- < 0){ clearInterval(interval); btn.disabled=false; btn.textContent="Renvoyer le code OTP"; cooldown=false; }
+        },1000);
+    }
+
+    document.getElementById('verifyOTP').addEventListener('click', ()=>{
+        if(document.getElementById('otpInput').value.trim() === generatedOTP){
+            document.getElementById('otpMsg').textContent="OTP validé";
+            document.getElementById('adminSection').style.display='block';
+        }
+    });
+
+    document.getElementById('verifyAdmin').addEventListener('click', ()=>{
+        if(document.getElementById('adminID').value.trim() === getTimedCode()){
+            sessionStorage.setItem('isLogged', 'true'); 
+            window.location.href="dashboard.html";
+        } else {
+            document.getElementById('adminMsg').textContent="Clé expirée ou incorrecte";
+            document.getElementById('adminMsg').style.color="red";
+        }
+    });
 </script>
 </body>
 </html>
