@@ -1,301 +1,337 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Moniteo Umbrella</title>
-<link href="https://cdn.jsdelivr.net/npm/chart.js" rel="stylesheet">
-<link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png" />
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moniteo Umbrella - Dashboard Pro</title>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script>
+        if (sessionStorage.getItem('isLogged') !== 'true') {
+            window.location.href = "index.html";
+        }
+    </script>
 
-<style>
-/* --- Navbar Premium --- */
-.navbar {
-  position: fixed;           /* reste visible au scroll */
-  top: 0;
-  left: 0;
-  width: 100%;
-  display: flex;
-  justify-content: flex-start; /* logo à gauche, liens après */
-  align-items: center;
-  padding: 0.8rem 2rem;      /* compact mais respirant */
-  background: #1f3c63;       /* bleu premium */
-  color: #fff;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2); /* plus “premium” */
-  z-index: 999;
-  min-height: 80px;
-  max-height: 80px;
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Couleurs pour le Mode Sombre */
+body.dark-mode {
+    --bg-body: #0f172a;       /* Fond sombre */
+    --bg-card: #1e293b;       /* Cartes sombres */
+    --text-main: #f1f5f9;     /* Texte blanc/gris clair */
+    --text-light: #94a3b8;    /* Texte secondaire gris */
+    --border-soft: #334155;   /* Bordures discrètes */
 }
 
-/* --- Logo --- */
-.navbar .logo {
-  display: flex;
-  align-items: center;
-  margin-right: 2rem;        /* espace avec les liens */
-}
-.navbar .logo img {
-  max-height: 250px;           /* s’adapte à la navbar */
-  width: auto;                /* garde les proportions */
-  display: block;
+/* On force le changement de couleur sur les éléments critiques */
+body.dark-mode .card, 
+body.dark-mode .header-flex {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+    border-color: var(--border-soft);
 }
 
-/* --- Liens --- */
-.navbar .nav-links {
-  display: flex;
-  gap: 1.5rem;               /* espacement régulier */
-  flex-wrap: wrap;            /* passe à la ligne si besoin */
-  overflow-x: auto;           /* scroll horizontal si trop petit */
-  -webkit-overflow-scrolling: touch; /* smooth scroll mobile */
+body.dark-mode input, 
+body.dark-mode select {
+    background-color: #0f172a;
+    color: white;
+    border-color: var(--border-soft);
 }
+        /* --- VARIABLES ET THÈMES --- */
+        :root {
+            --primary:#1f3c63; --secondary:#3b82f6; --success:#10b981; --danger:#ef4444;
+            --text-main:#1e293b; --text-light:#64748b; --bg-body:#f1f5f9; --bg-card:#ffffff;
+            --border-soft:#e2e8f0; --sidebar-w:260px;
+        }
+        body.dark {
+            --bg-body:#0f172a; --bg-card:#1e293b; --text-main:#e5e7eb; --text-light:#94a3b8; --border-soft:#334155;
+        }
 
-.navbar .nav-links a {
-  color: #e5e7eb;
-  text-decoration: none;
-  font-weight: 700;
-  white-space: nowrap;        /* empêche retour ligne */
-  padding: 0.4rem 0.6rem;
-  border-radius: 6px;
-  transition: background 0.3s, color 0.3s;
-  align: right
-}
+        /* --- RESET ET BASE --- */
+        * { margin:0; padding:0; box-sizing:border-box; font-family:Inter,sans-serif; }
+        
+        body { 
+            display:flex; 
+            height: 100vh;
+            overflow: hidden; 
+            background:var(--bg-body); 
+            color:var(--text-main); 
+            transition: 0.3s; 
+        }
 
-.navbar .nav-links a:hover {
-  background: rgba(255,255,255,0.15);
-  color: #fff;
-}
+        .icon { 
+            width: 20px; 
+            height: 20px; 
+            min-width: 20px; 
+            stroke: currentColor; 
+            stroke-width: 2; 
+            fill: none; 
+        }
 
-/* --- Contenu principal --- */
-.section {
-  max-width: 1200px;
-  margin: 100px auto 2rem auto; /* marge top = navbar */
-  padding: 1.5rem;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
+        /* --- SIDEBAR --- */
+        .sidebar {
+            position: relative; 
+            width: var(--sidebar-w); 
+            height: 100vh; 
+            background: var(--primary);
+            color: #fff; 
+            padding: 1rem; 
+            display: flex; 
+            flex-direction: column; 
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
 
-/* --- Table --- */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-  background: #fff;
-}
-th, td {
-  padding: 0.5rem;
-  border: 1px solid #e2e8f0;
-  text-align: left;
-}
-th {
-  background: #f0f3f7;
-  color: #1f3c63;
-}
+        .sidebar.collapsed { width: 80px; }
+        .sidebar.collapsed span, 
+        .sidebar.collapsed .logo-full { display: none; }
+        .sidebar.collapsed .logo-short { display: block; }
 
-/* --- Boutons --- */
-button, select, input {
-  padding: 0.4rem 0.8rem;
-  margin: 0.3rem;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-  cursor: pointer;
-  transition: 0.3s;
-}
-button {
-  background: #1f3c63;
-  color: #fff;
-  border: none;
-}
-button:hover {
-  background: #2f4d82;
-}
+        .logo-box { 
+            padding: 1rem 0; 
+            text-align: center; 
+            border-bottom: 1px solid rgba(255,255,255,.1); 
+            margin-bottom: 1.5rem; 
+        }
 
-/* --- Alertes --- */
-#alertList li {
-  margin-bottom: 0.3rem;
-  color: #e74c3c;
-  font-weight: 500;
-}
+        .logo-full { width: 140px; height: auto; transition: 0.3s; }
+        .logo-short { display: none; width: 70px; margin: 0 auto; transition: 0.3s; }
 
-/* --- Graphiques --- */
-canvas {
-  width: 100%;
-  max-width: 1200px;
-  height: 400px;
-  margin-top: 1rem;
-  border-radius: 12px;
-  background: #fff;
-  padding: 0.5rem;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-}
-</style>
+        .nav-links { list-style:none; flex:1; overflow-y: auto; }
+        .nav-links a {
+            display:flex; align-items:center; gap:12px; padding:12px 15px; border-radius:10px;
+            text-decoration:none; color:rgba(255,255,255,.7); font-size:.9rem; transition:.2s;
+            border-left: 3px solid transparent;
+        }
+        .nav-links a:hover, .nav-links a.active { 
+            background:rgba(255,255,255,0.15); 
+            color:#fff; 
+            border-left: 3px solid var(--secondary);
+        }
+
+        /* --- CONTENU PRINCIPAL --- */
+        .main-content { 
+            flex-grow: 1;
+            height: 100vh;
+            overflow-y: auto; 
+            padding: 2rem; 
+            transition: .3s; 
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .header-top { 
+            display:flex; justify-content:space-between; align-items:center; 
+            background:var(--bg-card); padding:1rem 1.5rem; border-radius:12px; 
+            box-shadow:0 1px 3px rgba(0,0,0,.1); margin-bottom:2rem; 
+        }
+
+        .btn-icon { background:none; border:1px solid var(--border-soft); padding:8px; border-radius:8px; cursor:pointer; color:var(--text-main); }
+        .btn-primary { background:var(--primary); color:#fff; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:600; }
+
+        .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1.5rem; margin-bottom:2rem; }
+        .card { background:var(--bg-card); padding:1.5rem; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border-soft); }
+        
+        .kpi-card h3 { font-size:.75rem; text-transform:uppercase; color:var(--text-light); letter-spacing: 1px; }
+        .kpi-card .val { font-size:1.8rem; font-weight:700; display:block; margin-top:5px; }
+
+        .charts-row { display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:1.5rem; margin-bottom: 2rem; }
+        
+        /* --- DÉCONNEXION --- */
+        .logout-box { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem; }
+        .logout-btn {
+            display: flex; align-items: center; gap: 12px; padding: 12px 15px;
+            text-decoration: none; color: #ff6b6b; font-weight: 600; font-size: 0.9rem;
+            transition: 0.2s; border-radius: 8px;
+        }
+        .logout-btn:hover { background: rgba(239, 68, 68, 0.1); }
+
+        /* --- RESPONSIVE (Strictement identique au Dashboard) --- */
+        @media (max-width: 1024px) {
+            :root { --sidebar-w: 80px; }
+            .sidebar span, .logo-full { display: none; }
+            .sidebar .logo-short { display: block; }
+        }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; overflow-y: auto; height: auto; }
+            .sidebar { 
+                width: 100%; height: auto; position: sticky; top: 0; 
+                flex-direction: row; padding: 0.5rem; align-items: center;
+            }
+            .sidebar.collapsed { width: 100%; height: auto; }
+            .logo-box { border: none; margin: 0; padding: 0 1rem; }
+            .nav-links { display: flex; flex-direction: row; overflow-x: auto; scrollbar-width: none; }
+            .nav-links::-webkit-scrollbar { display: none; }
+            .nav-links a { padding: 8px 12px; white-space: nowrap; }
+            .nav-links span { display: none; } /* On cache le texte sur mobile pour fluidité */
+            
+            .logout-box { display: none; }
+            
+            .main-content { padding: 1rem; height: auto; }
+            .header-flex { flex-direction: column; gap: 1rem; text-align: center; }
+            .summary-banner { grid-template-columns: 1fr 1fr; gap: 10px; padding: 1rem; }
+            .summary-banner p { font-size: 1.1rem; }
+        }
+    </style>
 </head>
-
 <body>
 
-<!-- NAVBAR -->
-<nav class="navbar">
-  <div class="logo"><img src="https://github.com/chrismsmr-celcom/Parapluie-moniteur/blob/main/Moniteo_20260115_214112_0000-removebg-preview.png?raw=true" alt="Logo"></div>
-  <div class="nav-links">
-    <a href="dashboard.html">Acceuil</a>
-    <a href="sales.html">Ventes</a>
-    <a href="inventory.html">Inventaire</a>
-    <a href="staff.html">Staff</a>
-    <a href="reporting.html">Reporting</a>
-    <a href="history.html">Historique</a>
-    <a href="expenses.html">Depenses</a>
-  </div>
+<nav class="sidebar" id="sidebar">
+    <div class="logo-box">
+        <img src="https://i.postimg.cc/bJjy56Lq/Moniteo-1-removebg-preview.png" class="logo-full" alt="Moniteo">
+        <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
+    </div>   
+    <ul class="nav-links">
+        <li><a href="dashboard.html" class="active"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> <span>Accueil</span></a></li>
+        <li><a href="sales.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
+        <li><a href="inventory.html"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> <span>Inventaire</span></a></li>
+        <li><a href="expenses.html"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> <span>Dépenses</span></a></li>
+        <li><a href="staff.html"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> <span>Staff</span></a></li>
+        <li><a href="reporting.html"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> <span>Reporting</span></a></li>
+        <li><a href="history.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>Historique</span></a></li>
+        <li><a href="setting.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> <span>Paramètres</span></a></li>
+    </ul>
+    <div class="logout-box">
+        <a href="#" onclick="logout(); return false;" class="logout-btn">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span>Déconnexion</span>
+        </a>
+    </div>
 </nav>
 
-<!-- CONTENT -->
-<section class="section">
-<h2>Dépenses / Passif de l’entreprise</h2>
+<main class="main-content" id="mainContent">
+    <header class="header-top">
+        <div>
+            <h1 style="font-size: 1.4rem;">Tableau de Bord CEO</h1>
+            <p id="dateDisplay" style="color: var(--text-light); font-size: 0.85rem;"></p>
+        </div>
+        <div class="header-actions">
+            <button class="btn-icon" onclick="toggleSidebar()"><svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
+            <button class="btn-icon" onclick="toggleTheme()"><svg class="icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3"></path></svg></button>
+            <button class="btn-primary" onclick="window.print()">Exporter Rapport</button>
+        </div>
+    </header>
 
-<!-- FORM -->
-<div>
-  <input type="date" id="expenseDate">
-  <input id="expenseLabel" placeholder="Libellé dépense">
-  <select id="expenseCategory">
-    <option value="Fixe">Fixe</option>
-    <option value="Variable">Variable</option>
-    <option value="RH">RH</option>
-    <option value="Marketing">Marketing</option>
-  </select>
-  <select id="expenseSource">
-    <option value="Manuel">Manuel</option>
-    <option value="RH">RH</option>
-    <option value="Sales">Sales</option>
-  </select>
-  <input type="number" id="expenseAmount" placeholder="Montant">
-  <select id="expenseCurrency">
-    <option value="EUR">EUR €</option>
-    <option value="USD">USD $</option>
-    <option value="CDF">CDF</option>
-  </select>
-  <button onclick="addExpense()">Ajouter</button>
-  <button onclick="exportExpensesExcel()">Export Excel</button>
-  <button onclick="exportExpensesPDF()">Export PDF</button>
-</div>
+    <section class="kpi-grid">
+        <div class="card kpi-card"><h3>Chiffre d'Affaires</h3><span class="val" id="totalCA">0</span></div>
+        <div class="card kpi-card"><h3>Bénéfice</h3><span class="val" id="totalProfit" style="color: var(--success);">0</span></div>
+        <div class="card kpi-card"><h3>Stock Global</h3><span class="val" id="totalStock">0</span></div>
+        <div class="card kpi-card"><h3>Dépenses</h3><span class="val" id="totalExpenses" style="color: var(--danger);">0</span></div>
+    </section>
 
-<!-- TABLE -->
-<table>
-<thead>
-<tr>
-  <th>Date</th>
-  <th>Libellé</th>
-  <th>Catégorie</th>
-  <th>Source</th>
-  <th>Montant</th>
-  <th>Converti</th>
-  <th>Action</th>
-</tr>
-</thead>
-<tbody id="expensesTable"></tbody>
-</table>
-
-<h3 id="expensesTotal"></h3>
-</section>
+    <div class="charts-row">
+        <div class="card">
+            <h3 style="margin-bottom:1rem; font-size: 0.9rem;">Évolution des Ventes</h3>
+            <div style="height: 300px;"><canvas id="mainChart"></canvas></div>
+        </div>
+        <div class="card">
+            <h3 style="margin-bottom:1rem; font-size: 0.9rem;">Distribution du Stock</h3>
+            <div style="height: 300px;"><canvas id="stockChart"></canvas></div>
+        </div>
+    </div>
+</main>
 
 <script>
-// ================== CONFIG ==================
-const exchangeRates = { EUR:1, USD:0.92, CDF:0.00037 };
-const baseCurrency = 'EUR';
+    // 1. CHARGEMENT DES DONNÉES
+    const salesData = JSON.parse(localStorage.getItem('salesData')) || [];
+    const inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
+    const expensesData = JSON.parse(localStorage.getItem('expensesData')) || [];
+    const currency = localStorage.getItem('currency') || '€';
 
-// ================== DATA ==================
-let expenses = JSON.parse(localStorage.getItem('expensesData')) || [];
+    // 2. CALCULS KPI
+    let ca = 0, profit = 0, stockQty = 0, expenses = 0;
+    salesData.forEach(s => { ca += (s.sell * s.qty); profit += (s.sell - s.buy) * s.qty; });
+    inventoryData.forEach(i => stockQty += i.qty);
+    expensesData.forEach(e => expenses += parseFloat(e.amount || 0));
 
-// ================== UTILS ==================
-function convertToBase(amount,currency){
-  return amount * (exchangeRates[currency] || 1);
+    document.getElementById('totalCA').textContent = ca.toLocaleString() + ' ' + currency;
+    document.getElementById('totalProfit').textContent = profit.toLocaleString() + ' ' + currency;
+    document.getElementById('totalStock').textContent = stockQty.toLocaleString();
+    document.getElementById('totalExpenses').textContent = expenses.toLocaleString() + ' ' + currency;
+     // À mettre au début de vos fichiers .html (Ventes, Staff, Inventaire)
+function applyGlobalSettings() {
+    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+    
+    // 1. Appliquer le thème (Sombre/Clair)
+    if (config.darkMode) {
+        document.body.classList.add('dark-mode');
+    } else {
+        document.body.classList.remove('dark-mode');
+    }
+
+    // 2. Mettre à jour la devise globale si nécessaire
+    if (config.currency) {
+        localStorage.setItem('currency', config.currency);
+        // Si un sélecteur de devise existe sur la page, on le met à jour
+        const select = document.getElementById('currencySelect');
+        if (select) select.value = config.currency;
+    }
+
+    // 3. Mettre à jour le titre du dashboard avec le nom de l'entreprise
+    const brandName = document.querySelector('.header-flex h2');
+    if (brandName && config.name) {
+        brandName.innerHTML = `${brandName.innerText} <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
+    }
 }
 
-// ================== ADD ==================
-function addExpense(){
-  const e = {
-    id: Date.now(),
-    date: expenseDate.value,
-    label: expenseLabel.value,
-    category: expenseCategory.value,
-    source: expenseSource.value,
-    amount: parseFloat(expenseAmount.value),
-    currency: expenseCurrency.value
-  };
+// Exécuter au chargement de chaque page
+document.addEventListener('DOMContentLoaded', applyGlobalSettings);
+    // 3. GRAPHIQUES
+    new Chart(document.getElementById('mainChart'), {
+        type: 'line',
+        data: {
+            labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+            datasets: [{ label: 'CA', data: [ca*0.1, ca*0.3, ca*0.2, ca*0.5, ca*0.4, ca*0.9, ca], borderColor: '#3b82f6', tension: 0.3, fill:true, backgroundColor:'rgba(59,130,246,0.05)' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
 
-  if(!e.label || !e.amount || !e.date){
-    alert("Champs manquants");
-    return;
-  }
+    new Chart(document.getElementById('stockChart'), {
+        type: 'doughnut',
+        data: {
+            labels: inventoryData.slice(0,3).map(i => i.product || 'Art.'),
+            datasets: [{ data: inventoryData.slice(0,3).map(i => i.qty), backgroundColor: ['#1f3c63', '#3b82f6', '#10b981'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
 
-  e.amountBase = convertToBase(e.amount,e.currency);
-  expenses.push(e);
-  saveExpenses();
-}
+    // 4. FONCTIONS UI
+    document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('fr-FR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+    
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+    }
 
-// ================== DELETE ==================
-function deleteExpense(id){
-  if(!confirm("Supprimer cette dépense ?")) return;
-  expenses = expenses.filter(e=>e.id!==id);
-  saveExpenses();
-}
+    function toggleTheme() {
+        document.body.classList.toggle('dark');
+        localStorage.theme = document.body.classList.contains('dark') ? 'dark' : 'light';
+    }
 
-// ================== SAVE / RENDER ==================
-function saveExpenses(){
-  localStorage.setItem('expensesData',JSON.stringify(expenses));
-  renderExpenses();
-}
+    function handleResponsiveSidebar() {
+        const width = window.innerWidth;
+        const sb = document.getElementById('sidebar');
+        if (width <= 1024) {
+            sb.classList.add('collapsed');
+        } else {
+            sb.classList.remove('collapsed');
+        }
+    }
 
-function renderExpenses(){
-  expensesTable.innerHTML='';
-  let total = 0;
+    function logout() {
+        if(confirm("Voulez-vous vous déconnecter ?")) {
+            sessionStorage.clear();
+            window.location.href = "index.html";
+        }
+    }
 
-  expenses.forEach(e=>{
-    total += e.amountBase;
-    expensesTable.innerHTML += `
-      <tr>
-        <td>${e.date}</td>
-        <td>${e.label}</td>
-        <td>${e.category}</td>
-        <td>${e.source}</td>
-        <td>${e.amount.toFixed(2)} ${e.currency}</td>
-        <td>${e.amountBase.toFixed(2)} ${baseCurrency}</td>
-        <td><button onclick="deleteExpense(${e.id})">🗑</button></td>
-      </tr>
-    `;
-  });
-
-  expensesTotal.textContent =
-    `Total passif : ${total.toLocaleString('fr-FR',{style:'currency',currency:baseCurrency})}`;
-}
-
-// ================== EXPORT ==================
-function exportExpensesExcel(){
-  const wsData=[["Date","Libellé","Catégorie","Source","Montant","Devise","Converti"]];
-  expenses.forEach(e=>wsData.push([e.date,e.label,e.category,e.source,e.amount,e.currency,e.amountBase]));
-  const ws=XLSX.utils.aoa_to_sheet(wsData);
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,"Expenses");
-  XLSX.writeFile(wb,"expenses.xlsx");
-}
-
-function exportExpensesPDF(){
-  const {jsPDF}=window.jspdf;
-  const pdf=new jsPDF();
-  pdf.text("Rapport Dépenses",10,10);
-  let y=20;
-  expenses.forEach(e=>{
-    pdf.text(`${e.date} - ${e.label} - ${e.amountBase.toFixed(2)} ${baseCurrency}`,10,y);
-    y+=8;
-  });
-  pdf.save("expenses.pdf");
-}
-
-// ================== INIT ==================
-renderExpenses();
+    // 5. INITIALISATION
+    window.addEventListener('resize', handleResponsiveSidebar);
+    window.addEventListener('DOMContentLoaded', () => {
+        handleResponsiveSidebar();
+        if (localStorage.theme === 'dark') document.body.classList.add('dark');
+    });
 </script>
 
 </body>
