@@ -1,258 +1,393 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Moniteo Umbrella - historique</title>
-<link href="https://cdn.jsdelivr.net/npm/chart.js" rel="stylesheet">
-<link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png" />
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moniteo Umbrella - Historique Pro</title>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        if (sessionStorage.getItem('isLogged') !== 'true') {
+            window.location.href = "index.html";
+        }
+    </script>
 
-<style>
-/* --- Navbar Premium --- */
-.navbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  padding: 0.8rem 2rem;
-  background: #1f3c63;
-  color: #fff;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-  z-index: 999;
-  min-height: 80px;
-  max-height: 80px;
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    
+    <style>
+    /* Couleurs pour le Mode Sombre */
+body.dark-mode {
+    --bg-body: #0f172a;       /* Fond sombre */
+    --bg-card: #1e293b;       /* Cartes sombres */
+    --text-main: #f1f5f9;     /* Texte blanc/gris clair */
+    --text-light: #94a3b8;    /* Texte secondaire gris */
+    --border-soft: #334155;   /* Bordures discrètes */
 }
-.navbar .logo { display: flex; align-items: center; margin-right: 2rem; }
-.navbar .logo img { max-height: 250px; width: auto; display: block; }
-.navbar .nav-links { display: flex; gap: 1.5rem; flex-wrap: wrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.navbar .nav-links a { color: #e5e7eb; text-decoration: none; font-weight: 700; white-space: nowrap; padding: 0.4rem 0.6rem; border-radius: 6px; transition: background 0.3s, color 0.3s; }
-.navbar .nav-links a:hover { background: rgba(255,255,255,0.15); color: #fff; }
 
-/* --- Contenu principal --- */
-.section { max-width: 1200px; margin: 100px auto 2rem auto; padding: 1.5rem; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-th, td { padding: 0.5rem; border: 1px solid #e2e8f0; text-align: left; }
-th { background: #f0f3f7; color: #1f3c63; }
-button, select, input { padding: 0.4rem 0.8rem; margin: 0.3rem; border-radius: 6px; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.3s; }
-button { background: #1f3c63; color: #fff; border: none; }
-button:hover { background: #2f4d82; }
-#searchInput, #searchExpenses { width: 250px; margin-bottom: 0.5rem; }
+/* On force le changement de couleur sur les éléments critiques */
+body.dark-mode .card, 
+body.dark-mode .header-flex {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+    border-color: var(--border-soft);
+}
 
-/* --- Graphiques --- */
-canvas { width: 100%; max-width: 1200px; height: 400px; margin-top: 1rem; border-radius: 12px; background: #fff; padding: 0.5rem; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+body.dark-mode input, 
+body.dark-mode select {
+    background-color: #0f172a;
+    color: white;
+    border-color: var(--border-soft);
+}
+        /* --- VARIABLES ET THÈMES --- */
+        :root {
+            --primary:#1f3c63; --secondary:#3b82f6; --success:#10b981; --danger:#ef4444;
+            --text-main:#1e293b; --text-light:#64748b; --bg-body:#f1f5f9; --bg-card:#ffffff;
+            --border-soft:#e2e8f0; --sidebar-w:260px;
+        }
 
-/* --- KPI --- */
-#profitSummary, #totalExpenses { font-weight:700; font-size:1.1rem; margin-top:1rem; }
-</style>
+        /* --- RESET ET BASE --- */
+        * { margin:0; padding:0; box-sizing:border-box; font-family:Inter,sans-serif; }
+        
+        body { 
+            display:flex; 
+            height: 100vh;
+            overflow: hidden; 
+            background:var(--bg-body); 
+            color:var(--text-main); 
+            transition: 0.3s; 
+        }
+
+        .icon { 
+            width: 20px; height: 20px; min-width: 20px; 
+            stroke: currentColor; stroke-width: 2; fill: none; 
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            position: relative; width: var(--sidebar-w); height: 100vh; 
+            background: var(--primary); color: #fff; padding: 1rem; 
+            display: flex; flex-direction: column; flex-shrink: 0;
+            transition: all 0.3s ease; z-index: 1000;
+        }
+
+        .sidebar.collapsed { width: 80px; }
+        .sidebar.collapsed span, .sidebar.collapsed .logo-full { display: none; }
+        .sidebar.collapsed .logo-short { display: block; }
+
+        .logo-box { 
+            padding: 1rem 0; 
+            text-align: center; 
+            border-bottom: 1px solid rgba(255,255,255,.1); 
+            margin-bottom: 1.5rem; 
+        }
+
+        .logo-full { width: 140px; height: auto; transition: 0.3s; }
+        .logo-short { display: none; width: 70px; margin: 0 auto; transition: 0.3s; }
+
+        .nav-links { list-style:none; flex:1; overflow-y: auto; }
+        .nav-links a {
+            display:flex; align-items:center; gap:12px; padding:12px 15px; border-radius:10px;
+            text-decoration:none; color:rgba(255,255,255,.7); font-size:.9rem; transition:.2s;
+            border-left: 3px solid transparent;
+        }
+        .nav-links a:hover, .nav-links a.active { 
+            background:rgba(255,255,255,0.15); color:#fff; 
+            border-left: 3px solid var(--secondary);
+        }
+
+        /* --- CONTENU PRINCIPAL --- */
+        .main-content { 
+            flex-grow: 1; height: 100vh; overflow-y: auto; 
+            padding: 2rem; transition: .3s; 
+        }
+
+        .header-flex { 
+            display:flex; justify-content:space-between; align-items:center; 
+            background:var(--bg-card); padding:1rem 1.5rem; border-radius:12px; 
+            box-shadow:0 1px 3px rgba(0,0,0,.1); margin-bottom:2rem; 
+        }
+
+        .card { 
+            background:var(--bg-card); padding:1.5rem; border-radius:12px; 
+            box-shadow:0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border-soft); 
+            margin-bottom: 1.5rem; 
+        }
+
+        .summary-banner {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+            gap: 1.5rem; background: var(--primary); color: white;
+            padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;
+        }
+        .summary-banner small { color: rgba(255,255,255,0.7); text-transform: uppercase; font-size: 0.7rem; }
+        .summary-banner p { font-size: 1.4rem; font-weight: 700; margin-top: 5px; }
+
+        /* --- FILTRES ET ACTIONS --- */
+        .action-bar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 1.5rem; align-items: center; }
+        .filter-input { padding: 10px; border-radius: 8px; border: 1px solid var(--border-soft); font-size: 0.9rem; }
+        .date-range { display: flex; align-items: center; gap: 8px; background: white; padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border-soft); }
+
+        button { 
+            padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; 
+            font-weight: 600; font-size: 0.85rem; transition: 0.2s;
+        }
+        .btn-main { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: #fee2e2; color: var(--danger); }
+
+        /* --- TABLE --- */
+        .table-wrapper { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border-soft); background: white; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 800px; }
+        th { background: #f8fafc; color: var(--text-light); padding: 14px; text-align: left; border-bottom: 2px solid #edf2f7; }
+        td { padding: 12px; border-bottom: 1px solid #edf2f7; }
+
+        .badge-market { padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; }
+        .local { background: #dbeafe; color: #1e40af; }
+        .export { background: #fef3c7; color: #92400e; }
+
+        .logout-box { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem; margin-top: auto; }
+        .logout-btn { display: flex; align-items: center; gap: 12px; padding: 12px 15px; text-decoration: none; color: #ff6b6b; font-weight: 600; }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 1024px) {
+            :root { --sidebar-w: 80px; }
+            .sidebar span, .logo-full { display: none; }
+            .sidebar .logo-short { display: block; }
+        }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; overflow-y: auto; height: auto; }
+            .sidebar { 
+                width: 100%; height: auto; position: sticky; top: 0; 
+                flex-direction: row; padding: 0.5rem; align-items: center;
+            }
+            .logo-box { border: none; margin: 0; padding: 0 1rem; }
+            .nav-links { display: flex; flex-direction: row; overflow-x: auto; scrollbar-width: none; }
+            .nav-links a span { display: none; }
+            .logout-box { display: none; }
+            .main-content { padding: 1rem; height: auto; }
+            .summary-banner { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
 </head>
 <body>
 
-<nav class="navbar">
-  <div class="logo"><img src="https://github.com/chrismsmr-celcom/Parapluie-moniteur/blob/main/Moniteo_20260115_214112_0000-removebg-preview.png?raw=true" alt="Logo"></div>
-  <div class="nav-links">
-    <a href="dashboard.html">Acceuil</a>
-    <a href="sales.html">Ventes</a>
-    <a href="inventory.html">Inventaire</a>
-    <a href="staff.html">Staff</a>
-    <a href="reporting.html">Reporting</a>
-    <a href="history.html">Historique</a>
-    <a href="expenses.html">Depenses</a>
-  </div>
-</nav>
+    <nav class="sidebar" id="sidebar">
+        <div class="logo-box">
+            <img src="https://i.postimg.cc/bJjy56Lq/Moniteo_1_removebg_preview.png" class="logo-full" alt="Logo">
+            <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
+        </div>
+        <ul class="nav-links">
+            <li><a href="dashboard.html"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> <span>Accueil</span></a></li>
+            <li><a href="sales.html" ><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
+            <li><a href="inventory.html"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> <span>Inventaire</span></a></li>
+            <li><a href="expenses.html"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> <span>Dépenses</span></a></li>
+            <li><a href="staff.html"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> <span>Staff</span></a></li>
+            <li><a href="reporting.html"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> <span>Reporting</span></a></li>
+            <li><a href="history.html"class="active"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>Historique</span></a></li>
+            <li><a href="setting.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> <span>Paramètres</span></a></li>
+        </ul>
+        <div class="logout-box">
+            <a href="#" onclick="logout(); return false;" class="logout-btn">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <span>Déconnexion</span>
+            </a>
+        </div>
+    </nav>
 
-<div class="section" id="historySection">
-<h2>Historique des ventes</h2>
-<div>
-  <input type="text" id="searchInput" placeholder="Rechercher produit..." oninput="filterHistory()"/>
-  <button onclick="exportHistoryExcel()">Exporter Excel</button>
-  <button onclick="exportHistoryPDF()">Exporter PDF</button>
-</div>
+    <main class="main-content">
+        <header class="header-flex">
+            <h2>Journal Historique</h2>
+            <button class="btn-success" onclick="exportExcel()">Exporter Excel</button>
+        </header>
 
-<table>
-<thead>
-<tr>
-  <th>Date</th>
-  <th>Produit</th>
-  <th>Quantité</th>
-  <th>Prix Achat (|$)</th>
-  <th>Prix Vente ($)</th>
-  <th>Bénéfice ($)</th>
-</tr>
-</thead>
-<tbody id="historyTable"></tbody>
-</table>
+        <div class="summary-banner">
+            <div><small>Chiffre d'Affaire</small><p id="caTotal">0 $</p></div>
+            <div><small>Bénéfice Net</small><p id="profitTotal">0 $</p></div>
+            <div><small>Volume Articles</small><p id="qtyTotal">0</p></div>
+            <div><small>Transactions</small><p id="transCount">0</p></div>
+        </div>
 
-<div id="profitSummary">Bénéfice total : 0 $</div>
+        <div class="action-bar">
+            <input type="text" id="searchProd" class="filter-input" placeholder="Rechercher un produit..." oninput="applyFilters()" style="flex:1;">
+            
+            <div class="date-range">
+                <small style="color:var(--text-light)">Du</small>
+                <input type="date" id="dateStart" class="filter-input" style="border:none" onchange="applyFilters()">
+                <small style="color:var(--text-light)">Au</small>
+                <input type="date" id="dateEnd" class="filter-input" style="border:none" onchange="applyFilters()">
+            </div>
 
-<h3>Graphiques historiques</h3>
-<canvas id="dailyChart"></canvas>
-<canvas id="topProductsChart"></canvas>
+            <select id="marketFilter" class="filter-input" onchange="applyFilters()">
+                <option value="all">Tous Marchés</option>
+                <option value="local">Local</option>
+                <option value="export">Export</option>
+            </select>
+            
+            <button class="btn-danger" onclick="resetFilters()">Réinitialiser</button>
+        </div>
 
-<hr style="margin:2rem 0;">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Produit</th>
+                        <th>Marché</th>
+                        <th>Qté</th>
+                        <th>P.U ($)</th>
+                        <th>Total ($)</th>
+                        <th>Bénéfice ($)</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody"></tbody>
+            </table>
+        </div>
+    </main>
 
-<h2>Dépenses / Passif</h2>
-<div>
-  <input type="text" id="searchExpenses" placeholder="Rechercher dépense..." oninput="filterExpenses()"/>
-  <button onclick="exportExpensesExcel()">Exporter Excel</button>
-</div>
+    <script>
+        // --- DONNÉES ---
+        let salesHistory = JSON.parse(localStorage.getItem('salesData')) || [];
 
-<table>
-<thead>
-<tr>
-  <th>Date</th>
-  <th>Dépense</th>
-  <th>Catégorie</th>
-  <th>Montant ($)</th>
-</tr>
-</thead>
-<tbody id="expensesTable"></tbody>
-</table>
-<div id="totalExpenses">Total dépenses : 0 €</div>
-</div>
+        function handleResponsiveSidebar() {
+            const width = window.innerWidth;
+            const sb = document.getElementById('sidebar');
+            if (width <= 1024) sb.classList.add('collapsed');
+            else sb.classList.remove('collapsed');
+        }
 
-<script>
-// --- Historique Ventes ---
-let historyData = JSON.parse(localStorage.getItem('salesData')) || [];
+        window.addEventListener('resize', handleResponsiveSidebar);
+        document.addEventListener('DOMContentLoaded', () => {
+            handleResponsiveSidebar();
+            renderHistory(salesHistory);
+        });
+          // À mettre au début de vos fichiers .html (Ventes, Staff, Inventaire)
+function applyGlobalSettings() {
+    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+    
+    // 1. Appliquer le thème (Sombre/Clair)
+    if (config.darkMode) {
+        document.body.classList.add('dark-mode');
+    } else {
+        document.body.classList.remove('dark-mode');
+    }
 
-function computeProfit(sale){ return (sale.sell - sale.buy) * sale.qty; }
+    // 2. Mettre à jour la devise globale si nécessaire
+    if (config.currency) {
+        localStorage.setItem('currency', config.currency);
+        // Si un sélecteur de devise existe sur la page, on le met à jour
+        const select = document.getElementById('currencySelect');
+        if (select) select.value = config.currency;
+    }
 
-function renderHistory(){
-  const tbody = document.getElementById('historyTable');
-  tbody.innerHTML = '';
-  let totalProfit = 0;
-  historyData.forEach(sale=>{
-    const profit = computeProfit(sale);
-    totalProfit += profit;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${sale.date}</td><td>${sale.product}</td><td>${sale.qty}</td><td>${sale.buy}</td><td>${sale.sell}</td><td>${profit.toFixed(2)}</td>`;
-    tbody.appendChild(tr);
-  });
-  document.getElementById('profitSummary').textContent = `Bénéfice total : ${totalProfit.toLocaleString('fr-FR',{style:'currency',currency:'USD'})}`;
-  updateCharts();
+    // 3. Mettre à jour le titre du dashboard avec le nom de l'entreprise
+    const brandName = document.querySelector('.header-flex h2');
+    if (brandName && config.name) {
+        brandName.innerHTML = `${brandName.innerText} <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
+    }
+}
+/ Mise à jour du LOGO
+    if (config.logo) {
+        // Cible le logo dans la sidebar (la classe .logo-full que tu as déjà)
+        const logoImg = document.querySelector('.logo-full');
+        if (logoImg) {
+            logoImg.src = config.logo;
+        }
+    }
 }
 
-function filterHistory(){
-  const val = document.getElementById('searchInput').value.toLowerCase();
-  document.querySelectorAll('#historyTable tr').forEach(tr=>{ tr.style.display = tr.textContent.toLowerCase().includes(val)?'':'none'; });
-}
+// Exécuter au chargement de chaque page
+document.addEventListener('DOMContentLoaded', applyGlobalSettings);
+        // --- FILTRAGE ---
+        function applyFilters() {
+            const query = document.getElementById('searchProd').value.toLowerCase();
+            const market = document.getElementById('marketFilter').value;
+            const start = document.getElementById('dateStart').value;
+            const end = document.getElementById('dateEnd').value;
 
-function exportHistoryExcel(){
-  const wsData=[["Date","Produit","Quantité","Prix Achat","Prix Vente","Bénéfice"]];
-  historyData.forEach(s=>wsData.push([s.date,s.product,s.qty,s.buy,s.sell,computeProfit(s)]));
-  const ws=XLSX.utils.aoa_to_sheet(wsData);
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,"Historique");
-  XLSX.writeFile(wb,`historique_${new Date().toISOString().slice(0,10)}.xlsx`);
-}
+            const filtered = salesHistory.filter(item => {
+                const matchName = item.product.toLowerCase().includes(query);
+                const matchMarket = (market === 'all' || item.market === market);
+                const matchStart = !start || item.date >= start;
+                const matchEnd = !end || item.date <= end;
+                return matchName && matchMarket && matchStart && matchEnd;
+            });
 
-function exportHistoryPDF(){
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p','pt','a4');
-  const pdfWidth = doc.internal.pageSize.getWidth();
-  const logoImg = new Image();
-  logoImg.src = "https://i.postimg.cc/DwsrT2x5/Moniteo_20260115_205657_0000_removebg_preview.png";
-  logoImg.onload=()=>{
-    const maxLogoHeight = 60;
-    let logoWidth = logoImg.width/logoImg.height*maxLogoHeight;
-    if(logoWidth>pdfWidth-40) logoWidth=pdfWidth-40;
-    const logoHeight = logoWidth/(logoImg.width/logoImg.height);
-    const logoX = (pdfWidth-logoWidth)/2;
-    const logoY = 10;
-    doc.addImage(logoImg,'PNG',logoX,logoY,logoWidth,logoHeight);
-    html2canvas(document.getElementById('historySection'),{scale:2}).then(canvas=>{
-      const imgData = canvas.toDataURL('image/png');
-      const imgProps = doc.getImageProperties(imgData);
-      const sectionWidth = pdfWidth;
-      const sectionHeight = (imgProps.height*sectionWidth)/imgProps.width;
-      let positionY = logoY + logoHeight + 20;
-      let remainingHeight = sectionHeight;
-      while(remainingHeight>0){
-        const renderHeight = Math.min(remainingHeight, doc.internal.pageSize.getHeight()-positionY-20);
-        doc.addImage(imgData,'PNG',0,positionY,sectionWidth,renderHeight,'FAST');
-        remainingHeight-=renderHeight;
-        if(remainingHeight>0){ doc.addPage(); positionY=20; }
-      }
-      doc.save(`historique_${new Date().toISOString().slice(0,10)}.pdf`);
-    });
-  };
-}
+            renderHistory(filtered);
+        }
 
-// --- Graphiques ---
-const dailyChart = new Chart(document.getElementById('dailyChart'),{
-  type:'line',
-  data:{labels:[], datasets:[{label:'Chiffre d’affaires par jour', data:[], borderColor:'#1f3c63', backgroundColor:'rgba(31,60,99,0.2)', fill:true}]}
-});
+        function resetFilters() {
+            document.getElementById('searchProd').value = '';
+            document.getElementById('marketFilter').value = 'all';
+            document.getElementById('dateStart').value = '';
+            document.getElementById('dateEnd').value = '';
+            renderHistory(salesHistory);
+        }
 
-const topProductsChart = new Chart(document.getElementById('topProductsChart'),{
-  type:'bar',
-  data:{labels:[], datasets:[{label:'Top Produits', data:[], backgroundColor:'rgba(31,60,99,0.7)'}]}
-});
+        // --- RENDU ---
+        function renderHistory(data) {
+            const tbody = document.getElementById('historyBody');
+            tbody.innerHTML = '';
+            
+            let ca = 0, profit = 0, qty = 0;
 
-function updateCharts(){
-  const dailyData={}, productData={};
-  historyData.forEach(s=>{
-    dailyData[s.date]=(dailyData[s.date]||0)+s.sell*s.qty;
-    productData[s.product]=(productData[s.product]||0)+s.qty;
-  });
-  dailyChart.data.labels = Object.keys(dailyData);
-  dailyChart.data.datasets[0].data = Object.values(dailyData);
-  dailyChart.update();
-  topProductsChart.data.labels = Object.keys(productData);
-  topProductsChart.data.datasets[0].data = Object.values(productData);
-  topProductsChart.update();
-}
+            // Inverser pour voir les plus récents en haut
+            [...data].reverse().forEach((item, index) => {
+                const itemTotal = item.sell * item.qty;
+                const itemProfit = (item.sell - item.buy) * item.qty;
 
-// --- Dépenses / Passif ---
-let expensesData = JSON.parse(localStorage.getItem('expensesData')) || [];
+                ca += itemTotal;
+                profit += itemProfit;
+                qty += Number(item.qty);
 
-function addExpense(name, category, amount, date){
-  expensesData.push({name, category, amount: parseFloat(amount), date});
-  saveExpenses(); renderExpenses();
-}
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight:500">${formatDate(item.date)}</td>
+                    <td style="font-weight:600; color:var(--primary)">${item.product}</td>
+                    <td><span class="badge-market ${item.market || 'local'}">${item.market || 'local'}</span></td>
+                    <td>${item.qty}</td>
+                    <td>${item.sell.toFixed(2)}</td>
+                    <td style="font-weight:700">${itemTotal.toFixed(2)}</td>
+                    <td style="color:var(--success); font-weight:600">+${itemProfit.toFixed(2)}</td>
+                    <td><button class="btn-danger" style="padding:5px 10px" onclick="deleteEntry(${salesHistory.indexOf(item)})">🗑</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
 
-function saveExpenses(){ localStorage.setItem('expensesData', JSON.stringify(expensesData)); }
+            // Update KPI
+            document.getElementById('caTotal').textContent = ca.toFixed(2) + " $";
+            document.getElementById('profitTotal').textContent = profit.toFixed(2) + " $";
+            document.getElementById('qtyTotal').textContent = qty;
+            document.getElementById('transCount').textContent = data.length;
+        }
 
-function renderExpenses(){
-  const tbody = document.getElementById('expensesTable');
-  tbody.innerHTML='';
-  let total=0;
-  expensesData.forEach(exp=>{
-    total+=exp.amount;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${exp.date}</td><td>${exp.name}</td><td>${exp.category}</td><td>${exp.amount.toFixed(2)}</td>`;
-    tbody.appendChild(tr);
-  });
-  document.getElementById('totalExpenses').textContent = `Total dépenses : ${total.toLocaleString('fr-FR',{style:'currency', currency:'USD'})}`;
-}
+        function formatDate(d) {
+            if(!d) return "-";
+            const parts = d.split('-');
+            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+        }
 
-function filterExpenses(){
-  const val = document.getElementById('searchExpenses').value.toLowerCase();
-  document.querySelectorAll('#expensesTable tr').forEach(tr=>{ tr.style.display = tr.textContent.toLowerCase().includes(val)?'':'none'; });
-}
+        function deleteEntry(index) {
+            if(confirm("Supprimer cette transaction définitivement ?")) {
+                salesHistory.splice(index, 1);
+                localStorage.setItem('salesData', JSON.stringify(salesHistory));
+                applyFilters();
+            }
+        }
 
-function exportExpensesExcel(){
-  const wsData=[["Date","Dépense","Catégorie","Montant"]];
-  expensesData.forEach(e=>wsData.push([e.date,e.name,e.category,e.amount]));
-  const ws=XLSX.utils.aoa_to_sheet(wsData);
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Dépenses");
-  XLSX.writeFile(wb,`depenses_${new Date().toISOString().slice(0,10)}.xlsx`);
-}
+        function exportExcel() {
+            const ws = XLSX.utils.json_to_sheet(salesHistory);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Historique");
+            XLSX.writeFile(wb, "Moniteo_Historique.xlsx");
+        }
 
-// --- Initialisation ---
-renderHistory(); renderExpenses();
-</script>
+        function logout() {
+            if(confirm("Se déconnecter ?")) {
+                sessionStorage.clear();
+                window.location.href = "index.html";
+            }
+        }
+    </script>
 </body>
 </html>
