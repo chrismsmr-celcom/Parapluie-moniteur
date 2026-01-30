@@ -1,657 +1,338 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Moniteo Umbrella - Dashboard</title>
-<link href="https://cdn.jsdelivr.net/npm/chart.js" rel="stylesheet">
-<link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png" />
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
-<style>
-/* ===== GLOBAL ===== */
-*{box-sizing:border-box;margin:0;padding:0;font-family:"Inter",sans-serif;}
-body{display:flex;background:#f4f6f8;color:#1f2937;line-height:1.4;font-size:0.9rem;}
-a{text-decoration:none;color:inherit;}
-h2,h3{font-weight:600;margin-bottom:0.5rem;}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moniteo Umbrella - Dashboard Pro</title>
 
-/* ===== SIDEBAR ===== */
-.sidebar{
-  position:fixed;
-  top:0;
-  left:0;
-  width:250px;
-  height:100%;
-  background:#1f3c63;
-  display:flex;
-  flex-direction:column;
-  padding-top:1.5rem;
-  box-shadow:2px 0 6px rgba(0,0,0,0.1);
-  transition:width 0.3s, all 0.3s;
-  z-index:1000;
-  font-size:0.85rem;
-}
-.sidebar.collapsed{
-  width:60px;
+    <script>
+        if (sessionStorage.getItem('isLogged') !== 'true') {
+            window.location.href = "index.html";
+        }
+    </script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Couleurs pour le Mode Sombre */
+body.dark-mode {
+    --bg-body: #0f172a;       /* Fond sombre */
+    --bg-card: #1e293b;       /* Cartes sombres */
+    --text-main: #f1f5f9;     /* Texte blanc/gris clair */
+    --text-light: #94a3b8;    /* Texte secondaire gris */
+    --border-soft: #334155;   /* Bordures discrètes */
 }
 
-/* Logo */
-.sidebar .logo{
-  display:flex;
-  justify-content:center;
-  margin-bottom:1.5rem;
-  transition:all 0.3s;
-}
-.sidebar .logo img{
-  height:250px;
-  width:auto;
-  display:block;
-  transition:all 0.3s;
-}
-.sidebar.collapsed .logo img{
-  height:50px;
-  margin:0 auto;
+/* On force le changement de couleur sur les éléments critiques */
+body.dark-mode .card, 
+body.dark-mode .header-flex {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+    border-color: var(--border-soft);
 }
 
-/* Links */
-.sidebar a{
-  display:flex;
-  align-items:center;
-  padding:0.6rem 0.8rem;
-  margin:0.2rem 0;
-  color:#e5e7eb;
-  font-weight:1000;
-  border-radius:8px;
-  font-size:0.85rem;
-  transition:all 0.3s;
+body.dark-mode input, 
+body.dark-mode select {
+    background-color: #0f172a;
+    color: white;
+    border-color: var(--border-soft);
 }
-.sidebar a:hover{
-  background:rgba(255,255,255,0.15);
-}
-.sidebar.collapsed a{
-  justify-content:center;
-  font-size:0;
-  padding:0.6rem 0;
-}
-.sidebar.collapsed a span{
-  display:none;
-}
+        /* --- VARIABLES ET THÈMES --- */
+        :root {
+            --primary:#1f3c63; --secondary:#3b82f6; --success:#10b981; --danger:#ef4444;
+            --text-main:#1e293b; --text-light:#64748b; --bg-body:#f1f5f9; --bg-card:#ffffff;
+            --border-soft:#e2e8f0; --sidebar-w:260px;
+        }
+        body.dark {
+            --bg-body:#0f172a; --bg-card:#1e293b; --text-main:#e5e7eb; --text-light:#94a3b8; --border-soft:#334155;
+        }
 
-/* Toggle button */
-.sidebar .toggle-btn{
-  margin-top:auto;
-  cursor:pointer;
-  padding:0.8rem;
-  text-align:center;
-  background:rgba(255,255,255,0.1);
-  border-top:1px solid rgba(255,255,255,0.2);
-  font-size:1.2rem;
-}
+        /* --- RESET ET BASE --- */
+        * { margin:0; padding:0; box-sizing:border-box; font-family:Inter,sans-serif; }
+        
+        body { 
+            display:flex; 
+            height: 100vh;
+            overflow: hidden; 
+            background:var(--bg-body); 
+            color:var(--text-main); 
+            transition: 0.3s; 
+        }
 
-/* ===== MAIN CONTENT ===== */
-.main-content{
-  margin-left:250px;
-  width: calc(100% - 250px);
-  padding:1rem 1.5rem;
-  transition:margin-left 0.3s, width 0.3s;
-}
+        .icon { 
+            width: 20px; 
+            height: 20px; 
+            min-width: 20px; 
+            stroke: currentColor; 
+            stroke-width: 2; 
+            fill: none; 
+        }
 
-/* Si sidebar rétractée */
-.sidebar.collapsed ~ .main-content{
-  margin-left:60px;
-  width:calc(100% - 60px);
-}
+        /* --- SIDEBAR --- */
+        .sidebar {
+            position: relative; 
+            width: var(--sidebar-w); 
+            height: 100vh; 
+            background: var(--primary);
+            color: #fff; 
+            padding: 1rem; 
+            display: flex; 
+            flex-direction: column; 
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
 
-/* ===== TOP NAVBAR ===== */
-.top-navbar{
-  position:sticky;
-  top:0;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:0.5rem 1rem;
-  background:#1f3c63;
-  color:#fff;
-  box-shadow:0 2px 6px rgba(0,0,0,.1);
-  z-index:500;
-  margin-bottom:1rem;
-  border-radius:8px;
-  font-size:0.9rem;
-  transition:all 0.3s;
-}
-.top-navbar .actions button{
-  margin-left:0.3rem;
-  padding:0.35rem 0.7rem;
-  border:none;
-  border-radius:6px;
-  background:#2f4d82;
-  color:#fff;
-  cursor:pointer;
-  transition:0.3s;
-  font-size:0.85rem;
-}
-.top-navbar .actions button:hover{
-  background:#3b5a9c;
-}
+        .sidebar.collapsed { width: 80px; }
+        .sidebar.collapsed span, 
+        .sidebar.collapsed .logo-full { display: none; }
+        .sidebar.collapsed .logo-short { display: block; }
 
-/* ===== CARDS ===== */
-.cards{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-  gap:0.6rem;
-  margin-bottom:1rem;
-  font-size:0.85rem;
-}
-.card{
-  background:#fff;
-  padding:0.8rem;
-  border-radius:12px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.08);
-  transition:all 0.3s;
-  display:flex;
-  flex-direction:column;
-  justify-content:flex-start;
-  min-height:220px;
-}
-.card:hover{
-  box-shadow:0 6px 14px rgba(0,0,0,0.12);
-}
-.card canvas{
-  width:100% !important;
-  height:180px !important;
-  max-height:180px;
-  object-fit:contain;
-}
+        .logo-box { 
+            padding: 1rem 0; 
+            text-align: center; 
+            border-bottom: 1px solid rgba(255,255,255,.1); 
+            margin-bottom: 1.5rem; 
+        }
 
-/* ===== TABLE ===== */
-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:0.5rem;
-  background:#fff;
-  font-size:0.85rem;
-  border-radius:8px;
-  overflow:hidden;
-  box-shadow:0 2px 6px rgba(0,0,0,0.05);
-}
-th,td{
-  padding:0.5rem;
-  text-align:left;
-  border-bottom:1px solid #e2e8f0;
-}
-th{
-  background:#f0f3f7;
-  color:#1f3c63;
-  font-weight:600;
-}
+        .logo-full { width: 140px; height: auto; transition: 0.3s; }
+        .logo-short { display: none; width: 70px; margin: 0 auto; transition: 0.3s; }
 
-/* ===== SELECT & LABEL ===== */
-label{
-  font-weight:500;
-  font-size:0.85rem;
-  margin-right:0.5rem;
-}
-select{
-  margin-left:0.3rem;
-  padding:0.25rem 0.5rem;
-  border-radius:5px;
-  border:1px solid #e2e8f0;
-  font-size:0.85rem;
-  background:#fff;
-  color:#1f3c63;
-  transition:all 0.3s;
-}
+        .nav-links { list-style:none; flex:1; overflow-y: auto; }
+        .nav-links a {
+            display:flex; align-items:center; gap:12px; padding:12px 15px; border-radius:10px;
+            text-decoration:none; color:rgba(255,255,255,.7); font-size:.9rem; transition:.2s;
+            border-left: 3px solid transparent;
+        }
+        .nav-links a:hover, .nav-links a.active { 
+            background:rgba(255,255,255,0.15); 
+            color:#fff; 
+            border-left: 3px solid var(--secondary);
+        }
 
-/* ===== KPI CARDS ===== */
-.dashboard-header{
-  display:flex;
-  flex-wrap:wrap;
-  gap:0.8rem;
-  margin-bottom:1rem;
-  justify-content:space-between;
-}
-#kpiCards{
-  flex:1;
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-  gap:0.6rem;
-}
-#kpiCards .card{
-  background:#fff;
-  padding:0.8rem;
-  border-radius:12px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.08);
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  justify-content:center;
-  min-height:100px;
-  transition:all 0.3s;
-}
-#kpiCards .card:hover{
-  box-shadow:0 6px 14px rgba(0,0,0,0.12);
-}
-#kpiCards .card h3{
-  font-size:0.9rem;
-  font-weight:600;
-  color:#1f3c63;
-  margin-bottom:0.3rem;
-}
-#kpiCards .card p{
-  font-size:1.1rem;
-  font-weight:700;
-  color:#2f4d82;
-}
+        /* --- CONTENU PRINCIPAL --- */
+        .main-content { 
+            flex-grow: 1;
+            height: 100vh;
+            overflow-y: auto; 
+            padding: 2rem; 
+            transition: .3s; 
+            -webkit-overflow-scrolling: touch;
+        }
 
-/* ===== ALERTS ===== */
-#alertsCard{
-  background:#fff;
-  padding:0.8rem;
-  border-radius:12px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.08);
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  justify-content:center;
-  min-height:100px;
-  transition:all 0.3s;
-}
-#alertsCard ul{
-  list-style:none;
-  padding-left:0.8rem;
-  margin-top:0.3rem;
-}
-#alertsCard li{
-  margin-bottom:0.3rem;
-  font-weight:500;
-  color:#e74c3c;
-  display:flex;
-  align-items:center;
-  gap:0.4rem;
-}
+        .header-top { 
+            display:flex; justify-content:space-between; align-items:center; 
+            background:var(--bg-card); padding:1rem 1.5rem; border-radius:12px; 
+            box-shadow:0 1px 3px rgba(0,0,0,.1); margin-bottom:2rem; 
+        }
 
-/* ===== USER SECTION ===== */
-.user-section{
-  background:#fff;
-  padding:0.8rem;
-  border-radius:12px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.08);
-  margin-bottom:1rem;
-  transition:all 0.3s;
-}
-.user-section h3{
-  margin-bottom:0.5rem;
-  color:#1f3c63;
-}
-.user-section button{
-  background:#2f4d82;
-  color:#fff;
-  padding:0.35rem 0.7rem;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-  transition:0.3s;
-  margin-top:0.3rem;
-}
-.user-section button:hover{
-  background:#3b5a9c;
-}
-/* ===== STAFF CARD ===== */
-#staffCard {
-  background:#fff;
-  padding:0.8rem;
-  border-radius:12px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.08);
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  justify-content:center;
-  min-height:100px;
-  cursor:pointer;
-  transition:all 0.3s;
+        .btn-icon { background:none; border:1px solid var(--border-soft); padding:8px; border-radius:8px; cursor:pointer; color:var(--text-main); }
+        .btn-primary { background:var(--primary); color:#fff; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:600; }
 
-  /* NOUVEAU */
-  margin-bottom:1.6rem; /* espace entre alert et staff */
-}
+        .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1.5rem; margin-bottom:2rem; }
+        .card { background:var(--bg-card); padding:1.5rem; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border-soft); }
+        
+        .kpi-card h3 { font-size:.75rem; text-transform:uppercase; color:var(--text-light); letter-spacing: 1px; }
+        .kpi-card .val { font-size:1.8rem; font-weight:700; display:block; margin-top:5px; }
 
-#staffCard:hover{
-  box-shadow:0 6px 14px rgba(0,0,0,0.12);
-}
-#staffCard h3{
-  font-size:0.9rem;
-  font-weight:600;
-  color:#1f3c63;
-  margin-bottom:0.3rem;
-}
-#staffCard p{
-  font-size:1.1rem;
-  font-weight:700;
-  color:#2f4d82;
-}
-/* ===== RESPONSIVE ===== */
-@media(max-width:1024px){
-  .sidebar{width:60px;}
-  .main-content{margin-left:60px;width:calc(100% - 60px);}
-  .dashboard-header{flex-direction:column;gap:0.5rem;}
-  #alertsCard{max-width:100%;}
-}
-@media(max-width:768px){
-  .cards{grid-template-columns:repeat(auto-fit,minmax(120px,1fr));}
-  .top-navbar{flex-direction:column;align-items:flex-start;gap:0.4rem;}
-}
-</style>
+        .charts-row { display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:1.5rem; margin-bottom: 2rem; }
+        
+        /* --- DÉCONNEXION --- */
+        .logout-box { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem; }
+        .logout-btn {
+            display: flex; align-items: center; gap: 12px; padding: 12px 15px;
+            text-decoration: none; color: #ff6b6b; font-weight: 600; font-size: 0.9rem;
+            transition: 0.2s; border-radius: 8px;
+        }
+        .logout-btn:hover { background: rgba(239, 68, 68, 0.1); }
+
+        /* --- RESPONSIVE (Strictement identique au Dashboard) --- */
+        @media (max-width: 1024px) {
+            :root { --sidebar-w: 80px; }
+            .sidebar span, .logo-full { display: none; }
+            .sidebar .logo-short { display: block; }
+        }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; overflow-y: auto; height: auto; }
+            .sidebar { 
+                width: 100%; height: auto; position: sticky; top: 0; 
+                flex-direction: row; padding: 0.5rem; align-items: center;
+            }
+            .sidebar.collapsed { width: 100%; height: auto; }
+            .logo-box { border: none; margin: 0; padding: 0 1rem; }
+            .nav-links { display: flex; flex-direction: row; overflow-x: auto; scrollbar-width: none; }
+            .nav-links::-webkit-scrollbar { display: none; }
+            .nav-links a { padding: 8px 12px; white-space: nowrap; }
+            .nav-links span { display: none; } /* On cache le texte sur mobile pour fluidité */
+            
+            .logout-box { display: none; }
+            
+            .main-content { padding: 1rem; height: auto; }
+            .header-flex { flex-direction: column; gap: 1rem; text-align: center; }
+            .summary-banner { grid-template-columns: 1fr 1fr; gap: 10px; padding: 1rem; }
+            .summary-banner p { font-size: 1.1rem; }
+        }
+    </style>
 </head>
 <body>
 
-<!-- SIDEBAR -->
-<div class="sidebar">
-  <div class="logo"><img src="https://github.com/chrismsmr-celcom/Parapluie-moniteur/blob/main/Moniteo_20260115_214112_0000-removebg-preview.png?raw=true" alt="Logo"></div>
-  <a href="index.html">Accueil</a>
-  <a href="sales.html">Ventes</a>
-  <a href="inventory.html">Inventaire</a>
-  <a href="expenses.html">Dépenses</a>
-  <a href="staff.html">Staff</a>
-  <a href="reporting.html">Reporting</a>
-  <a href="history.html">Historique</a>
-  <div class="toggle-btn">≡</div>
-</div>
-
-<!-- MAIN CONTENT -->
-<div class="main-content">
-
-  <!-- TOP NAVBAR -->
-  <div class="top-navbar">
-    <div>Tableau de bord</div>
-    <div class="actions">
-      <button onclick="exportDashboard()">Exporter PDF</button>
-      <button onclick="logout()">Logout</button>
+<nav class="sidebar" id="sidebar">
+    <div class="logo-box">
+        <img src="https://i.postimg.cc/bJjy56Lq/Moniteo-1-removebg-preview.png" class="logo-full" alt="Moniteo">
+        <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
+    </div>   
+    <ul class="nav-links">
+        <li><a href="dashboard.html" class="active"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> <span>Accueil</span></a></li>
+        <li><a href="sales.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
+        <li><a href="inventory.html"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> <span>Inventaire</span></a></li>
+        <li><a href="expenses.html"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> <span>Dépenses</span></a></li>
+        <li><a href="staff.html"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> <span>Staff</span></a></li>
+        <li><a href="reporting.html"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> <span>Reporting</span></a></li>
+        <li><a href="history.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>Historique</span></a></li>
+        <li><a href="setting.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> <span>Paramètres</span></a></li>
+    </ul>
+    <div class="logout-box">
+        <a href="#" onclick="logout(); return false;" class="logout-btn">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span>Déconnexion</span>
+        </a>
     </div>
-  </div>
+</nav>
 
-  <!-- SECTION UTILISATEUR / ADMIN -->
-<div class="user-section" id="accountSection">
-  <h3>Mon Compte</h3>
-  <div id="accountForm">
-    <label for="accountName">Nom :</label>
-    <input type="text" id="accountName" placeholder="Votre nom">
-    <br><br>
-    <label for="accountDOB">Date de naissance :</label>
-    <input type="date" id="accountDOB">
-    <br><br>
-    <button id="saveAccountBtn">Sauvegarder</button>
-  </div>
-  <div id="accountDisplay" style="display:none;">
-    <p id="displayName"></p>
-    <p id="displayDOB"></p>
-  </div>
-  <p id="accountMsg" style="margin-top:0.5rem;"></p>
-</div>
-    
-  <div class="cards" id="kpiCards">
-  <div class="card">
-    <h3>CA Total</h3>
-    <p id="totalCA">0 </p>
-  </div>
-  <div class="card">
-    <h3>Bénéfice Net</h3>
-    <p id="totalProfit">0 </p>
-  </div>
-  <div class="card">
-    <h3>Quantité Vendue</h3>
-    <p id="totalQty">0</p>
-  </div>
-  <div class="card">
-    <h3>Produits en Stock</h3>
-    <p id="totalStock">0</p>
-  </div>
-  <div class="card">
-    <h3>Dépenses Totales</h3>
-    <p id="totalExpenses">0 </p>
-  </div>
-</div>
-    
-  <!-- CARDS GRAPHIQUES -->
-  <div class="cards">
-    <div class="card">
-      <h3>Ventes par Produit</h3>
-      <canvas id="topProductsChart"></canvas>
-    </div>
-    <div class="card">
-      <h3>Ventes par Jour</h3>
-      <canvas id="salesByDayChart"></canvas>
-    </div>
-    <div class="card">
-      <h3>Dépenses par Catégorie</h3>
-      <canvas id="expensesChart"></canvas>
-    </div>
-  </div>
-<div class="card" onclick="window.location.href='staff.html'" style="cursor:pointer;">
-  <h3>Employés</h3>
-  <p id="totalStaff">0</p>
-</div>
-    
-  <!-- ALERTS & KPI -->
-  <div class="card" id="alertsCard">
-    <h3>Alertes & KPI</h3>
-    <ul id="alertList"></ul>
-  </div>
-</div>
+<main class="main-content" id="mainContent">
+    <header class="header-top">
+        <div>
+            <h1 style="font-size: 1.4rem;">Tableau de Bord CEO</h1>
+            <p id="dateDisplay" style="color: var(--text-light); font-size: 0.85rem;"></p>
+        </div>
+        <div class="header-actions">
+            <button class="btn-icon" onclick="toggleSidebar()"><svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
+            <button class="btn-icon" onclick="toggleTheme()"><svg class="icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3"></path></svg></button>
+            <button class="btn-primary" onclick="window.print()">Exporter Rapport</button>
+        </div>
+    </header>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <section class="kpi-grid">
+        <div class="card kpi-card"><h3>Chiffre d'Affaires</h3><span class="val" id="totalCA">0</span></div>
+        <div class="card kpi-card"><h3>Bénéfice</h3><span class="val" id="totalProfit" style="color: var(--success);">0</span></div>
+        <div class="card kpi-card"><h3>Stock Global</h3><span class="val" id="totalStock">0</span></div>
+        <div class="card kpi-card"><h3>Dépenses</h3><span class="val" id="totalExpenses" style="color: var(--danger);">0</span></div>
+    </section>
+
+    <div class="charts-row">
+        <div class="card">
+            <h3 style="margin-bottom:1rem; font-size: 0.9rem;">Évolution des Ventes</h3>
+            <div style="height: 300px;"><canvas id="mainChart"></canvas></div>
+        </div>
+        <div class="card">
+            <h3 style="margin-bottom:1rem; font-size: 0.9rem;">Distribution du Stock</h3>
+            <div style="height: 300px;"><canvas id="stockChart"></canvas></div>
+        </div>
+    </div>
+</main>
 
 <script>
-// --- Sidebar toggle ---
-const sidebar = document.querySelector('.sidebar');
-const mainContent = document.querySelector('.main-content');
-const toggleBtn = document.querySelector('.sidebar .toggle-btn');
+    // 1. CHARGEMENT DES DONNÉES
+    const salesData = JSON.parse(localStorage.getItem('salesData')) || [];
+    const inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
+    const expensesData = JSON.parse(localStorage.getItem('expensesData')) || [];
+    const currency = localStorage.getItem('currency') || '€';
 
-toggleBtn.addEventListener('click', () => {
-  sidebar.classList.toggle('collapsed');
-  if(sidebar.classList.contains('collapsed')){
-    mainContent.style.marginLeft = '60px';
-    mainContent.style.width = 'calc(100% - 60px)';
-  } else {
-    mainContent.style.marginLeft = '250px';
-    mainContent.style.width = 'calc(100% - 250px)';
-  }
-});
+    // 2. CALCULS KPI
+    let ca = 0, profit = 0, stockQty = 0, expenses = 0;
+    salesData.forEach(s => { ca += (s.sell * s.qty); profit += (s.sell - s.buy) * s.qty; });
+    inventoryData.forEach(i => stockQty += i.qty);
+    expensesData.forEach(e => expenses += parseFloat(e.amount || 0));
 
-// --- Devise dynamique depuis sales.html ---
-let dashboardCurrency = localStorage.getItem('currentCurrency') || 'USD';
+    document.getElementById('totalCA').textContent = ca.toLocaleString() + ' ' + currency;
+    document.getElementById('totalProfit').textContent = profit.toLocaleString() + ' ' + currency;
+    document.getElementById('totalStock').textContent = stockQty.toLocaleString();
+    document.getElementById('totalExpenses').textContent = expenses.toLocaleString() + ' ' + currency;
+     // À mettre au début de vos fichiers .html (Ventes, Staff, Inventaire)
+function applyGlobalSettings() {
+    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+    
+    // 1. Appliquer le thème (Sombre/Clair)
+    if (config.darkMode) {
+        document.body.classList.add('dark-mode');
+    } else {
+        document.body.classList.remove('dark-mode');
+    }
 
-// --- Récupérer les données ---
-function getInventory(){ return JSON.parse(localStorage.getItem('inventoryData'))||[]; }
-function getSales(){ return JSON.parse(localStorage.getItem('salesData'))||[]; }
-function getExpenses(){ return JSON.parse(localStorage.getItem('expensesData'))||[]; }
+    // 2. Mettre à jour la devise globale si nécessaire
+    if (config.currency) {
+        localStorage.setItem('currency', config.currency);
+        // Si un sélecteur de devise existe sur la page, on le met à jour
+        const select = document.getElementById('currencySelect');
+        if (select) select.value = config.currency;
+    }
 
-// --- Graphiques Chart.js ---
-const topProductsChart=new Chart(document.getElementById('topProductsChart'),{
-  type:'bar',data:{labels:[],datasets:[{label:'Ventes',data:[],backgroundColor:'#1f3c63'}]},
-  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
-});
-const salesByDayChart=new Chart(document.getElementById('salesByDayChart'),{
-  type:'line',data:{labels:[],datasets:[{label:'CA',data:[],borderColor:'#2f4d82',fill:false}]},
-  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
-});
-const expensesChart=new Chart(document.getElementById('expensesChart'),{
-  type:'doughnut',data:{labels:[],datasets:[{data:[],backgroundColor:['#2f4d82','#1f3c63','#3b5a9c']}]},
-  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}
-});
-
-// --- Mettre à jour graphiques ---
-function updateCharts(){
-  const sales=getSales(), expenses=getExpenses(), inventory=getInventory();
-
-  // Top produits
-  const prodCounts={};
-  sales.forEach(s=>{ prodCounts[s.product]=(prodCounts[s.product]||0)+s.qty; });
-  topProductsChart.data.labels=Object.keys(prodCounts);
-  topProductsChart.data.datasets[0].data=Object.values(prodCounts);
-  topProductsChart.update();
-
-  // Ventes par jour
-  const dayCounts={};
-  sales.forEach(s=>{
-    const day=s.date.slice(0,10);
-    dayCounts[day]=(dayCounts[day]||0)+s.qty;
-  });
-  salesByDayChart.data.labels=Object.keys(dayCounts).sort();
-  salesByDayChart.data.datasets[0].data=Object.values(dayCounts);
-  salesByDayChart.update();
-
-  // Dépenses par catégorie
-  const catCounts={};
-  expenses.forEach(e=>{ catCounts[e.category]=(catCounts[e.category]||0)+e.amount; });
-  expensesChart.data.labels=Object.keys(catCounts);
-  expensesChart.data.datasets[0].data=Object.values(catCounts);
-  expensesChart.update();
+    // 3. Mettre à jour le titre du dashboard avec le nom de l'entreprise
+    const brandName = document.querySelector('.header-flex h2');
+    if (brandName && config.name) {
+        brandName.innerHTML = `${brandName.innerText} <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
+    }
 }
 
-// --- Alertes dynamiques ---
-function updateAlerts(){
-  const alertList=document.getElementById('alertList');
-  alertList.innerHTML='';
-  const inventory=getInventory();
-  const sales=getSales();
-  const expenses=getExpenses();
-  const today=(new Date()).toISOString().slice(0,10);
+// Exécuter au chargement de chaque page
+document.addEventListener('DOMContentLoaded', applyGlobalSettings);
+    // 3. GRAPHIQUES
+    new Chart(document.getElementById('mainChart'), {
+        type: 'line',
+        data: {
+            labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+            datasets: [{ label: 'CA', data: [ca*0.1, ca*0.3, ca*0.2, ca*0.5, ca*0.4, ca*0.9, ca], borderColor: '#3b82f6', tension: 0.3, fill:true, backgroundColor:'rgba(59,130,246,0.05)' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
 
-  inventory.forEach(i=>{
-    if(i.qty<=0) alertList.innerHTML+=`<li>⚠️ Rupture de stock : ${i.product}</li>`;
-    else if(i.qty<=5) alertList.innerHTML+=`<li>⚠️ Stock faible (${i.qty}) : ${i.product}</li>`;
-  });
+    new Chart(document.getElementById('stockChart'), {
+        type: 'doughnut',
+        data: {
+            labels: inventoryData.slice(0,3).map(i => i.product || 'Art.'),
+            datasets: [{ data: inventoryData.slice(0,3).map(i => i.qty), backgroundColor: ['#1f3c63', '#3b82f6', '#10b981'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
 
-  const totalExpToday=expenses.reduce((a,e)=>e.date===today?a+e.amount:a,0);
-  if(totalExpToday>1000) alertList.innerHTML+=`<li>⚠️ Dépenses élevées aujourd'hui : ${totalExpToday.toLocaleString('fr-FR',{style:'currency',currency:dashboardCurrency})}</li>`;
+    // 4. FONCTIONS UI
+    document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('fr-FR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+    
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+    }
 
-  const salesToday=sales.filter(s=>s.date===today);
-  if(salesToday.length>0){
-    const top=salesToday.reduce((max,s)=>!max||s.qty>max.qty?s:max,null);
-    alertList.innerHTML+=`<li>📈 Top vente aujourd'hui : ${top.product} (${top.qty})</li>`;
-  }
-}
+    function toggleTheme() {
+        document.body.classList.toggle('dark');
+        localStorage.theme = document.body.classList.contains('dark') ? 'dark' : 'light';
+    }
 
-// --- PDF Dashboard ---
-async function sendDashboardMail(){
-  const userEmail=document.getElementById('userEmail').textContent.split(':')[1]?.trim()||'';
-  if(!userEmail){alert('Connecte-toi pour envoyer le dashboard'); return;}
-  const main=document.querySelector('.main-content');
-  const canvas=await html2canvas(main);
-  const imgData=canvas.toDataURL('image/png');
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF('p','mm','a4');
-  const ratio = canvas.width/canvas.height;
-  pdf.addImage(imgData,'PNG',10,10,190,190/ratio);
-  pdf.save(`dashboard_${new Date().toISOString().slice(0,10)}.pdf`);
-  alert(`Dashboard prêt pour ${userEmail} !`);
-}
-function updateKPI(){
-  const sales = getSales();
-  const expenses = getExpenses();
-  const inventory = getInventory();
+    function handleResponsiveSidebar() {
+        const width = window.innerWidth;
+        const sb = document.getElementById('sidebar');
+        if (width <= 1024) {
+            sb.classList.add('collapsed');
+        } else {
+            sb.classList.remove('collapsed');
+        }
+    }
 
-  let ca = 0, profit = 0, qty = 0;
-  sales.forEach(s=>{
-    ca += (s.sell || 0) * (s.qty || 0);
-    profit += ((s.sell || 0) - (s.buy || 0)) * (s.qty || 0);
-    qty += s.qty || 0;
-  });
+    function logout() {
+        if(confirm("Voulez-vous vous déconnecter ?")) {
+            sessionStorage.clear();
+            window.location.href = "index.html";
+        }
+    }
 
-  let totalStock = 0;
-  inventory.forEach(i=> totalStock += i.qty || 0);
-
-  let totalExp = expenses.reduce((sum,e)=>sum+(e.amount||0),0);
-
-  document.getElementById('totalCA').textContent = ca.toLocaleString('fr-FR',{style:'currency',currency:dashboardCurrency});
-  document.getElementById('totalProfit').textContent = profit.toLocaleString('fr-FR',{style:'currency',currency:dashboardCurrency});
-  document.getElementById('totalQty').textContent = qty;
-  document.getElementById('totalStock').textContent = totalStock;
-  document.getElementById('totalExpenses').textContent = totalExp.toLocaleString('fr-FR',{style:'currency',currency:dashboardCurrency});
-}
-
-// Mettre à jour le total staff
-function updateStaffCard(){
-  const staff = JSON.parse(localStorage.getItem('staffData')) || [];
-  document.getElementById('totalStaff').textContent = staff.length;
-}
-
-// Appeler après chargement du dashboard
-updateStaffCard();
-
-// --- Appel dans initialisation ---
-updateKPI();
-
-// --- Logout (mock) ---
-function logout(){
-  alert('Déconnexion réussie !');
-  // Optionnel : supprimer les infos du compte stockées localement
-  localStorage.removeItem('currentUser');
-  // Rediriger vers la page login
-  window.location.href = 'login.html';
-}
-
-// Charger les infos du compte si déjà enregistrées
-function loadAccountInfo(){
-  const name = localStorage.getItem('loggedUserName');
-  const dob = localStorage.getItem('loggedUserDOB');
-
-  if(name && dob){
-    showAccountDisplay(name, dob);
-  } else {
-    // Sinon montrer le formulaire
-    document.getElementById('accountForm').style.display = 'block';
-    document.getElementById('accountDisplay').style.display = 'none';
-  }
-}
-
-// Fonction pour afficher les infos et cacher le formulaire
-function showAccountDisplay(name, dob){
-  document.getElementById('displayName').textContent = `Nom : ${name}`;
-  document.getElementById('displayDOB').textContent = `Date de naissance : ${dob}`;
-  document.getElementById('accountForm').style.display = 'none';
-  document.getElementById('accountDisplay').style.display = 'block';
-  document.getElementById('accountMsg').textContent = '';
-}
-
-// Événement sur le bouton sauvegarder
-document.getElementById('saveAccountBtn').addEventListener('click', ()=>{
-  const name = document.getElementById('accountName').value.trim();
-  const dob = document.getElementById('accountDOB').value;
-  const msg = document.getElementById('accountMsg');
-
-  if(!name || !dob){
-    msg.textContent = "Veuillez remplir tous les champs";
-    msg.style.color = "red";
-    return;
-  }
-
-  // Sauvegarde dans localStorage
-  localStorage.setItem('loggedUserName', name);
-  localStorage.setItem('loggedUserDOB', dob);
-
-  // Afficher infos et cacher le formulaire
-  showAccountDisplay(name, dob);
-  msg.textContent = "Informations sauvegardées !";
-  msg.style.color = "green";
-
-  // Mettre à jour section utilisateur
-  loadUserAccount();
-});
-
-// Charger au démarrage
-loadAccountInfo();
-
-// Initialiser au chargement
-loadAccountInfo();
-
-// --- Initialisation ---
-updateCharts();
-updateAlerts();
+    // 5. INITIALISATION
+    window.addEventListener('resize', handleResponsiveSidebar);
+    window.addEventListener('DOMContentLoaded', () => {
+        handleResponsiveSidebar();
+        if (localStorage.theme === 'dark') document.body.classList.add('dark');
+    });
 </script>
+
 </body>
 </html>
