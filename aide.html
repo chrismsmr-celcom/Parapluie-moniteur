@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Support Client - Moniteo by Umbrella</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; font-family: 'Inter', sans-serif; background: #0f172a; color: #fff; }
+        .content { max-width: 850px; margin: 50px auto; padding: 40px; background: rgba(255,255,255,0.03); backdrop-filter: blur(20px); border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); }
+        h1 { color: #3b82f6; margin-bottom: 10px; }
+        .subtitle { color: #64748b; margin-bottom: 40px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .help-card { padding: 25px; background: rgba(15, 23, 42, 0.5); border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
+        .help-card h3 { margin: 0 0 15px 0; font-size: 1rem; color: #fff; display: flex; align-items: center; }
+        .help-card h3::before { content: "●"; color: #3b82f6; margin-right: 10px; }
+        .help-card p { margin: 0; color: #94a3b8; font-size: 0.9rem; line-height: 1.5; }
+        .support-footer { margin-top: 40px; padding: 30px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), transparent); border-radius: 16px; text-align: center; }
+        .back-btn { display: inline-block; margin-bottom: 20px; color: #3b82f6; text-decoration: none; font-weight: 600; }
+        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <a href="index.html" class="back-btn">← Retour</a>
+        <h1>Centre d'assistance</h1>
+        <p class="subtitle">Support technique et guide d'utilisation Moniteo</p>
+
+        <div class="grid">
+            <div class="help-card">
+                <h3>Authentification OTP</h3>
+                <p>Le code envoyé par email est valable 10 minutes. Si vous ne recevez rien, vérifiez que l'adresse email saisie est celle enregistrée dans votre contrat Umbrella.</p>
+            </div>
+            <div class="help-card">
+                <h3>Clé de Session</h3>
+                <p>La clé s'affiche lors de la connexion. Elle est nécessaire pour valider l'entrée dans le périmètre administrateur. Elle expire automatiquement après 4 heures d'inactivité.</p>
+            </div>
+            <div class="help-card">
+                <h3>Synchronisation</h3>
+                <p>Les données de votre business sont rafraîchies toutes les 60 secondes. En cas de décalage, utilisez le bouton "Actualiser" de votre navigateur.</p>
+            </div>
+            <div class="help-card">
+                <h3>Export des données</h3>
+                <p>Vous pouvez exporter vos rapports au format PDF ou CSV directement depuis les modules "Ventes" et "Inventaire" de votre dashboard.</p>
+            </div>
+        </div>
+
+        <div class="support-footer">
+            <p style="margin-bottom: 10px;">Une question technique spécifique ?</p>
+            <a href="mailto:support@umbrella-moniteo.com" style="color: #fff; font-weight: 700; text-decoration: none; font-size: 1.1rem;">support@umbrella-moniteo.com</a>
+        </div>
+    </div>
+</body>
+</html>
