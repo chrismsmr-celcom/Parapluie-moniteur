@@ -272,139 +272,192 @@ body.dark-mode select {
     </main>
 
     <script>
-        let charts = {};
-        const currency = localStorage.getItem('currency') || '€';
+    // --- 1. CONFIGURATION ET VARIABLES ---
+    let charts = {};
+    let currentCurrency = localStorage.getItem('currency') || '€';
 
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('collapsed');
-        }
-        // À mettre au début de vos fichiers .html (Ventes, Staff, Inventaire)
-function applyGlobalSettings() {
-    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-    
-    // 1. Appliquer le thème (Sombre/Clair)
-    if (config.darkMode) {
-        document.body.classList.add('dark-mode');
-    } else {
-        document.body.classList.remove('dark-mode');
-    }
-
-    // 2. Mettre à jour la devise globale si nécessaire
-    if (config.currency) {
-        localStorage.setItem('currency', config.currency);
-        // Si un sélecteur de devise existe sur la page, on le met à jour
-        const select = document.getElementById('currencySelect');
-        if (select) select.value = config.currency;
-    }
-
-    // 3. Mettre à jour le titre du dashboard avec le nom de l'entreprise
-    const brandName = document.querySelector('.header-flex h2');
-    if (brandName && config.name) {
-        brandName.innerHTML = `${brandName.innerText} <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
-    }
-}
-
-// Exécuter au chargement de chaque page
-document.addEventListener('DOMContentLoaded', applyGlobalSettings);
-        function handleResponsiveSidebar() {
-            const width = window.innerWidth;
-            const sb = document.getElementById('sidebar');
-            if (width <= 1024) sb.classList.add('collapsed');
-            else sb.classList.remove('collapsed');
+    // --- 2. INITIALISATION & THÈME ---
+    function applyGlobalSettings() {
+        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+        
+        // Appliquer le thème (Sombre/Clair)
+        if (config.darkMode) {
+            document.body.classList.add('dark-mode');
+        } else {
+            document.body.classList.remove('dark-mode');
         }
 
-        function renderReporting() {
-            const salesData = JSON.parse(localStorage.getItem('salesData')) || [];
-            const inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
-            const period = parseInt(document.getElementById('analysisPeriod').value);
+        // Appliquer la devise
+        if (config.currency) {
+            currentCurrency = config.currency;
+            localStorage.setItem('currency', config.currency);
+        }
+
+        // Titre dynamique
+        const brandName = document.querySelector('.header-flex h2');
+        if (brandName && config.name) {
+            brandName.innerHTML = `Analyses <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
+        }
+    }
+
+    // --- 3. LOGIQUE DE CALCUL DU REPORTING ---
+    function renderReporting() {
+        // Chargement des données fraîches
+        const salesData = JSON.parse(localStorage.getItem('salesData')) || [];
+        const inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
+        const period = parseInt(document.getElementById('analysisPeriod')?.value || 7);
+        
+        let totalRev = 0, totalCost = 0;
+        let hourMap = Array(24).fill(0);
+        let productMap = {};
+        let dailyMap = {};
+
+        // Analyse des ventes
+        salesData.forEach(s => {
+            const qty = parseInt(s.qty) || 0;
+            const sellPrice = parseFloat(s.sell) || 0;
+            const buyPrice = parseFloat(s.buy) || 0;
             
-            let totalRev = 0, totalCost = 0;
-            let hourMap = Array(24).fill(0);
-            let productMap = {};
-            let dailyMap = {};
+            totalRev += (sellPrice * qty);
+            totalCost += (buyPrice * qty);
 
-            salesData.forEach(s => {
-                const qty = parseInt(s.qty) || 0;
-                const sellPrice = parseFloat(s.sell) || 0;
-                const buyPrice = parseFloat(s.buy) || 0;
-                totalRev += (sellPrice * qty);
-                totalCost += (buyPrice * qty);
-                const hour = s.timestamp ? new Date(s.timestamp).getHours() : 12;
+            // Heure de pointe (si timestamp absent, on ignore pour le graph)
+            if (s.timestamp) {
+                const hour = new Date(s.timestamp).getHours();
                 hourMap[hour] += qty;
-                productMap[s.product] = (productMap[s.product] || 0) + qty;
-                if(s.date) dailyMap[s.date] = (dailyMap[s.date] || 0) + (sellPrice * qty);
-            });
-             
-            document.getElementById('statRev').textContent = totalRev.toLocaleString() + " " + currency;
-            document.getElementById('statProf').textContent = (totalRev - totalCost).toLocaleString() + " " + currency;
-            const peakHour = hourMap.indexOf(Math.max(...hourMap));
-            document.getElementById('statPeak').textContent = peakHour + "h";
+            } else {
+                hourMap[12] += qty; // Valeur par défaut
+            }
 
-            const forecastBody = document.getElementById('forecastBody');
+            // Top produits & Évolution quotidienne
+            if (s.product) productMap[s.product] = (productMap[s.product] || 0) + qty;
+            if (s.date) dailyMap[s.date] = (dailyMap[s.date] || 0) + (sellPrice * qty);
+        });
+        
+        // Mise à jour des Widgets
+        document.getElementById('statRev').textContent = totalRev.toLocaleString() + " " + currentCurrency;
+        document.getElementById('statProf').textContent = (totalRev - totalCost).toLocaleString() + " " + currentCurrency;
+        
+        const peakHour = hourMap.indexOf(Math.max(...hourMap));
+        document.getElementById('statPeak').textContent = peakHour + "h";
+
+        // --- PRÉVISIONS DE STOCK ---
+        const forecastBody = document.getElementById('forecastBody');
+        if (forecastBody) {
             forecastBody.innerHTML = "";
             let criticals = 0;
             
             inventoryData.forEach(item => {
-                const dailyRate = (productMap[item.product] || 0) / period;
+                const totalSold = productMap[item.product] || 0;
+                const dailyRate = totalSold / period;
                 const stock = parseInt(item.qty) || 0;
+                
                 let days = dailyRate > 0 ? Math.floor(stock / dailyRate) : "∞";
-                let status = '<span class="badge badge-success">Ok</span>';
-                if(days <= 3 || stock === 0) { status = '<span class="badge badge-danger">Urgent</span>'; criticals++; }
-                else if(days <= 7) { status = '<span class="badge badge-warning">Alerte</span>'; }
+                let status = '<span class="badge badge-success" style="background:#10b98122; color:#10b981; padding:4px 8px; border-radius:4px;">Ok</span>';
+                
+                if(stock === 0 || (days !== "∞" && days <= 3)) { 
+                    status = '<span class="badge badge-danger" style="background:#ef444422; color:#ef4444; padding:4px 8px; border-radius:4px;">Urgent</span>'; 
+                    criticals++; 
+                } else if(days !== "∞" && days <= 7) { 
+                    status = '<span class="badge badge-warning" style="background:#f59e0b22; color:#f59e0b; padding:4px 8px; border-radius:4px;">Alerte</span>'; 
+                }
                 
                 forecastBody.innerHTML += `<tr>
                     <td><b>${item.product}</b></td>
                     <td>${stock}</td>
-                    <td>${dailyRate.toFixed(1)}</td>
-                    <td>${days} j</td>
+                    <td>${dailyRate.toFixed(1)}/j</td>
+                    <td>${days === "∞" ? "Stable" : days + " j"}</td>
                     <td>${status}</td>
                 </tr>`;
             });
-            const health = inventoryData.length ? Math.round(((inventoryData.length-criticals)/inventoryData.length)*100) : 100;
+
+            const health = inventoryData.length ? Math.round(((inventoryData.length - criticals) / inventoryData.length) * 100) : 100;
             document.getElementById('statStockHealth').textContent = health + "%";
-
-            updateCharts(dailyMap, hourMap, productMap, totalRev, totalCost);
         }
 
-        function updateCharts(daily, hours, products, rev, cost) {
-            if(charts.s) charts.s.destroy();
-            const days = Object.keys(daily).sort();
-            charts.s = new Chart(document.getElementById('chartSales'), {
-                type: 'line',
-                data: { labels: days, datasets: [{ label: 'CA', data: days.map(d=>daily[d]), borderColor: '#3b82f6', tension: 0.4, fill:true, backgroundColor:'rgba(59, 130, 246, 0.1)' }] },
-                options: { responsive:true, maintainAspectRatio:false }
-            });
+        updateCharts(dailyMap, hourMap, productMap, totalRev, totalCost);
+    }
 
-            if(charts.h) charts.h.destroy();
-            charts.h = new Chart(document.getElementById('chartHours'), {
-                type: 'bar',
-                data: { labels: Array.from({length:24}, (_,i)=>i+'h'), datasets: [{ label: 'Ventes', data: hours, backgroundColor: '#1f3c63' }] },
-                options: { responsive:true, maintainAspectRatio:false }
-            });
+    // --- 4. GESTION DES GRAPHIQUES ---
+    function updateCharts(daily, hours, products, rev, cost) {
+        const isDark = document.body.classList.contains('dark-mode');
+        const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+        const textColor = isDark ? '#94a3b8' : '#64748b';
 
-            if(charts.t) charts.t.destroy();
-            const top = Object.entries(products).sort((a,b)=>b[1]-a[1]).slice(0,5);
-            charts.t = new Chart(document.getElementById('chartTopProd'), {
-                type: 'doughnut',
-                data: { labels: top.map(p=>p[0]), datasets: [{ data: top.map(p=>p[1]), backgroundColor: ['#1f3c63','#3b82f6','#10b981','#f59e0b','#ef4444'] }] },
-                options: { responsive:true, maintainAspectRatio:false, cutout: '70%' }
-            });
+        Chart.defaults.color = textColor;
+        Chart.defaults.borderColor = gridColor;
 
-            if(charts.m) charts.m.destroy();
-            charts.m = new Chart(document.getElementById('chartMargin'), {
-                type: 'pie',
-                data: { labels: ['Coûts', 'Profit'], datasets: [{ data: [cost, rev-cost], backgroundColor: ['#e2e8f0', '#10b981'] }] },
-                options: { responsive:true, maintainAspectRatio:false }
-            });
+        // Ventes Quotidiennes
+        if(charts.s) charts.s.destroy();
+        const days = Object.keys(daily).sort();
+        charts.s = new Chart(document.getElementById('chartSales'), {
+            type: 'line',
+            data: { labels: days, datasets: [{ label: 'Chiffre d\'Affaires', data: days.map(d=>daily[d]), borderColor: '#3b82f6', tension: 0.4, fill:true, backgroundColor:'rgba(59, 130, 246, 0.1)' }] },
+            options: { responsive:true, maintainAspectRatio:false, scales: { y: { beginAtZero: true } } }
+        });
+
+        // Heures de pointe
+        if(charts.h) charts.h.destroy();
+        charts.h = new Chart(document.getElementById('chartHours'), {
+            type: 'bar',
+            data: { labels: Array.from({length:24}, (_,i)=>i+'h'), datasets: [{ label: 'Unités vendues', data: hours, backgroundColor: '#1f3c63' }] },
+            options: { responsive:true, maintainAspectRatio:false }
+        });
+
+        // Top Produits
+        if(charts.t) charts.t.destroy();
+        const top = Object.entries(products).sort((a,b)=>b[1]-a[1]).slice(0,5);
+        charts.t = new Chart(document.getElementById('chartTopProd'), {
+            type: 'doughnut',
+            data: { labels: top.map(p=>p[0]), datasets: [{ data: top.map(p=>p[1]), backgroundColor: ['#1f3c63','#3b82f6','#10b981','#f59e0b','#ef4444'] }] },
+            options: { responsive:true, maintainAspectRatio:false, cutout: '75%', plugins: { legend: { position: 'bottom' } } }
+        });
+
+        // Marge / Profit
+        if(charts.m) charts.m.destroy();
+        charts.m = new Chart(document.getElementById('chartMargin'), {
+            type: 'pie',
+            data: { labels: ['Coûts', 'Profit'], datasets: [{ data: [cost, rev-cost], backgroundColor: ['#e2e8f0', '#10b981'] }] },
+            options: { responsive:true, maintainAspectRatio:false, plugins: { legend: { position: 'bottom' } } }
+        });
+    }
+
+    // --- 5. UTILITAIRES ---
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+    }
+
+    function handleResponsiveSidebar() {
+        const width = window.innerWidth;
+        const sb = document.getElementById('sidebar');
+        if (sb) {
+            if (width <= 1024) sb.classList.add('collapsed');
+            else sb.classList.remove('collapsed');
         }
+    }
 
-        function exportPDF() {
-            const element = document.getElementById('printableArea');
-            html2pdf().from(element).set({ margin: 10, filename: 'Rapport_Moniteo.pdf', html2canvas: { scale: 2 } }).save();
-        }
+    function exportPDF() {
+        const element = document.getElementById('printableArea');
+        if (!element) return alert("Zone d'impression non trouvée");
+        
+        const opt = {
+            margin: 5,
+            filename: `Rapport_Moniteo_${new Date().toLocaleDateString()}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().from(element).set(opt).save();
+    }
 
-        window.addEventListener('resize', handleResponsiveSidebar);
-        window.onload = () => { handleResponsiveSidebar(); renderReporting(); };
-    </script>
+    // Events
+    window.addEventListener('resize', handleResponsiveSidebar);
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        applyGlobalSettings();
+        handleResponsiveSidebar();
+        renderReporting();
+    });
+</script>
 </body>
 </html>
