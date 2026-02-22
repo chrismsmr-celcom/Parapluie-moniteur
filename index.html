@@ -6,83 +6,240 @@
     <title>Moniteo Umbrella - Login</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js"></script>
     <style>
-        /* ===== GLOBAL ===== */
-        body {
-            margin: 0; font-family: "Inter", sans-serif; height: 100vh;
-            display: flex; background: #1f3c63; color: #fff; overflow: hidden; position: relative;
-        }
+    /* ===== CONFIGURATION DES VARIABLES ===== */
+    :root {
+        --primary: #3b82f6;
+        --primary-hover: #2563eb;
+        --text-main: #ffffff;
+        --text-dim: #94a3b8;
+        --glass-bg: rgba(255, 255, 255, 0.07); /* Plus léger pour voir les vagues */
+        --glass-border: rgba(255, 255, 255, 0.15);
+    }
 
-        /* ===== BACKGROUND ANIMATION ===== */
-        @keyframes constructionBG {
-            0% {background-position: 0 0;}
-            50% {background-position: 200px 200px;}
-            100% {background-position: 0 0;}
-        }
-        body::before {
-            content: ""; position: absolute; top:0; left:0; width:100%; height:100%;
-            background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 2px, transparent 2px, transparent 10px);
-            background-size: 200% 200%; animation: constructionBG 25s linear infinite; z-index:0;
-        }
+    /* ===== GLOBAL - OPTIMISÉ POUR VANTA ===== */
+    body {
+        margin: 0; 
+        font-family: "Inter", sans-serif; 
+        min-height: 100vh; 
+        display: flex; 
+        flex-direction: column;
+        color: var(--text-main); 
+        position: relative;
+        overflow-x: hidden;
+        background-color: #0f172a; /* Couleur de secours pendant le chargement */
+    }
 
-        .container { display: flex; flex: 1; z-index: 1; width: 100%; justify-content: space-between; align-items: center; padding: 2rem; }
+    /* On désactive l'ancien background radial et le ::before pour laisser place à Vanta */
+    body::before {
+        display: none !important;
+    }
 
-        /* ===== LEFT MARKETING ===== */
-        .marketing { flex: 1; padding-left: 3rem; }
-        .marketing h1 { font-size: 2.2rem; margin-bottom: 1rem; font-weight: 700; }
-        .marketing p { font-size: 1.1rem; line-height: 1.5; max-width: 400px; color: #cfd8f3; }
+    /* ===== MISE EN PAGE ===== */
+    .container { 
+        display: flex; 
+        flex: 1; 
+        z-index: 10; /* Augmenté pour être au-dessus du canvas Vanta */
+        width: 100%; 
+        max-width: 1200px; 
+        margin: 0 auto;
+        justify-content: space-around; 
+        align-items: center; 
+        padding: 2rem; 
+        box-sizing: border-box;
+    }
 
-        /* ===== LOGIN CARD ===== */
-        .login-container {
-            background: #fff; color: #1f3c63; padding: 2.5rem; border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3); width: 400px; text-align: center;
-        }
+    /* ===== SECTION MARKETING ===== */
+    .marketing { flex: 1; padding: 2rem; }
+    .marketing h1 { 
+        font-size: 3.2rem; 
+        margin-bottom: 1.5rem; 
+        font-weight: 800; 
+        line-height: 1.1;
+        letter-spacing: -1px;
+        background: linear-gradient(to bottom right, #fff, #94a3b8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .marketing p { font-size: 1.25rem; line-height: 1.7; max-width: 480px; color: var(--text-dim); }
 
-        .login-container img { width: 280px; margin-bottom: 1rem; }
-        .login-container h2 { margin-bottom: 0.5rem; font-size: 1.6rem; font-weight: 700; }
-        .login-container p { margin-bottom: 1.5rem; font-size: 0.9rem; color: #64748b; }
+    /* ===== CARTE DE CONNEXION (GLASSMORPHISM) ===== */
+    .login-container {
+    background: var(--glass-bg); 
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 3rem; 
+    border-radius: 30px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.4); 
+    width: 100%; 
+    max-width: 420px; 
+    text-align: center;
+    box-sizing: border-box;
+    z-index: 20;
+}
 
-        input {
-            width: 100%; padding: 0.8rem; margin-bottom: 1rem; border-radius: 10px;
-            border: 1px solid #e2e8f0; font-size: 1rem; box-sizing: border-box; outline: none; transition: 0.3s;
-        }
-        input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+/* --- LOGO AGRANDI --- */
+.login-container img { 
+    width: 160px; /* Taille augmentée de 90px à 160px */
+    height: auto; 
+    margin-top: -1rem; /* On le remonte légèrement pour équilibrer */
+    margin-bottom: 2rem; /* Plus d'espace sous le logo */
+    filter: drop-shadow(0 12px 20px rgba(0,0,0,0.4));
+    transition: transform 0.3s ease; /* Petit effet au survol */
+}
 
-        button {
-            width: 100%; padding: 0.8rem; margin-bottom: 1rem; border: none; border-radius: 10px;
-            background: #1f3c63; color: #fff; font-weight: 600; cursor: pointer; transition: 0.3s;
-        }
-        button:hover { background: #334155; transform: translateY(-1px); }
-        button:disabled { background: #94a3b8; cursor: not-allowed; }
+.login-container img:hover {
+    transform: scale(1.05); /* Le logo s'anime légèrement quand on passe dessus */
+}
 
-        #otpSection, #adminSection { 
-            display: none; border-top: 1px solid #f1f5f9; padding-top: 1.5rem; margin-top: 0.5rem; 
-        }
-        
-        .flex-row { display: flex; gap: 8px; }
-        .flex-row input { flex: 2; margin-bottom: 0; }
-        .flex-row button { flex: 1; margin-bottom: 0; font-size: 0.8rem; background: #3b82f6; }
+.login-container h2 { 
+    margin-top: 0; 
+    font-size: 1.8rem; 
+    font-weight: 700; 
+    color: #fff; 
+}
 
-        #msg, #otpMsg, #adminMsg { font-size: 0.85rem; margin-top: 5px; font-weight: 500; }
+    /* ===== FORMULAIRE ===== */
+    input {
+        width: 100%; 
+        padding: 1.1rem; 
+        margin-bottom: 1.2rem; 
+        border-radius: 16px;
+        background: rgba(0, 0, 0, 0.3); /* Plus sombre pour la lisibilité sur les vagues */
+        border: 1px solid var(--glass-border); 
+        color: #fff;
+        font-size: 1rem; 
+        box-sizing: border-box; 
+        outline: none; 
+        transition: all 0.3s ease;
+    }
+    input:focus { 
+        border-color: var(--primary); 
+        background: rgba(0, 0, 0, 0.5);
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2); 
+    }
 
-        footer { position: absolute; bottom: 20px; width: 100%; text-align: center; font-size: 0.8rem; color: rgba(255,255,255,0.6); }
-        footer a { color: #fff; text-decoration: none; margin: 0 10px; opacity: 0.8; }
+    button {
+        width: 100%; 
+        padding: 1.1rem; 
+        margin-bottom: 1rem; 
+        border: none; 
+        border-radius: 16px;
+        background: var(--primary); 
+        color: #fff; 
+        font-weight: 700; 
+        font-size: 1rem;
+        cursor: pointer; 
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Effet ressort */
+        box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+    }
+    button:hover { 
+        background: var(--primary-hover); 
+        transform: translateY(-3px); 
+        box-shadow: 0 15px 30px rgba(59, 130, 246, 0.4);
+    }
 
-        /* TOAST NOTIFICATION */
-        #dailyToast {
-            display:none; position: fixed; bottom: 20px; right: 20px; 
-            background: rgba(31, 60, 99, 0.95); color: white; padding: 12px 20px; 
-            border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); 
-            z-index: 10000; font-size: 0.85rem; border-left: 4px solid #3b82f6; 
-            transition: opacity 0.5s ease;
-        }
+    /* SECTIONS DÉROULANTES */
+    #otpSection, #adminSection { 
+        display: none; 
+        border-top: 1px solid var(--glass-border); 
+        padding-top: 1.5rem; 
+        margin-top: 1rem; 
+    }
+    
+    .flex-row { display: flex; gap: 12px; }
+    .flex-row input { flex: 2; margin-bottom: 0; }
+    .flex-row button { flex: 1; margin-bottom: 0; font-size: 0.9rem; background: rgba(255,255,255,0.1); }
 
-        @media(max-width: 1024px){
-            .container { flex-direction: column; justify-content: center; }
-            .marketing { padding-left: 0; margin-bottom: 2rem; text-align: center; }
-            .login-container { width: 90%; max-width: 380px; }
-        }
-    </style>
+    /* FOOTER & TOAST */
+    footer { z-index: 10; padding: 40px 10px; text-align: center; font-size: 0.85rem; color: var(--text-dim); }
+    footer a { color: #fff; text-decoration: none; margin: 0 10px; opacity: 0.6; }
+
+    #dailyToast {
+        display:none; position: fixed; bottom: 30px; right: 30px; 
+        background: rgba(15, 23, 42, 0.9); color: #fff; padding: 16px 24px; 
+        border-radius: 20px; border: 1px solid var(--glass-border);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); 
+        z-index: 10000; backdrop-filter: blur(10px);
+    }
+/* ===== FOOTER MIS À JOUR ===== */
+.main-footer {
+    z-index: 10;
+    padding: 40px 20px;
+    margin-top: auto; /* Pousse le footer vers le bas */
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(15, 23, 42, 0.3);
+    backdrop-filter: blur(5px);
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.copyright {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+}
+
+.copyright strong {
+    color: #fff;
+    font-weight: 600;
+}
+
+.footer-links {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.footer-link {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid transparent;
+}
+
+.footer-link:hover {
+    color: #fff;
+
+}
+
+.separator {
+    color: rgba(255, 255, 255, 0.1);
+    font-size: 0.8rem;
+}
+
+/* Ajustement mobile */
+@media (max-width: 480px) {
+    .footer-links {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .separator {
+        display: none;
+    }
+}
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 992px) {
+        .container { flex-direction: column; padding: 5rem 1.5rem; text-align: center; }
+        .marketing { margin-bottom: 3rem; }
+        .marketing p { margin: 0 auto; }
+    }
+</style>
 </head>
 <body>
 
@@ -93,7 +250,7 @@
     </div>
 
     <div class="login-container">
-        <img src="https://raw.githubusercontent.com/chrismsmr-celcom/Parapluie-moniteur/refs/heads/main/Moniteo_20260115_205657_0000-removebg-preview.png" alt="Logo">
+        <img src="https://i.postimg.cc/2ScYn0FB/Moniteo-removebg-preview.png" alt="Logo">
         <h2>Connexion</h2>
         <p>Dashboard sécurisé</p>
 
@@ -124,84 +281,168 @@
     <b id="toastCode" style="margin-left: 8px; color: #60a5fa; letter-spacing: 1px;"></b>
 </div>
 
-<footer>
-    &copy; 2026 Moniteo by Umbrella | <a href="#">Mentions légales</a> | <a href="#">Aide</a>
+<footer class="main-footer">
+    <div class="footer-content">
+        <span class="copyright">&copy; 2026 <strong>Moniteo</strong> by Umbrella</span>
+        <div class="footer-links">
+            <a href="mentions.html" class="footer-link">Mentions légales & CGU</a>
+            <span class="separator">|</span>
+            <a href="confidentialite.html" class="footer-link">Confidentialité</a>
+            <span class="separator">|</span>
+            <a href="aide.html" class="footer-link">Centre d'aide</a>
+            <span class="separator">|</span>
+            <a href="mailto:support@umbrella-moniteo.com" class="footer-link">Support technique</a>
+        </div>
+    </div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js"></script>
+
 <script>
-    emailjs.init('aXnSd5I8CQ596HHFa');
+    // --- 1. CONFIGURATION ET VARIABLES GLOBALES ---
+    (function() {
+        emailjs.init('aXnSd5I8CQ596HHFa');
+    })();
 
-    // --- CONFIGURATION SÉCURITÉ TEMPORELLE (Rotation 4h) ---
     const baseSecret = "MONI"; 
+    const COOLDOWN_TIME = 60;
+    let generatedOTP = '';
+    let cooldown = false;
+    let vantaEffect;
 
+    // Fonction de génération de clé temporelle
     function getTimedCode() {
         const now = new Date();
         const day = String(now.getDate()).padStart(2, '0');
-        // On divise la journée en tranches de 4 heures (0-3, 4-7, 8-11, etc.)
         const period = Math.floor(now.getHours() / 4); 
         return baseSecret + day + "P" + period;
     }
 
+    // --- 2. INITIALISATION AU CHARGEMENT (DOM) ---
     window.addEventListener('DOMContentLoaded', () => {
+        
+        // A. Lancement du fond animé VANTA
+        vantaEffect = VANTA.WAVES({
+            el: "body",
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200.00,
+            minWidth: 200.00,
+            scale: 1.00,
+            scaleMobile: 1.00,
+            color: 0x0f172a,      // Bleu Nuit
+            shininess: 56.00,
+            waveHeight: 29.50,
+            waveSpeed: 0.80,
+            zoom: 0.85
+        });
+
+        // B. Gestion du Toast (Clé de session)
         const toast = document.getElementById('dailyToast');
         const toastCode = document.getElementById('toastCode');
-        toastCode.textContent = getTimedCode();
-        toast.style.display = 'block';
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => { toast.style.display = 'none'; }, 500);
-        }, 6000); 
+        if(toastCode) toastCode.textContent = getTimedCode();
+        if(toast) {
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => { toast.style.display = 'none'; }, 500);
+            }, 6000);
+        }
+
+        // C. Titre dynamique (Nom de l'entreprise)
+        const settings = JSON.parse(localStorage.getItem('appSettings')) || { name: "Votre Business" };
+        const titleEl = document.getElementById('dynamicTitle');
+        if(titleEl && settings.name) titleEl.textContent = `Pilotez ${settings.name} en temps réel`;
     });
 
-    // --- LOGIQUE METIER ---
-    const settings = JSON.parse(localStorage.getItem('appSettings')) || { name: "Votre Business" };
-    if(settings.name) document.getElementById('dynamicTitle').textContent = `Pilotez ${settings.name} en temps réel`;
+    // --- 3. LOGIQUE D'AUTHENTIFICATION (EmailJS) ---
 
-    let generatedOTP='', otpExpiry=0, cooldown=false;
-    const COOLDOWN_TIME=60;
-
-    document.getElementById('sendOTP').addEventListener('click', ()=>{
+    // Envoi de l'OTP
+    document.getElementById('sendOTP').addEventListener('click', function() {
         if(cooldown) return;
-        const email = document.getElementById('loginEmail').value.trim();
-        const msg = document.getElementById('msg');
-        if(!email || !email.includes('@')){ msg.textContent="Email invalide"; msg.style.color="red"; return; }
 
-        generatedOTP = Math.floor(100000 + Math.random()*900000).toString();
-        otpExpiry = Date.now() + 15 * 60000;
+        const emailEl = document.getElementById('loginEmail');
+        const msgEl = document.getElementById('msg');
+        const email = emailEl.value.trim();
+        const btn = this;
 
-        emailjs.send('service_nhnfos8','template_6gn4r8h',{ 
-            email: email, passcode: generatedOTP, time: new Date().toLocaleTimeString() 
+        if(!email || !email.includes('@')) { 
+            msgEl.textContent = "Email invalide"; 
+            msgEl.style.color = "#ef4444"; 
+            return; 
+        }
+
+        btn.disabled = true;
+        btn.textContent = "Envoi en cours...";
+        msgEl.textContent = "";
+
+        generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+
+        emailjs.send('service_nhnfos8', 'template_6gn4r8h', { 
+            email: email, 
+            passcode: generatedOTP, 
+            time: new Date().toLocaleTimeString() 
         })
-        .then(()=>{ 
-            msg.textContent="Code envoyé !"; msg.style.color="green";
-            document.getElementById('otpSection').style.display='block';
-            startCooldown(document.getElementById('sendOTP'));
+        .then(() => { 
+            msgEl.textContent = "Code envoyé !"; 
+            msgEl.style.color = "#10b981";
+            document.getElementById('otpSection').style.display = 'block';
+            startCooldown(btn);
+        })
+        .catch((err) => {
+            console.error("Erreur EmailJS:", err);
+            msgEl.textContent = "Erreur d'envoi.";
+            msgEl.style.color = "#ef4444";
+            btn.disabled = false;
+            btn.textContent = "Réessayer";
         });
     });
 
-    function startCooldown(btn){
-        cooldown=true; let remaining=COOLDOWN_TIME;
-        const interval = setInterval(()=>{
-            btn.disabled=true; btn.textContent=`Renvoyer (${remaining}s)`;
-            if(remaining-- < 0){ clearInterval(interval); btn.disabled=false; btn.textContent="Renvoyer le code OTP"; cooldown=false; }
-        },1000);
+    // Gestion du compte à rebours
+    function startCooldown(btn) {
+        cooldown = true; 
+        let remaining = COOLDOWN_TIME;
+        const interval = setInterval(() => {
+            btn.textContent = `Renvoyer (${remaining}s)`;
+            remaining--;
+            if(remaining < 0) { 
+                clearInterval(interval); 
+                btn.disabled = false; 
+                btn.textContent = "Renvoyer le code OTP"; 
+                cooldown = false; 
+            }
+        }, 1000);
     }
 
-    document.getElementById('verifyOTP').addEventListener('click', ()=>{
-        if(document.getElementById('otpInput').value.trim() === generatedOTP){
-            document.getElementById('otpMsg').textContent="OTP validé";
-            document.getElementById('adminSection').style.display='block';
+    // Vérification de l'OTP
+    document.getElementById('verifyOTP').addEventListener('click', () => {
+        const otpInput = document.getElementById('otpInput').value.trim();
+        const otpMsg = document.getElementById('otpMsg');
+
+        if(otpInput === generatedOTP && generatedOTP !== '') {
+            otpMsg.textContent = "OTP validé ✅";
+            otpMsg.style.color = "#10b981";
+            document.getElementById('adminSection').style.display = 'block';
+        } else {
+            otpMsg.textContent = "Code incorrect";
+            otpMsg.style.color = "#ef4444";
         }
     });
 
-    document.getElementById('verifyAdmin').addEventListener('click', ()=>{
-        if(document.getElementById('adminID').value.trim() === getTimedCode()){
+    // Vérification de la Clé Admin Finale
+    document.getElementById('verifyAdmin').addEventListener('click', () => {
+        const adminInput = document.getElementById('adminID').value.trim();
+        const adminMsg = document.getElementById('adminMsg');
+
+        if(adminInput === getTimedCode()) {
             sessionStorage.setItem('isLogged', 'true'); 
-            window.location.href="dashboard.html";
+            window.location.href = "dashboard.html";
         } else {
-            document.getElementById('adminMsg').textContent="Clé expirée ou incorrecte";
-            document.getElementById('adminMsg').style.color="red";
+            adminMsg.textContent = "Clé expirée ou incorrecte";
+            adminMsg.style.color = "#ef4444";
         }
     });
 </script>
