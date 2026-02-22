@@ -245,149 +245,182 @@ body.dark-mode select {
         </div>
     </main>
 
-    <script>
-        // --- DONNÉES ---
-        let salesHistory = JSON.parse(localStorage.getItem('salesData')) || [];
+   <script>
+    // --- 1. DONNÉES & CONFIG ---
+    let salesHistory = JSON.parse(localStorage.getItem('salesData')) || [];
+    let currentCurrency = localStorage.getItem('currency') || '€';
 
-        function handleResponsiveSidebar() {
-            const width = window.innerWidth;
-            const sb = document.getElementById('sidebar');
+    // --- 2. INITIALISATION ---
+    document.addEventListener('DOMContentLoaded', () => {
+        applyGlobalSettings();
+        handleResponsiveSidebar();
+        renderHistory(salesHistory);
+    });
+
+    function applyGlobalSettings() {
+        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+        
+        // Thème uniquement
+        if (config.darkMode) {
+            document.body.classList.add('dark-mode');
+        } else {
+            document.body.classList.remove('dark-mode');
+        }
+
+        // Devise globale
+        if (config.currency) {
+            currentCurrency = config.currency;
+            localStorage.setItem('currency', config.currency);
+        }
+
+        // Titre entreprise
+        const brandName = document.querySelector('.header-flex h2');
+        if (brandName && config.name) {
+            brandName.innerHTML = `Historique <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
+        }
+    }
+
+    // --- 3. FILTRAGE ---
+    function applyFilters() {
+        const query = document.getElementById('searchProd').value.toLowerCase();
+        const market = document.getElementById('marketFilter').value;
+        const start = document.getElementById('dateStart').value;
+        const end = document.getElementById('dateEnd').value;
+
+        const filtered = salesHistory.filter(item => {
+            const matchName = item.product.toLowerCase().includes(query);
+            const matchMarket = (market === 'all' || item.market === market);
+            const matchStart = !start || item.date >= start;
+            const matchEnd = !end || item.date <= end;
+            return matchName && matchMarket && matchStart && matchEnd;
+        });
+
+        renderHistory(filtered);
+    }
+
+    function resetFilters() {
+        document.getElementById('searchProd').value = '';
+        document.getElementById('marketFilter').value = 'all';
+        document.getElementById('dateStart').value = '';
+        document.getElementById('dateEnd').value = '';
+        renderHistory(salesHistory);
+    }
+
+    // --- 4. RENDU ---
+    function renderHistory(data) {
+        const tbody = document.getElementById('historyBody');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        
+        let ca = 0, profit = 0, qty = 0;
+
+        [...data].reverse().forEach((item) => {
+            const sPrice = parseFloat(item.sell) || 0;
+            const bPrice = parseFloat(item.buy) || 0;
+            const sQty = parseInt(item.qty) || 0;
+
+            const itemTotal = sPrice * sQty;
+            const itemProfit = (sPrice - bPrice) * sQty;
+
+            ca += itemTotal;
+            profit += itemProfit;
+            qty += sQty;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-weight:500">${formatDate(item.date)}</td>
+                <td style="font-weight:600; color:var(--primary)">${item.product}</td>
+                <td><span class="badge-market ${item.market || 'local'}">${item.market || 'local'}</span></td>
+                <td>${sQty}</td>
+                <td>${sPrice.toLocaleString()}</td>
+                <td style="font-weight:700">${itemTotal.toLocaleString()}</td>
+                <td style="color:var(--success); font-weight:600">+${itemProfit.toLocaleString()}</td>
+                <td>
+                    <button class="btn-danger" style="padding:5px 10px; cursor:pointer;" onclick="deleteEntry('${item.timestamp || salesHistory.indexOf(item)}')">🗑</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Mise à jour des KPI avec la bonne devise
+        document.getElementById('caTotal').textContent = ca.toLocaleString() + " " + currentCurrency;
+        document.getElementById('profitTotal').textContent = profit.toLocaleString() + " " + currentCurrency;
+        document.getElementById('qtyTotal').textContent = qty;
+        document.getElementById('transCount').textContent = data.length;
+    }
+
+    // --- 5. ACTIONS & UTILITAIRES ---
+    function deleteEntry(id) {
+        if(confirm("Supprimer cette transaction ?")) {
+            salesHistory = salesHistory.filter(item => (item.timestamp || salesHistory.indexOf(item)) != id);
+            localStorage.setItem('salesData', JSON.stringify(salesHistory));
+            applyFilters();
+        }
+    }
+
+    function formatDate(d) {
+        if(!d) return "-";
+        const parts = d.split('-');
+        return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+    }
+
+    function handleResponsiveSidebar() {
+        const width = window.innerWidth;
+        const sb = document.getElementById('sidebar');
+        if (sb) {
             if (width <= 1024) sb.classList.add('collapsed');
             else sb.classList.remove('collapsed');
         }
+    }
 
-        window.addEventListener('resize', handleResponsiveSidebar);
-        document.addEventListener('DOMContentLoaded', () => {
-            handleResponsiveSidebar();
-            renderHistory(salesHistory);
+  function exportExcel() {
+    if (salesHistory.length === 0) {
+        alert("Aucune donnée à exporter.");
+        return;
+    }
+
+    try {
+        // 1. Préparation des données (on nettoie pour éviter les erreurs de format)
+        const dataToExport = salesHistory.map(item => {
+            const qty = parseInt(item.qty) || 0;
+            const sell = parseFloat(item.sell) || 0;
+            const buy = parseFloat(item.buy) || 0;
+
+            return {
+                "Date": item.date || "",
+                "Produit": item.product || "Sans nom",
+                "Marché": item.market || "Local",
+                "Quantité": qty,
+                "Prix Vente": sell,
+                "Total Vente": (sell * qty),
+                "Profit": ((sell - buy) * qty)
+            };
         });
-          // À mettre au début de vos fichiers .html (Ventes, Staff, Inventaire)
-function applyGlobalSettings() {
-    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-    
-    // 1. Appliquer le thème (Sombre/Clair)
-    if (config.darkMode) {
-        document.body.classList.add('dark-mode');
-    } else {
-        document.body.classList.remove('dark-mode');
-    }
 
-    // 2. Mettre à jour la devise globale si nécessaire
-    if (config.currency) {
-        localStorage.setItem('currency', config.currency);
-        // Si un sélecteur de devise existe sur la page, on le met à jour
-        const select = document.getElementById('currencySelect');
-        if (select) select.value = config.currency;
-    }
+        // 2. Création du classeur
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Historique");
 
-    // 3. Mettre à jour le titre du dashboard avec le nom de l'entreprise
-    const brandName = document.querySelector('.header-flex h2');
-    if (brandName && config.name) {
-        brandName.innerHTML = `${brandName.innerText} <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
-    }
-}
-/ Mise à jour du LOGO
-    if (config.logo) {
-        // Cible le logo dans la sidebar (la classe .logo-full que tu as déjà)
-        const logoImg = document.querySelector('.logo-full');
-        if (logoImg) {
-            logoImg.src = config.logo;
-        }
+        // 3. NOM DE FICHIER SÉCURISÉ (Pas de slash, pas d'espaces complexes)
+        // On utilise des tirets au lieu des slashs pour la date
+        const safeDate = new Date().toISOString().split('T')[0]; 
+        const fileName = `Historique_TerraVoyage_${safeDate}.xlsx`;
+
+        // 4. Déclenchement du téléchargement
+        XLSX.writeFile(wb, fileName);
+
+    } catch (error) {
+        console.error("Erreur lors de l'export Excel:", error);
+        alert("Impossible de générer le fichier Excel. Vérifiez que la bibliothèque XLSX est bien chargée.");
     }
 }
 
-// Exécuter au chargement de chaque page
-document.addEventListener('DOMContentLoaded', applyGlobalSettings);
-        // --- FILTRAGE ---
-        function applyFilters() {
-            const query = document.getElementById('searchProd').value.toLowerCase();
-            const market = document.getElementById('marketFilter').value;
-            const start = document.getElementById('dateStart').value;
-            const end = document.getElementById('dateEnd').value;
+    function logout() {
+        if(confirm("Se déconnecter ?")) { sessionStorage.clear(); window.location.href = "index.html"; }
+    }
 
-            const filtered = salesHistory.filter(item => {
-                const matchName = item.product.toLowerCase().includes(query);
-                const matchMarket = (market === 'all' || item.market === market);
-                const matchStart = !start || item.date >= start;
-                const matchEnd = !end || item.date <= end;
-                return matchName && matchMarket && matchStart && matchEnd;
-            });
-
-            renderHistory(filtered);
-        }
-
-        function resetFilters() {
-            document.getElementById('searchProd').value = '';
-            document.getElementById('marketFilter').value = 'all';
-            document.getElementById('dateStart').value = '';
-            document.getElementById('dateEnd').value = '';
-            renderHistory(salesHistory);
-        }
-
-        // --- RENDU ---
-        function renderHistory(data) {
-            const tbody = document.getElementById('historyBody');
-            tbody.innerHTML = '';
-            
-            let ca = 0, profit = 0, qty = 0;
-
-            // Inverser pour voir les plus récents en haut
-            [...data].reverse().forEach((item, index) => {
-                const itemTotal = item.sell * item.qty;
-                const itemProfit = (item.sell - item.buy) * item.qty;
-
-                ca += itemTotal;
-                profit += itemProfit;
-                qty += Number(item.qty);
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="font-weight:500">${formatDate(item.date)}</td>
-                    <td style="font-weight:600; color:var(--primary)">${item.product}</td>
-                    <td><span class="badge-market ${item.market || 'local'}">${item.market || 'local'}</span></td>
-                    <td>${item.qty}</td>
-                    <td>${item.sell.toFixed(2)}</td>
-                    <td style="font-weight:700">${itemTotal.toFixed(2)}</td>
-                    <td style="color:var(--success); font-weight:600">+${itemProfit.toFixed(2)}</td>
-                    <td><button class="btn-danger" style="padding:5px 10px" onclick="deleteEntry(${salesHistory.indexOf(item)})">🗑</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            // Update KPI
-            document.getElementById('caTotal').textContent = ca.toFixed(2) + " $";
-            document.getElementById('profitTotal').textContent = profit.toFixed(2) + " $";
-            document.getElementById('qtyTotal').textContent = qty;
-            document.getElementById('transCount').textContent = data.length;
-        }
-
-        function formatDate(d) {
-            if(!d) return "-";
-            const parts = d.split('-');
-            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
-        }
-
-        function deleteEntry(index) {
-            if(confirm("Supprimer cette transaction définitivement ?")) {
-                salesHistory.splice(index, 1);
-                localStorage.setItem('salesData', JSON.stringify(salesHistory));
-                applyFilters();
-            }
-        }
-
-        function exportExcel() {
-            const ws = XLSX.utils.json_to_sheet(salesHistory);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Historique");
-            XLSX.writeFile(wb, "Moniteo_Historique.xlsx");
-        }
-
-        function logout() {
-            if(confirm("Se déconnecter ?")) {
-                sessionStorage.clear();
-                window.location.href = "index.html";
-            }
-        }
-    </script>
+    window.addEventListener('resize', handleResponsiveSidebar);
+</script>
 </body>
 </html>
