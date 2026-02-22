@@ -12,7 +12,8 @@
     </script>
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
     <style>
         /* Couleurs pour le Mode Sombre */
@@ -203,136 +204,278 @@ body.dark-mode select {
 
 <main class="main-content" id="mainContent">
     <header class="header-top">
-        <div>
-            <h1 style="font-size: 1.4rem;">Tableau de Bord CEO</h1>
-            <p id="dateDisplay" style="color: var(--text-light); font-size: 0.85rem;"></p>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div id="dynamicLogoContainer"></div>
+            <div>
+                <h1 id="companyTitle" style="font-size: 1.4rem;">Tableau de Bord CEO</h1>
+                <p id="dateDisplay" style="color: var(--text-light); font-size: 0.85rem;"></p>
+            </div>
         </div>
         <div class="header-actions">
             <button class="btn-icon" onclick="toggleSidebar()"><svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
             <button class="btn-icon" onclick="toggleTheme()"><svg class="icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3"></path></svg></button>
-            <button class="btn-primary" onclick="window.print()">Exporter Rapport</button>
+            <button class="btn-primary" onclick="exportDashboardPDF()">Exporter Rapport PDF</button>
         </div>
     </header>
 
     <section class="kpi-grid">
         <div class="card kpi-card"><h3>Chiffre d'Affaires</h3><span class="val" id="totalCA">0</span></div>
-        <div class="card kpi-card"><h3>Bénéfice</h3><span class="val" id="totalProfit" style="color: var(--success);">0</span></div>
-        <div class="card kpi-card"><h3>Stock Global</h3><span class="val" id="totalStock">0</span></div>
-        <div class="card kpi-card"><h3>Dépenses</h3><span class="val" id="totalExpenses" style="color: var(--danger);">0</span></div>
+        <div class="card kpi-card"><h3>Bénéfice Réel</h3><span class="val" id="totalProfit" style="color: var(--success);">0</span></div>
+        <div class="card kpi-card"><h3>Stock & Staff</h3><span class="val" id="totalStock">0</span></div>
+        <div class="card kpi-card"><h3>Total Charges</h3><span class="val" id="totalExpenses" style="color: var(--danger);">0</span></div>
     </section>
 
-    <div class="charts-row">
+<div class="charts-row">
         <div class="card">
-            <h3 style="margin-bottom:1rem; font-size: 0.9rem;">Évolution des Ventes</h3>
-            <div style="height: 300px;"><canvas id="mainChart"></canvas></div>
+            <h3 style="margin-bottom:1rem; font-size: 0.9rem; color: var(--text-light);">Évolution des Ventes</h3>
+            <div style="height: 280px;"><canvas id="mainChart"></canvas></div>
         </div>
         <div class="card">
-            <h3 style="margin-bottom:1rem; font-size: 0.9rem;">Distribution du Stock</h3>
-            <div style="height: 300px;"><canvas id="stockChart"></canvas></div>
+            <h3 style="margin-bottom:1rem; font-size: 0.9rem; color: var(--text-light);">Distribution du Stock</h3>
+            <div style="height: 280px;"><canvas id="stockChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="charts-row" style="margin-top: 1.5rem;">
+        <div class="card">
+            <h3 style="margin-bottom:1.5rem; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center;">
+                Équipe Active 
+                <span id="staffCountLabel" style="background: var(--secondary); color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem;">0</span>
+            </h3>
+            <div id="staffListContainer" style="display: flex; gap: 20px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: thin;">
+                </div>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-bottom:1.5rem; font-size: 0.9rem;">Alertes Stocks Faibles</h3>
+            <div id="stockStatusList" style="display: flex; flex-direction: column; gap: 15px;">
+                </div>
         </div>
     </div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // 1. CHARGEMENT DES DONNÉES
-    const salesData = JSON.parse(localStorage.getItem('salesData')) || [];
-    const inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
-    const expensesData = JSON.parse(localStorage.getItem('expensesData')) || [];
-    const currency = localStorage.getItem('currency') || '€';
+    let mainChart = null;
+    let stockChart = null;
+    let currentCurrency = "FC";
 
-    // 2. CALCULS KPI
-    let ca = 0, profit = 0, stockQty = 0, expenses = 0;
-    salesData.forEach(s => { ca += (s.sell * s.qty); profit += (s.sell - s.buy) * s.qty; });
-    inventoryData.forEach(i => stockQty += i.qty);
-    expensesData.forEach(e => expenses += parseFloat(e.amount || 0));
+    // --- 1. CONFIGURATION GLOBALE ---
+    function applyGlobalConfig() {
+        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+        currentCurrency = config.currency || "FC";
 
-    document.getElementById('totalCA').textContent = ca.toLocaleString() + ' ' + currency;
-    document.getElementById('totalProfit').textContent = profit.toLocaleString() + ' ' + currency;
-    document.getElementById('totalStock').textContent = stockQty.toLocaleString();
-    document.getElementById('totalExpenses').textContent = expenses.toLocaleString() + ' ' + currency;
-     // À mettre au début de vos fichiers .html (Ventes, Staff, Inventaire)
-function applyGlobalSettings() {
-    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-    
-    // 1. Appliquer le thème (Sombre/Clair)
-    if (config.darkMode) {
-        document.body.classList.add('dark-mode');
-    } else {
-        document.body.classList.remove('dark-mode');
+        // Nom de l'entreprise
+        const title = document.getElementById('companyTitle');
+        if (config.name && title) {
+            title.innerHTML = `Tableau de Bord <small style="font-size:0.6em; color:var(--secondary)">| ${config.name}</small>`;
+        }
+
+        // Logo dynamique
+        const logoCont = document.getElementById('dynamicLogoContainer');
+        if (config.logo && logoCont) {
+            logoCont.innerHTML = `<img src="${config.logo}" style="height: 45px; width: auto; border-radius: 5px; object-fit: contain;">`;
+        }
+        
+        // Mode Sombre
+        if (config.darkMode) document.body.classList.add('dark');
+        else document.body.classList.remove('dark');
     }
 
-    // 2. Mettre à jour la devise globale si nécessaire
-    if (config.currency) {
-        localStorage.setItem('currency', config.currency);
-        // Si un sélecteur de devise existe sur la page, on le met à jour
-        const select = document.getElementById('currencySelect');
-        if (select) select.value = config.currency;
+    // --- 2. INITIALISATION ET SYNCHRONISATION ---
+    function initDashboard() {
+        applyGlobalConfig();
+        
+        // Récupération de TOUTES les sources de données
+        const sales = JSON.parse(localStorage.getItem('salesData')) || [];
+        const inventory = JSON.parse(localStorage.getItem('inventoryData')) || [];
+        const expenses = JSON.parse(localStorage.getItem('expensesData')) || [];
+        const staff = JSON.parse(localStorage.getItem('staffData')) || [];
+
+        // --- CALCULS FINANCIERS RÉELS ---
+        // CA = Somme de (Prix Vente * Quantité)
+        let totalCA = sales.reduce((sum, s) => sum + (parseFloat(s.sell || 0) * parseInt(s.qty || 0)), 0);
+        
+        // Profit Brut = Somme de ((Vente - Achat) * Quantité)
+        let grossProfit = sales.reduce((sum, s) => {
+            const profitUnitaire = parseFloat(s.sell || 0) - parseFloat(s.buy || 0);
+            return sum + (profitUnitaire * parseInt(s.qty || 0));
+        }, 0);
+        
+        // Charges = Dépenses Directes + (Salaires + Bonus Staff)
+        let otherExp = expenses.reduce((sum, e) => sum + (parseFloat(e.amount || 0)), 0);
+        let payroll = staff.reduce((sum, e) => {
+            const s = parseFloat(String(e.salary).replace(/[^\d.-]/g, '')) || 0;
+            const b = parseFloat(String(e.bonus).replace(/[^\d.-]/g, '')) || 0;
+            return sum + s + b;
+        }, 0);
+
+        let totalCharges = otherExp + payroll;
+        let netProfit = grossProfit - totalCharges;
+
+        // --- MISE À JOUR DE L'INTERFACE (KPI) ---
+        document.getElementById('totalCA').textContent = totalCA.toLocaleString() + " " + currentCurrency;
+        document.getElementById('totalExpenses').textContent = totalCharges.toLocaleString() + " " + currentCurrency;
+        
+        const profitEl = document.getElementById('totalProfit');
+        profitEl.textContent = netProfit.toLocaleString() + " " + currentCurrency;
+        profitEl.style.color = netProfit >= 0 ? "var(--success)" : "var(--danger)";
+
+        document.getElementById('totalStock').textContent = `${inventory.length} Réf / ${staff.length} Pers.`;
+
+        // --- INJECTION STAFF ---
+        const staffContainer = document.getElementById('staffListContainer');
+        document.getElementById('staffCountLabel').textContent = staff.length;
+        
+        if (staffContainer) {
+            staffContainer.innerHTML = staff.map(member => `
+                <div style="min-width: 90px; text-align: center; flex-shrink: 0;">
+                    <div style="width: 55px; height: 55px; border-radius: 50%; overflow: hidden; margin: 0 auto 8px; border: 2px solid var(--secondary); background: #eee;">
+                        <img src="${member.photo || 'https://ui-avatars.com/api/?name='+encodeURIComponent(member.name)}" 
+                             style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                    <p style="font-size: 0.75rem; font-weight: 700; margin: 0; color: var(--text-main);">${member.name.split(' ')[0]}</p>
+                    <p style="font-size: 0.6rem; color: var(--text-light);">${member.role || 'Staff'}</p>
+                </div>
+            `).join('') || '<p style="font-size:0.8rem">Aucun membre.</p>';
+        }
+
+        // --- INJECTION ALERTES STOCKS ---
+        const stockStatusList = document.getElementById('stockStatusList');
+        if (stockStatusList) {
+            // On trie par quantité (les plus bas en premier)
+            const lowStock = [...inventory].sort((a,b) => (parseInt(a.qty)||0) - (parseInt(b.qty)||0)).slice(0, 4);
+            
+            stockStatusList.innerHTML = lowStock.map(item => {
+                const q = parseInt(item.qty) || 0;
+                const isLow = q <= 5;
+                return `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: ${isDark()?'#1e293b':'#f8fafc'}; border-radius: 8px; border-left: 4px solid ${isLow?'var(--danger)':'var(--success)'};">
+                        <div>
+                            <span style="font-size: 0.85rem; font-weight: 600;">${item.product || item.name}</span>
+                            <br><span style="font-size: 0.7rem; color: var(--text-light);">Prix: ${item.sell || item.sellPrice} ${currentCurrency}</span>
+                        </div>
+                        <span style="font-size: 0.85rem; font-weight: 700; color: ${isLow?'var(--danger)':'var(--success)'};">${q} en stock</span>
+                    </div>
+                `;
+            }).join('') || '<p>Inventaire vide.</p>';
+        }
+
+        renderCharts(sales, inventory);
     }
 
-    // 3. Mettre à jour le titre du dashboard avec le nom de l'entreprise
-    const brandName = document.querySelector('.header-flex h2');
-    if (brandName && config.name) {
-        brandName.innerHTML = `${brandName.innerText} <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
+    // --- 3. GRAPHIQUES ---
+    function renderCharts(sales, inventory) {
+        const isDarkTheme = isDark();
+        const textColor = isDarkTheme ? '#94a3b8' : '#64748b';
+
+        // Évolution des Ventes (regroupées par date)
+        const dailyVentes = {};
+        sales.forEach(s => {
+            const d = s.date || "Inconnue";
+            dailyVentes[d] = (dailyVentes[d] || 0) + (parseFloat(s.sell) * parseInt(s.qty));
+        });
+        const dates = Object.keys(dailyVentes).sort().slice(-7);
+
+        const ctx1 = document.getElementById('mainChart').getContext('2d');
+        if(mainChart) mainChart.destroy();
+        mainChart = new Chart(ctx1, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [{
+                    label: 'Chiffre d\'Affaires',
+                    data: dates.map(d => dailyVentes[d]),
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true, tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: textColor }, grid: { display: false } },
+                    y: { ticks: { color: textColor }, grid: { color: isDarkTheme ? '#334155' : '#e2e8f0' } }
+                }
+            }
+        });
+
+        // Distribution Stock
+        const ctx2 = document.getElementById('stockChart').getContext('2d');
+        if(stockChart) stockChart.destroy();
+        stockChart = new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels: inventory.slice(0, 5).map(i => i.product || i.name),
+                datasets: [{
+                    data: inventory.slice(0, 5).map(i => i.qty || i.quantity),
+                    backgroundColor: ['#1f3c63', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: textColor, boxWidth: 10 } } }
+            }
+        });
     }
-}
 
-// Exécuter au chargement de chaque page
-document.addEventListener('DOMContentLoaded', applyGlobalSettings);
-    // 3. GRAPHIQUES
-    new Chart(document.getElementById('mainChart'), {
-        type: 'line',
-        data: {
-            labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
-            datasets: [{ label: 'CA', data: [ca*0.1, ca*0.3, ca*0.2, ca*0.5, ca*0.4, ca*0.9, ca], borderColor: '#3b82f6', tension: 0.3, fill:true, backgroundColor:'rgba(59,130,246,0.05)' }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-    });
+    // --- 4. EXPORT PDF PRO ---
+    function exportDashboardPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
 
-    new Chart(document.getElementById('stockChart'), {
-        type: 'doughnut',
-        data: {
-            labels: inventoryData.slice(0,3).map(i => i.product || 'Art.'),
-            datasets: [{ data: inventoryData.slice(0,3).map(i => i.qty), backgroundColor: ['#1f3c63', '#3b82f6', '#10b981'] }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-    });
+        // Header avec logo si présent
+        if(config.logo) {
+            try { doc.addImage(config.logo, 'PNG', 14, 10, 20, 20); } catch(e){}
+        }
+        
+        doc.setFontSize(18);
+        doc.setTextColor(31, 60, 99);
+        doc.text(config.name || "TERRA VOYAGE SARL", config.logo ? 40 : 14, 20);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text("RAPPORT RÉSUMÉ GÉNÉRAL - " + new Date().toLocaleDateString(), config.logo ? 40 : 14, 27);
+        doc.line(14, 35, 196, 35);
 
-    // 4. FONCTIONS UI
-    document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('fr-FR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
-    
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('collapsed');
+        // Tableau des indicateurs financiers
+        doc.autoTable({
+            startY: 45,
+            head: [['Indicateur clé', 'Montant / Valeur']],
+            body: [
+                ['Chiffre d\'Affaires Global', document.getElementById('totalCA').textContent],
+                ['Total Charges (Staff + Dépenses)', document.getElementById('totalExpenses').textContent],
+                ['Bénéfice Net Réel', document.getElementById('totalProfit').textContent],
+                ['Effectif Staff / Références Stock', document.getElementById('totalStock').textContent]
+            ],
+            headStyles: { fillColor: [31, 60, 99], fontStyle: 'bold' },
+            theme: 'striped'
+        });
+
+        doc.save(`Resume_Business_${new Date().toISOString().split('T')[0]}.pdf`);
     }
 
+    // --- UTILS ---
+    function isDark() { return document.body.classList.contains('dark') || document.body.classList.contains('dark-mode'); }
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
     function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
         document.body.classList.toggle('dark');
-        localStorage.theme = document.body.classList.contains('dark') ? 'dark' : 'light';
+        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+        config.darkMode = isDark();
+        localStorage.setItem('moniteo_config', JSON.stringify(config));
+        initDashboard();
     }
+    function logout() { if(confirm("Se déconnecter ?")) { sessionStorage.clear(); window.location.href="index.html"; } }
 
-    function handleResponsiveSidebar() {
-        const width = window.innerWidth;
-        const sb = document.getElementById('sidebar');
-        if (width <= 1024) {
-            sb.classList.add('collapsed');
-        } else {
-            sb.classList.remove('collapsed');
-        }
-    }
-
-    function logout() {
-        if(confirm("Voulez-vous vous déconnecter ?")) {
-            sessionStorage.clear();
-            window.location.href = "index.html";
-        }
-    }
-
-    // 5. INITIALISATION
-    window.addEventListener('resize', handleResponsiveSidebar);
-    window.addEventListener('DOMContentLoaded', () => {
-        handleResponsiveSidebar();
-        if (localStorage.theme === 'dark') document.body.classList.add('dark');
+    document.addEventListener('DOMContentLoaded', () => {
+        const dateEl = document.getElementById('dateDisplay');
+        if(dateEl) dateEl.textContent = new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+        initDashboard();
     });
 </script>
-
 </body>
-</html>
+</html>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
