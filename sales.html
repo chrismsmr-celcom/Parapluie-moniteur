@@ -17,247 +17,200 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     
- <style>
- /* Couleurs pour le Mode Sombre */
-body.dark-mode {
-    --bg-body: #0f172a;       /* Fond sombre */
-    --bg-card: #1e293b;       /* Cartes sombres */
-    --text-main: #f1f5f9;     /* Texte blanc/gris clair */
-    --text-light: #94a3b8;    /* Texte secondaire gris */
-    --border-soft: #334155;   /* Bordures discrètes */
-}
-
-/* On force le changement de couleur sur les éléments critiques */
-body.dark-mode .card, 
-body.dark-mode .header-flex {
-    background-color: var(--bg-card);
-    color: var(--text-main);
-    border-color: var(--border-soft);
-}
-
-body.dark-mode input, 
-body.dark-mode select {
-    background-color: #0f172a;
-    color: white;
-    border-color: var(--border-soft);
-}
-        /* --- VARIABLES ET THÈMES --- */
+    <style>
         :root {
             --primary:#1f3c63; --secondary:#3b82f6; --success:#10b981; --danger:#ef4444;
             --text-main:#1e293b; --text-light:#64748b; --bg-body:#f1f5f9; --bg-card:#ffffff;
             --border-soft:#e2e8f0; --sidebar-w:260px;
         }
 
-        /* --- RESET ET BASE --- */
+        /* --- MODE SOMBRE --- */
+        body.dark {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f1f5f9;
+            --text-light: #94a3b8;
+            --border-soft: #334155;
+        }
+
         * { margin:0; padding:0; box-sizing:border-box; font-family:Inter,sans-serif; }
-        
-        body { 
-            display:flex; 
-            height: 100vh;
-            overflow: hidden; 
-            background:var(--bg-body); 
-            color:var(--text-main); 
-            transition: 0.3s; 
-        }
+        body { display:flex; height: 100vh; background:var(--bg-body); color:var(--text-main); transition: 0.3s; }
 
-        .icon { 
-            width: 20px; 
-            height: 20px; 
-            min-width: 20px; 
-            stroke: currentColor; 
-            stroke-width: 2; 
-            fill: none; 
-        }
+        .icon { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; fill: none; }
 
-        /* --- SIDEBAR (Calqué sur Dashboard) --- */
+        /* --- SIDEBAR --- */
         .sidebar {
-            position: relative; 
-            width: var(--sidebar-w); 
-            height: 100vh; 
-            background: var(--primary);
-            color: #fff; 
-            padding: 1rem; 
-            display: flex; 
-            flex-direction: column; 
-            flex-shrink: 0;
-            transition: all 0.3s ease;
-            z-index: 1000;
+            width: var(--sidebar-w); height: 100vh; background: var(--primary);
+            color: #fff; padding: 1rem; display: flex; flex-direction: column; transition: 0.3s;
         }
-
         .sidebar.collapsed { width: 80px; }
-        .sidebar.collapsed span, 
-        .sidebar.collapsed .logo-full { display: none; }
+        .sidebar.collapsed span, .sidebar.collapsed .logo-full { display: none; }
         .sidebar.collapsed .logo-short { display: block; }
+        
+        .logo-box { padding: 1rem 0; text-align: center; border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 1.5rem; }
+        .logo-full { width: 140px; }
+        .logo-short { display: none; width: 40px; margin: 0 auto; }
 
-        .logo-box { 
-            padding: 1rem 0; 
-            text-align: center; 
-            border-bottom: 1px solid rgba(255,255,255,.1); 
-            margin-bottom: 1.5rem; 
-        }
-
-        .logo-full { width: 140px; height: auto; transition: 0.3s; }
-        .logo-short { display: none; width: 70px; margin: 0 auto; transition: 0.3s; }
-
-        .nav-links { list-style:none; flex:1; overflow-y: auto; }
+        .nav-links { list-style:none; flex:1; }
         .nav-links a {
             display:flex; align-items:center; gap:12px; padding:12px 15px; border-radius:10px;
             text-decoration:none; color:rgba(255,255,255,.7); font-size:.9rem; transition:.2s;
-            border-left: 3px solid transparent;
         }
-        .nav-links a:hover, .nav-links a.active { 
-            background:rgba(255,255,255,0.15); 
-            color:#fff; 
-            border-left: 3px solid var(--secondary);
-        }
+        .nav-links a.active, .nav-links a:hover { background:rgba(255,255,255,0.1); color:#fff; }
 
-        /* --- CONTENU PRINCIPAL --- */
-        .main-content { 
-            flex-grow: 1;
-            height: 100vh;
-            overflow-y: auto; 
-            padding: 2rem; 
-            transition: .3s; 
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .header-flex { 
-            display:flex; justify-content:space-between; align-items:center; 
-            background:var(--bg-card); padding:1rem 1.5rem; border-radius:12px; 
-            box-shadow:0 1px 3px rgba(0,0,0,.1); margin-bottom:2rem; 
-        }
-
-        .card { background:var(--bg-card); padding:1.5rem; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border-soft); margin-bottom: 1.5rem; }
+        /* --- CONTENT --- */
+        .main-content { flex: 1; overflow-y: auto; padding: 2rem; }
+        .header-flex { display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; }
         
-        /* --- TABLES --- */
-        .table-wrapper { overflow-x: auto; margin-top: 1rem; border-radius: 8px; border: 1px solid var(--border-soft); }
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 700px; }
-        th { background: #f8fafc; color: var(--text-light); padding: 12px; text-align: left; border-bottom: 2px solid #edf2f7; }
-        td { padding: 10px; border-bottom: 1px solid #edf2f7; }
-
-        /* --- ACTIONS & UI --- */
-        .action-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: center; }
-        
-        button { 
-            padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; 
-            font-weight: 600; font-size: 0.85rem; transition: 0.2s; white-space: nowrap;
+        .summary-banner {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;
+            background: var(--primary); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;
         }
-        .btn-main { background: var(--primary); color: white; }
-        .btn-outline { background: white; color: var(--text-main); border: 1px solid var(--border-soft); }
+        .summary-banner small { opacity: 0.7; font-size: 0.7rem; text-transform: uppercase; }
+        .summary-banner p { font-size: 1.5rem; font-weight: 700; }
+
+        .card { background:var(--bg-card); padding:1.5rem; border-radius:12px; border: 1px solid var(--border-soft); margin-bottom: 1.5rem; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; color: var(--text-light); border-bottom: 2px solid var(--border-soft); }
+        td { padding: 12px; border-bottom: 1px solid var(--border-soft); }
+
+        .action-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        button { padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .btn-main { background: var(--secondary); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border-soft); color: var(--text-main); }
         .btn-danger { background: #fee2e2; color: var(--danger); }
 
-        .summary-banner {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
-            gap: 1.5rem; background: var(--primary); color: white;
-            padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;
-        }
-        .summary-banner small { color: rgba(255,255,255,0.7); text-transform: uppercase; font-size: 0.7rem; }
-        .summary-banner p { font-size: 1.4rem; font-weight: 700; margin-top: 5px; }
-
-        .logout-box { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem; }
-        .logout-btn {
-            display: flex; align-items: center; gap: 12px; padding: 12px 15px;
-            text-decoration: none; color: #ff6b6b; font-weight: 600; font-size: 0.9rem;
-        }
-
-        /* --- RESPONSIVE (Strictement identique au Dashboard) --- */
-        @media (max-width: 1024px) {
-            :root { --sidebar-w: 80px; }
-            .sidebar span, .logo-full { display: none; }
-            .sidebar .logo-short { display: block; }
-        }
+        .charts-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .chart-wrapper { height: 300px; }
 
         @media (max-width: 768px) {
-            body { flex-direction: column; overflow-y: auto; height: auto; }
-            .sidebar { 
-                width: 100%; height: auto; position: sticky; top: 0; 
-                flex-direction: row; padding: 0.5rem; align-items: center;
-            }
-            .sidebar.collapsed { width: 100%; height: auto; }
-            .logo-box { border: none; margin: 0; padding: 0 1rem; }
-            .nav-links { display: flex; flex-direction: row; overflow-x: auto; scrollbar-width: none; }
-            .nav-links::-webkit-scrollbar { display: none; }
-            .nav-links a { padding: 8px 12px; white-space: nowrap; }
-            .nav-links span { display: none; } /* On cache le texte sur mobile pour fluidité */
-            
-            .logout-box { display: none; }
-            
-            .main-content { padding: 1rem; height: auto; }
-            .header-flex { flex-direction: column; gap: 1rem; text-align: center; }
-            .summary-banner { grid-template-columns: 1fr 1fr; gap: 10px; padding: 1rem; }
-            .summary-banner p { font-size: 1.1rem; }
+            .charts-container { grid-template-columns: 1fr; }
+            .sidebar { display: none; } /* On pourrait ajouter un menu burger ici */
         }
     </style>
-        </head>
+</head>
 <body>
 
-    <nav class="sidebar" id="sidebar">
-        <div class="logo-box">
-            <img src="https://i.postimg.cc/bJjy56Lq/Moniteo_1_removebg_preview.png" class="logo-full" alt="Logo">
-            <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
-        </div>
-        <ul class="nav-links">
-            <li><a href="dashboard.html"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> <span>Accueil</span></a></li>
-            <li><a href="sales.html" class="active"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
-            <li><a href="inventory.html"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> <span>Inventaire</span></a></li>
-            <li><a href="expenses.html"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> <span>Dépenses</span></a></li>
-            <li><a href="staff.html"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> <span>Staff</span></a></li>
-            <li><a href="reporting.html"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> <span>Reporting</span></a></li>
-            <li><a href="history.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>Historique</span></a></li>
-            <li><a href="setting.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> <span>Paramètres</span></a></li>
-        </ul>
-        <div class="logout-box">
-            <a href="#" onclick="logout(); return false;" class="logout-btn">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                <span>Déconnexion</span>
-            </a>
-        </div>
-    </nav>
+   <nav class="sidebar" id="sidebar">
+			<div class="logo-box">
+				<img src="https://i.postimg.cc/bJjy56Lq/Moniteo_1_removebg_preview.png" class="logo-full" alt="Logo">
+				<img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
+			</div>
+			<ul class="nav-links">
+				<li>
+					<a href="dashboard.html">
+						<svg class="icon" viewBox="0 0 24 24">
+							<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+						</svg>
+						<span>Accueil</span>
+					</a>
+				</li>
+				<li>
+					<a href="sales.html"  class="active">
+						<svg class="icon" viewBox="0 0 24 24">
+							<circle cx="9" cy="21" r="1"></circle>
+							<circle cx="20" cy="21" r="1"></circle>
+							<path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+						</svg>
+						<span>Ventes</span>
+					</a>
+				</li>
+				<li>
+					<a href="inventory.html">
+						<svg class="icon" viewBox="0 0 24 24">
+							<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+						</svg>
+						<span>Inventaire</span>
+					</a>
+				</li>
+				<li>
+					<a href="expenses.html">
+						<svg class="icon" viewBox="0 0 24 24">
+							<line x1="12" y1="1" x2="12" y2="23"></line>
+							<path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+						</svg>
+						<span>Dépenses</span>
+					</a>
+				</li>
+				<li>
+					<a href="staff.html">
+						<svg class="icon" viewBox="0 0 24 24">
+							<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+							<circle cx="9" cy="7" r="4"></circle>
+						</svg>
+						<span>Staff</span>
+					</a>
+				</li>
+				<li>
+					<a href="reporting.html">
+						<svg class="icon" viewBox="0 0 24 24">
+							<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+						</svg>
+						<span>Reporting</span>
+					</a>
+				</li>
+				<li>
+				<li>
+					<a href="history.html">
+						<svg class="icon" viewBox="0 0 24 24">
+							<circle cx="12" cy="12" r="10"></circle>
+							<polyline points="12 6 12 12 16 14"></polyline>
+						</svg>
+						<span>Historique</span>
+					</a>
+				</li>
+				<a href="setting.html">
+					<svg class="icon" viewBox="0 0 24 24">
+						<circle cx="12" cy="12" r="3"></circle>
+						<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+					</svg>
+					<span>Paramètres</span>
+				</a>
+				</li>
+			</ul>
+			<div style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+				<a href="#" onclick="logout(); return false;" style="color:#ff6b6b; text-decoration:none; font-size:0.9rem; font-weight:600; display:flex; align-items:center; gap:10px; padding:12px 15px;">
+					<svg class="icon" viewBox="0 0 24 24">
+						<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+						<polyline points="16 17 21 12 16 7"></polyline>
+						<line x1="21" y1="12" x2="9" y2="12"></line>
+					</svg>
+					<span>Déconnexion</span>
+				</a>
+			</div>
+		</nav>
 
-    <main class="main-content" id="mainContent">
+    <main class="main-content">
         <header class="header-flex">
-            <h2>Gestion des Ventes</h2>
-            <div>
-                Devise: 
-                <select id="currencySelect" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border-soft);">
-                    <option value="€">€ Euro</option>
-                    <option value="$">$ Dollar</option>
-                    <option value="FC">FC Franc</option>
-                </select>
-            </div>
+            <h2 id="pageTitle">Gestion des Ventes</h2>
+            <div id="dynamicLogoContainer"></div>
         </header>
 
         <div class="summary-banner">
-            <div><small>Total Ventes</small><p id="totalSales">0</p></div>
-            <div><small>Bénéfice</small><p id="totalProfit">0</p></div>
-            <div><small>Produits</small><p id="totalQuantity">0</p></div>
+            <div><small>Chiffre d'Affaires</small><p id="totalSales">0</p></div>
+            <div><small>Bénéfice Brut</small><p id="totalProfit">0</p></div>
+            <div><small>Articles Vendus</small><p id="totalQuantity">0</p></div>
         </div>
 
         <div class="action-bar">
-    <button class="btn-main" onclick="addRow()">+ Ajouter Vente</button>
-    <button class="btn-outline" onclick="undo()">Annuler (Undo)</button>
-    
-    <button class="btn-outline" onclick="exportExcel()">Exporter Excel</button>
-    <button class="btn-outline" onclick="exportPDF()">Exporter PDF</button>
-    <button class="btn-outline" onclick="document.getElementById('importSales').click()">Importer Excel</button>
-    <input type="file" id="importSales" style="display:none" accept=".xlsx,.xls">
-    
-    <button class="btn-outline" style="border-color: #3b82f6; color: #3b82f6;" onclick="downloadBackup()">Sauvegarder</button>
-    <button class="btn-outline" style="border-color: #f59e0b; color: #f59e0b;" onclick="document.getElementById('importBackup').click()">Restaurer</button>
-    <input type="file" id="importBackup" style="display:none" accept=".json">
+            <button class="btn-main" onclick="addRow()">+ Nouvelle Vente</button>
+            <button class="btn-outline" onclick="undo()">Annuler</button>
+            <button class="btn-outline" onclick="exportPDF()">PDF</button>
+            <button class="btn-outline" onclick="exportExcel()">Excel</button>
+            <button class="btn-danger" onclick="deleteSelectedRow()">Supprimer</button>
+            <button class="btn-main" style="background:#10b981" onclick="closeDay()">Clôturer Journée</button>
+            <button class="btn-outline" onclick="document.getElementById('excelFileInput').click()">Importer Excel</button>
+<input type="file" id="excelFileInput" style="display:none" accept=".xlsx, .xls, .csv" onchange="importExcel(event)">
+        </div>
 
-    <button class="btn-danger" onclick="deleteSelectedRow()">Supprimer</button>
-    <button class="btn-danger" onclick="clearTable()">Nettoyer</button>
-    
-    <button class="btn-main" style="background:#10b981" onclick="closeDay()">Clôturer Journée</button>
-</div>
         <div class="card">
-            <input type="text" id="filterProduct" oninput="filterTable()" placeholder="Filtrer par produit..." style="width:100%; padding: 12px; border: 1px solid var(--border-soft); border-radius: 10px; margin-bottom: 1rem;">
-            <div class="table-wrapper">
+            <input type="text" id="filterProduct" oninput="renderTable(this.value)" placeholder="Rechercher une vente..." style="width:100%; padding: 12px; border: 1px solid var(--border-soft); border-radius: 10px; margin-bottom: 1rem; background: var(--bg-body); color: var(--text-main);">
+            <div style="overflow-x: auto;">
                 <table>
                     <thead>
                         <tr>
-                            <th>Sélect</th>
+                            <th><input type="checkbox" onclick="toggleSelectAll(this)"></th>
                             <th>Produit</th>
                             <th>Date</th>
                             <th>Achat</th>
@@ -271,410 +224,263 @@ body.dark-mode select {
             </div>
         </div>
 
-        <div class="card">
-            <h3>Analyses Graphiques</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 1rem;">
-                <canvas id="salesChart" style="max-height: 250px;"></canvas>
-                <canvas id="profitChart" style="max-height: 250px;"></canvas>
-            </div>
-        </div>
-
-        <div class="card" style="border-left: 4px solid var(--danger);">
-            <h3 style="color: var(--danger);">Alertes Stock</h3>
-            <ul id="alertList" style="margin-top: 10px; font-size: 0.85rem; padding-left: 20px;"></ul>
+        <div class="charts-container">
+            <div class="card chart-wrapper"><canvas id="salesChart"></canvas></div>
+            <div class="card chart-wrapper"><canvas id="profitChart"></canvas></div>
         </div>
     </main>
 
    <script>
-        // --- DONNEES ---
-        let salesData = JSON.parse(localStorage.getItem('salesData')) || [];
-        let inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
-        let historyData = JSON.parse(localStorage.getItem('historyData')) || [];
-        let undoStack = [];
-        let currentCurrency = localStorage.getItem('currency') || '€';
-        // À mettre au début de vos fichiers .html (Ventes, Staff, Inventaire)
-        function applyGlobalSettings() {
-    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-    
-    // 1. Appliquer le thème (Sombre/Clair)
-    if (config.darkMode) {
-        document.body.classList.add('dark-mode');
-    } else {
-        document.body.classList.remove('dark-mode');
+    let salesData = JSON.parse(localStorage.getItem('salesData')) || [];
+    let undoStack = [];
+    let currentCurrency = "€";
+    let salesChart, profitChart;
+
+    // --- INITIALISATION ---
+    function applyGlobalConfig() {
+        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+        currentCurrency = config.currency || "€";
+        if (config.darkMode) document.body.classList.add('dark');
+        if (config.name) document.getElementById('pageTitle').textContent = `Ventes | ${config.name}`;
+        if (config.logo) {
+            document.getElementById('dynamicLogoContainer').innerHTML = `<img src="${config.logo}" id="companyLogo" style="height:40px; border-radius:5px;">`;
+        }
     }
 
-    // 2. Mettre à jour la devise globale si nécessaire
-    if (config.currency) {
-        localStorage.setItem('currency', config.currency);
-        // Si un sélecteur de devise existe sur la page, on le met à jour
-        const select = document.getElementById('currencySelect');
-        if (select) select.value = config.currency;
+    // --- LOGIQUE DE STOCK TEMPS RÉEL ---
+    function adjustInventoryStock(productName, quantityChange, isHorsStock) {
+        if (!productName || isHorsStock) return;
+        let inventory = JSON.parse(localStorage.getItem('inventoryData')) || [];
+        // Utilisation de .product pour correspondre à ton inventaire
+        let item = inventory.find(i => i.product.trim().toLowerCase() === productName.trim().toLowerCase());
+        
+        if (item) {
+            item.qty = (parseInt(item.qty) || 0) + quantityChange;
+            localStorage.setItem('inventoryData', JSON.stringify(inventory));
+            window.dispatchEvent(new Event('storage')); // Notifie l'onglet inventaire
+        }
     }
 
-    // 3. Mettre à jour le titre du dashboard avec le nom de l'entreprise
-    const brandName = document.querySelector('.header-flex h2');
-    if (brandName && config.name) {
-        brandName.innerHTML = `${brandName.innerText} <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
-    }
-}
+    // --- LIAISON INVENTAIRE & TABLEAU ---
+    function renderTable(filter = '') {
+        const tbody = document.getElementById('salesTable');
+        const inventory = JSON.parse(localStorage.getItem('inventoryData')) || [];
+        tbody.innerHTML = '';
+        
+        let totalS = 0, totalP = 0, totalQ = 0;
 
-// Exécuter au chargement de chaque page
-document.addEventListener('DOMContentLoaded', applyGlobalSettings);
-        // --- INITIALISATION ---
-        document.getElementById('currencySelect').value = currentCurrency;
-        document.getElementById('currencySelect').addEventListener('change', e => {
-            currentCurrency = e.target.value;
-            localStorage.setItem('currency', currentCurrency);
-            renderTable();
-        });
+        salesData.forEach((s, index) => {
+            if(s.product.toLowerCase().includes(filter.toLowerCase())) {
+                const profit = (parseFloat(s.sell) - parseFloat(s.buy)) * parseInt(s.qty);
+                totalS += parseFloat(s.sell) * parseInt(s.qty);
+                totalP += profit;
+                totalQ += parseInt(s.qty);
 
-        function handleResponsiveSidebar() {
-            const width = window.innerWidth;
-            const sb = document.getElementById('sidebar');
-            if (sb) {
-                if (width <= 1024) sb.classList.add('collapsed');
-                else sb.classList.remove('collapsed');
-            }
-        }
+                // Construction des options : désactivé si stock <= 0
+                const options = inventory.map(item => {
+                    const isOutOfStock = (parseInt(item.qty) <= 0);
+                    return `<option value="${item.product}" 
+                        ${item.product === s.product ? 'selected' : ''} 
+                        ${isOutOfStock && item.product !== s.product ? 'disabled' : ''}>
+                        ${item.product} ${isOutOfStock ? '(RUPTURE)' : `(Stock: ${item.qty})`}
+                    </option>`;
+                }).join('');
 
-        window.addEventListener('resize', handleResponsiveSidebar);
-        window.addEventListener('DOMContentLoaded', () => {
-            handleResponsiveSidebar();
-            renderTable();
-        });
-
-        // --- ACTIONS ---
-        function addRow() {
-            saveUndo();
-            // Initialisation avec une ligne vide
-            salesData.push({product:'', date:new Date().toISOString().slice(0,10), buy:0, sell:0, qty:1});
-            renderTable();
-        }
-
-        function deleteSelectedRow() {
-            const table = document.getElementById('salesTable');
-            const checkboxes = table.querySelectorAll('input[type="checkbox"]');
-            let newSalesData = [];
-            
-            saveUndo();
-            checkboxes.forEach((cb, index) => {
-                if (!cb.checked) {
-                    newSalesData.push(salesData[index]);
-                }
-            });
-
-            if (newSalesData.length === salesData.length) {
-                alert("Veuillez sélectionner au moins une ligne à supprimer.");
-                return;
-            }
-
-            salesData = newSalesData;
-            renderTable();
-        }
-
-        function saveUndo() {
-            undoStack.push(JSON.stringify(salesData));
-            if(undoStack.length > 20) undoStack.shift();
-        }
-
-        function undo() {
-            if(undoStack.length > 0) {
-                salesData = JSON.parse(undoStack.pop());
-                renderTable();
-            } else alert("Rien à annuler !");
-        }
-
-        // --- EXPORTS ---
-        function exportExcel() {
-            if (salesData.length === 0) return alert("Tableau vide !");
-            const ws = XLSX.utils.json_to_sheet(salesData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Ventes");
-            XLSX.writeFile(wb, "Ventes_Moniteo.xlsx");
-        }
-
-        function exportPDF() {
-            if (salesData.length === 0) return alert("Tableau vide !");
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.text("Rapport de Ventes - Moniteo Umbrella", 14, 15);
-            
-            const rows = salesData.map(s => [
-                s.product, s.date, s.buy, s.sell, s.qty, ((parseFloat(s.sell) - parseFloat(s.buy)) * parseInt(s.qty)).toFixed(2)
-            ]);
-
-            doc.autoTable({
-                head: [['Produit', 'Date', 'Achat', 'Vente', 'Qté', 'Bénéfice']],
-                body: rows,
-                startY: 20
-            });
-            doc.save("Ventes.pdf");
-        }
-
-        // Action de sauvegarde de sécurité (Backup JSON)
-        function downloadBackup() {
-            const data = {
-                sales: salesData,
-                inventory: inventoryData,
-                history: historyData,
-                backupDate: new Date().toLocaleString()
-            };
-            const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `backup_moniteo_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-        }
-
-        function clearTable() {
-            if(confirm("Effacer tout le tableau ?")) {
-                saveUndo();
-                salesData = [];
-                renderTable();
-            }
-        }
-
-        // --- CALCULS & RENDU ---
-        function renderTable(filter = '') {
-            const tbody = document.getElementById('salesTable');
-            if(!tbody) return;
-            tbody.innerHTML = '';
-            let totalS = 0, totalP = 0, totalQ = 0;
-
-            salesData.forEach((s, index) => {
-                if(s.product.toLowerCase().includes(filter.toLowerCase())) {
-                    const profit = (parseFloat(s.sell) - parseFloat(s.buy)) * parseInt(s.qty || 0);
-                    totalS += parseFloat(s.sell || 0) * parseInt(s.qty || 0);
-                    totalP += profit;
-                    totalQ += parseInt(s.qty || 0);
-
-                    // Génération des options avec INDICATEURS VISUELS DE STOCK
-                    let options = `<option value="">-- Choisir --</option>`;
-                    inventoryData.forEach(item => {
-                        const isSelected = (item.product === s.product) ? 'selected' : '';
-                        
-                        // Détermination de l'émojis selon le stock
-                        let statusEmoji = "🟢"; // Stock OK
-                        if (item.qty <= 0) statusEmoji = "🔴"; // Rupture
-                        else if (item.qty <= 5) statusEmoji = "🟠"; // Critique
-                        
-                        options += `<option value="${item.product}" ${isSelected}>
-                            ${statusEmoji} ${item.product} (Dispo: ${item.qty})
-                        </option>`;
-                    });
-
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td><input type="checkbox"></td>
-                        <td>
-                            <select onchange="autoFillFromInventory(${index}, this.value)" style="width:100%; border:none; background:transparent; font-size:inherit; color:inherit; outline:none; font-weight:500;">
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="checkbox" class="row-check"></td>
+                    <td>
+                        <select onchange="handleSelectProduct(${index}, this)" style="width:100%; background:transparent; color:inherit; border:none; font-weight:600; cursor:pointer;">
+                            <option value="">-- Choisir Produit --</option>
+                            <optgroup label="Inventaire">
                                 ${options}
-                                <option value="${s.product}" ${s.product && !inventoryData.find(i=>i.product===s.product) ? 'selected' : ''}>${s.product ? '❓ ' + s.product : 'Hors Inventaire'}</option>
-                            </select>
-                        </td>
-                        <td contenteditable="true" onblur="updateRowData(${index}, 2, this)">${s.date}</td>
-                        <td contenteditable="true" onblur="updateRowData(${index}, 3, this)">${s.buy}</td>
-                        <td contenteditable="true" onblur="updateRowData(${index}, 4, this)">${s.sell}</td>
-                        <td contenteditable="true" onblur="updateRowData(${index}, 5, this)">${s.qty}</td>
-                        <td style="font-weight:bold; color:${profit >= 0 ? '#10b981' : '#ef4444'}">${profit.toFixed(2)}</td>
-                    `;
-                    tbody.appendChild(tr);
+                            </optgroup>
+                            <optgroup label="Autre">
+                                <option value="HORS_STOCK" ${s.isHorsStock ? 'selected' : ''}>+ Produit hors stock</option>
+                            </optgroup>
+                        </select>
+                    </td>
+                    <td contenteditable="true" onblur="updateRow(${index}, 'date', this)">${s.date}</td>
+                    <td style="opacity:0.7;">${s.buy}</td>
+                    <td contenteditable="true" onblur="updateRow(${index}, 'sell', this)">${s.sell}</td>
+                    <td contenteditable="true" onfocus="this.oldValue = this.innerText" onblur="updateQuantity(${index}, this)">${s.qty}</td>
+                    <td style="font-weight:bold; color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'}">
+                        ${profit.toFixed(2)} ${currentCurrency}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+        });
+
+        document.getElementById('totalSales').textContent = totalS.toLocaleString() + " " + currentCurrency;
+        document.getElementById('totalProfit').textContent = totalP.toLocaleString() + " " + currentCurrency;
+        document.getElementById('totalQuantity').textContent = totalQ;
+        
+        localStorage.setItem('salesData', JSON.stringify(salesData));
+        updateCharts();
+    }
+
+    // Gestion intelligente du menu déroulant
+    function handleSelectProduct(index, selectElement) {
+        const val = selectElement.value;
+        
+        if (val === "HORS_STOCK") {
+            const customName = prompt("Nom du produit hors stock :");
+            if (customName) {
+                saveUndo();
+                // Si on remplace un produit d'inventaire, on rend son stock
+                if (salesData[index].product && !salesData[index].isHorsStock) {
+                    adjustInventoryStock(salesData[index].product, parseInt(salesData[index].qty), false);
                 }
-            });
-
-            document.getElementById('totalSales').textContent = totalS.toLocaleString() + " " + currentCurrency;
-            document.getElementById('totalProfit').textContent = totalP.toLocaleString() + " " + currentCurrency;
-            document.getElementById('totalQuantity').textContent = totalQ;
-
-            updateAlerts();
-            localStorage.setItem('salesData', JSON.stringify(salesData));
-            updateCharts();
-        }
-
-        // Liaison Inventaire : Remplissage automatique des prix
-        function autoFillFromInventory(index, productName) {
-            const item = inventoryData.find(i => i.product === productName);
-            if (item) {
-                salesData[index].product = item.product;
-                salesData[index].buy = item.buyPrice || item.buy || 0;
-                salesData[index].sell = item.sellPrice || item.sell || 0;
+                salesData[index].product = customName;
+                salesData[index].isHorsStock = true;
+                salesData[index].buy = 0;
+                salesData[index].sell = 0;
+                renderTable();
             } else {
-                salesData[index].product = productName;
+                selectElement.value = ""; 
+            }
+        } else {
+            // Produit de l'inventaire
+            saveUndo();
+            const inventory = JSON.parse(localStorage.getItem('inventoryData')) || [];
+            const item = inventory.find(i => i.product === val);
+            
+            // On rend le stock de l'ancien produit s'il existait
+            if (salesData[index].product && !salesData[index].isHorsStock) {
+                adjustInventoryStock(salesData[index].product, parseInt(salesData[index].qty), false);
+            }
+
+            if(item) {
+                salesData[index].product = item.product;
+                salesData[index].isHorsStock = false;
+                salesData[index].buy = item.buy || 0;
+                salesData[index].sell = item.sell || 0;
+                // On déduit le stock du nouveau produit
+                adjustInventoryStock(item.product, -parseInt(salesData[index].qty), false);
             }
             renderTable();
         }
+    }
 
-        function updateRowData(index, cellIndex, element) {
-            const val = element.textContent;
-            if(cellIndex === 1) salesData[index].product = val;
-            if(cellIndex === 2) salesData[index].date = val;
-            if(cellIndex === 3) salesData[index].buy = parseFloat(val.replace(',','.')) || 0;
-            if(cellIndex === 4) salesData[index].sell = parseFloat(val.replace(',','.')) || 0;
-            if(cellIndex === 5) salesData[index].qty = parseInt(val) || 0;
-            
-            renderTable(document.getElementById('filterProduct').value);
-        }
+    function updateQuantity(index, el) {
+        const newQty = parseInt(el.innerText) || 0;
+        const oldQty = parseInt(el.oldValue) || 0;
+        const diff = oldQty - newQty; 
 
-        function updateAlerts() {
-            const alertList = document.getElementById('alertList');
-            if(!alertList) return;
-            alertList.innerHTML = '';
-            inventoryData.forEach(i => {
-                if(i.qty <= 5) alertList.innerHTML += `<li>⚠️ <strong>${i.product}</strong> : stock critique (${i.qty})</li>`;
-            });
-        }
-
-        function filterTable() {
-            renderTable(document.getElementById('filterProduct').value);
-        }
-
-        // --- GRAPHIQUES ---
-        let salesChart, profitChart;
-        function updateCharts() {
-            const canvasSales = document.getElementById('salesChart');
-            const canvasProfit = document.getElementById('profitChart');
-            if(!canvasSales || !canvasProfit) return;
-
-            const lastItems = salesData.slice(-7);
-            const labels = lastItems.map(s => s.product || '...');
-            const qtyData = lastItems.map(s => s.qty);
-            const profData = lastItems.map(s => (parseFloat(s.sell) - parseFloat(s.buy)) * parseInt(s.qty || 0));
-
-            if(salesChart) salesChart.destroy();
-            salesChart = new Chart(canvasSales, {
-                type: 'bar',
-                data: { labels, datasets: [{ label: 'Quantités', data: qtyData, backgroundColor: '#1f3c63' }] },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-
-            if(profitChart) profitChart.destroy();
-            profitChart = new Chart(canvasProfit, {
-                type: 'line',
-                data: { labels, datasets: [{ label: 'Bénéfice', data: profData, borderColor: '#10b981', tension:0.3, fill: true, backgroundColor:'rgba(16,185,129,0.1)' }] },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        }
-
-        function logout() {
-            if(confirm("Se déconnecter ?")) {
-                sessionStorage.clear();
-                window.location.href = "index.html";
+        if (diff !== 0) {
+            saveUndo();
+            salesData[index].qty = newQty;
+            // On ajuste le stock seulement si ce n'est pas un produit "Hors Stock"
+            if (!salesData[index].isHorsStock) {
+                adjustInventoryStock(salesData[index].product, diff, false);
             }
+            renderTable();
         }
+    }
 
-        // Clôture avec déduction réelle des stocks
-        function closeDay(){
-            if(salesData.length === 0) return alert("Aucune donnée à clôturer.");
-            if(confirm("Clôturer la journée ? Cela déduira les stocks et archivera les ventes.")){
-                
-                // Déduction des stocks dans inventoryData
-                salesData.forEach(sale => {
-                    const invItem = inventoryData.find(i => i.product === sale.product);
-                    if(invItem) {
-                        invItem.qty = parseInt(invItem.qty) - parseInt(sale.qty);
-                    }
-                });
-                localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+    function addRow() {
+        saveUndo();
+        salesData.push({ product: '', date: new Date().toISOString().split('T')[0], buy: 0, sell: 0, qty: 1, isHorsStock: false });
+        renderTable();
+    }
 
-                // Archivage historique
-                historyData.push({
-                    date: new Date().toISOString().slice(0,10), 
-                    sales: [...salesData],
-                    totalRevenue: document.getElementById('totalSales').textContent
-                });
-                localStorage.setItem('historyData', JSON.stringify(historyData));
-                
-                // Réinitialisation
-                salesData = [];
-                renderTable();
-                alert("Journée clôturée ! Stocks mis à jour.");
+    function deleteSelectedRow() {
+        if(!confirm("Supprimer les lignes sélectionnées ? Le stock sera rendu.")) return;
+        saveUndo();
+        const checks = document.querySelectorAll('.row-check');
+        
+        salesData.forEach((sale, i) => {
+            if (checks[i].checked && sale.product && !sale.isHorsStock) {
+                adjustInventoryStock(sale.product, parseInt(sale.qty), false);
             }
-        }
-
-        // --- IMPORTATION EXCEL ---
-        document.getElementById('importSales').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-                    if (jsonData.length === 0) return alert("Le fichier est vide.");
-
-                    saveUndo();
-                    const importedSales = jsonData.map(row => ({
-                        product: row.Produit || row.product || "Importé",
-                        date: row.Date || row.date || new Date().toISOString().slice(0, 10),
-                        buy: parseFloat(row.Achat || row.buy || 0),
-                        sell: parseFloat(row.Vente || row.sell || 0),
-                        qty: parseInt(row.Qté || row.qty || 0)
-                    }));
-
-                    salesData = [...salesData, ...importedSales];
-                    renderTable();
-                    alert(`${importedSales.length} ventes importées !`);
-                } catch (error) {
-                    alert("Erreur de format Excel.");
-                }
-            };
-            reader.readAsArrayBuffer(file);
         });
 
-        // --- RESTAURATION DU BACKUP GLOBAL ---
-        document.getElementById('importBackup').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+        salesData = salesData.filter((_, i) => !checks[i].checked);
+        renderTable();
+    }
 
-            if (!confirm("Attention : Restaurer un backup écrasera toutes vos données actuelles (Ventes, Inventaire et Historique). Continuer ?")) {
-                this.value = ""; 
-                return;
-            }
+    function closeDay() {
+        if(salesData.length === 0) return alert("Rien à clôturer.");
+        if(confirm("Confirmer la clôture ? Les ventes seront archivées.")) {
+            let history = JSON.parse(localStorage.getItem('historyData')) || [];
+            history.push({ 
+                date: new Date().toLocaleString(), 
+                totalCA: document.getElementById('totalSales').textContent,
+                data: [...salesData] 
+            });
+            localStorage.setItem('historyData', JSON.stringify(history));
+            salesData = []; 
+            renderTable();
+            alert("✅ Archivage terminé !");
+        }
+    }
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-                    if (importedData.sales && importedData.inventory && importedData.history) {
-                        salesData = importedData.sales;
-                        inventoryData = importedData.inventory;
-                        historyData = importedData.history;
+    // --- PDF / GRAPHS / UTILS ---
+    function exportPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+        doc.setFontSize(18);
+        doc.text(config.name || "Rapport de Ventes", 14, 22);
+        const rows = salesData.map(s => [s.product, s.date, s.qty, `${s.sell} ${currentCurrency}`, `${((s.sell - s.buy) * s.qty).toFixed(2)} ${currentCurrency}`]);
+        doc.autoTable({ head: [['Produit', 'Date', 'Qté', 'Vente', 'Profit']], body: rows, startY: 45, theme: 'grid' });
+        doc.save(`Ventes_${new Date().toLocaleDateString()}.pdf`);
+    }
 
-                        localStorage.setItem('salesData', JSON.stringify(salesData));
-                        localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
-                        localStorage.setItem('historyData', JSON.stringify(historyData));
+    function updateRow(index, field, el) {
+        salesData[index][field] = el.innerText;
+        localStorage.setItem('salesData', JSON.stringify(salesData));
+        updateCharts(); 
+    }
 
-                        renderTable();
-                        alert("Système restauré avec succès depuis le backup du : " + (importedData.backupDate || "Date inconnue"));
-                    } else {
-                        throw new Error("Format de fichier invalide.");
-                    }
-                } catch (error) {
-                    console.error(error);
-                    alert("Erreur : Le fichier de backup est corrompu ou invalide.");
-                }
-            };
-            reader.readAsText(file);
-        });    
-        function validateSale(productName, quantitySold) {
-    let sales = JSON.parse(localStorage.getItem('salesData')) || [];
-    
-    // On ajoute la vente avec un marqueur de temps
-    sales.push({
-        product: productName,
-        qty: parseInt(quantitySold),
-        timestamp: Date.now() // Crucial pour la synchro
+    function saveUndo() { undoStack.push(JSON.stringify(salesData)); }
+    function undo() { if(undoStack.length) { salesData = JSON.parse(undoStack.pop()); renderTable(); } }
+
+    function updateCharts() {
+        const canvasSales = document.getElementById('salesChart');
+        const canvasProfit = document.getElementById('profitChart');
+        if(!canvasSales || !canvasProfit) return;
+        const lastItems = salesData.slice(-5);
+        const labels = lastItems.map(s => s.product || "...");
+        const dataVentes = lastItems.map(s => s.sell * s.qty);
+        const dataProfit = lastItems.map(s => (s.sell - s.buy) * s.qty);
+        if(salesChart) salesChart.destroy();
+        if(profitChart) profitChart.destroy();
+        salesChart = new Chart(canvasSales.getContext('2d'), { type: 'bar', data: { labels, datasets: [{ label: 'CA', data: dataVentes, backgroundColor: '#3b82f6' }] } });
+        profitChart = new Chart(canvasProfit.getContext('2d'), { type: 'line', data: { labels, datasets: [{ label: 'Profit', data: dataProfit, borderColor: '#10b981' }] } });
+    }
+
+    function importExcel(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+            saveUndo();
+            const newSales = jsonData.map(row => ({
+                product: row.Produit || row.product || "Importé",
+                date: row.Date || new Date().toISOString().split('T')[0],
+                buy: parseFloat(row.Achat || row.buy) || 0,
+                sell: parseFloat(row.Vente || row.sell) || 0,
+                qty: parseInt(row.Qte || row.qty) || 1,
+                isHorsStock: true // Par sécurité, l'import Excel est considéré hors stock pour ne pas casser l'inventaire existant
+            }));
+            salesData = [...salesData, ...newSales];
+            renderTable();
+            event.target.value = '';
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function logout() { sessionStorage.clear(); window.location.href="index.html"; }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        applyGlobalConfig();
+        renderTable();
     });
-    
-    localStorage.setItem('salesData', JSON.stringify(sales));
-    alert("Vente enregistrée ! Le stock sera mis à jour.");
-}
-  </script>
+</script>
 </body>
 </html>
