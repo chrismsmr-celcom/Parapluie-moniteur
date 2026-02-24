@@ -12,6 +12,7 @@
     </script>
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     
     <style>
         /* --- VARIABLES --- */
@@ -25,7 +26,7 @@
             --bg-body:#0f172a; --bg-card:#1e293b; --text-main:#f1f5f9; --text-light:#94a3b8; --border-soft:#334155;
         }
 
-        * { margin:0; padding:0; box-sizing:border-box; font-family:Inter,sans-serif; }
+        * { margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', sans-serif; }
         
         body { 
             display:flex; height: 100vh; overflow: hidden; 
@@ -34,29 +35,34 @@
 
         .icon { width: 20px; height: 20px; min-width: 20px; stroke: currentColor; stroke-width: 2; fill: none; }
 
-        /* --- SIDEBAR --- */
+        /* --- SIDEBAR RÉTACTABLE (Harmonisée) --- */
         .sidebar {
             width: var(--sidebar-w); height: 100vh; 
             background: var(--primary); color: #fff; padding: 1rem; 
             display: flex; flex-direction: column; flex-shrink: 0; transition: all 0.3s ease;
+            z-index: 1000;
         }
         .sidebar.collapsed { width: 80px; }
         .sidebar.collapsed span, .sidebar.collapsed .logo-full { display: none; }
         .sidebar.collapsed .logo-short { display: block; }
 
         .logo-box { padding: 1rem 0; text-align: center; border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 1.5rem; }
-        .logo-full { width: 140px; height: auto; }
+        .logo-full { width: 140px; }
         .logo-short { display: none; width: 40px; margin: 0 auto; }
 
         .nav-links { list-style:none; flex:1; overflow-y: auto; }
         .nav-links a {
             display:flex; align-items:center; gap:12px; padding:12px 15px; border-radius:10px;
             text-decoration:none; color:rgba(255,255,255,.7); font-size:.9rem; transition:.2s;
+            border-left: 3px solid transparent;
         }
-        .nav-links a:hover, .nav-links a.active { background:rgba(255,255,255,0.15); color:#fff; }
+        .nav-links a:hover, .nav-links a.active { 
+            background:rgba(255,255,255,0.15); color:#fff; 
+            border-left: 3px solid var(--secondary);
+        }
 
         /* --- CONTENU --- */
-        .main-content { flex-grow: 1; height: 100vh; overflow-y: auto; padding: 2rem; }
+        .main-content { flex-grow: 1; height: 100vh; overflow-y: auto; padding: 2rem; transition: 0.3s; }
         .header-flex { 
             display:flex; justify-content:space-between; align-items:center; 
             background:var(--bg-card); padding:1rem 1.5rem; border-radius:12px; 
@@ -64,8 +70,8 @@
         }
 
         .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
-        .card { background:var(--bg-card); padding:1.5rem; border-radius:12px; border: 1px solid var(--border-soft); }
-        .card h3 { margin-bottom: 1.2rem; font-size: 1.1rem; color: var(--secondary); }
+        .card { background:var(--bg-card); padding:1.5rem; border-radius:12px; border: 1px solid var(--border-soft); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .card h3 { margin-bottom: 1.2rem; font-size: 1.1rem; color: var(--secondary); display: flex; align-items: center; gap: 8px; }
 
         .form-group { margin-bottom: 1rem; }
         label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-light); margin-bottom: 5px; text-transform: uppercase; }
@@ -89,184 +95,103 @@
         }
         .btn-save:hover { background: var(--secondary); transform: translateY(-2px); }
 
+        .btn-outline {
+            padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border-soft);
+            background: transparent; color: var(--text-main); font-size: 0.85rem; font-weight: 500;
+            cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px;
+        }
+        .btn-outline:hover { background: var(--bg-body); border-color: var(--secondary); color: var(--secondary); }
+
         .danger-zone { border: 1px solid #fee2e2; background: rgba(239, 68, 68, 0.05); }
         .btn-danger-soft { background: #fee2e2; color: var(--danger); width: 100%; padding: 10px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; }
 
-        .logout-box { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem; }
-        .logout-btn { display: flex; align-items: center; gap: 12px; padding: 12px 15px; text-decoration: none; color: #ff6b6b; font-weight: 600; }
-/* --- SECTION MAINTENANCE (SETTINGS) --- */
-.card {
-    background: var(--bg-card);
-    padding: 1.5rem;
-    border-radius: 12px;
-    border: 1px solid var(--border-soft);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    transition: transform 0.2s ease, background 0.3s;
-}
-
-/* Style des titres dans les cartes */
-.card h3 {
-    display: flex;
-    align-items: center;
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 0.75rem;
-    color: var(--text-main);
-}
-
-/* Style des icônes SVG */
-.icon {
-    width: 20px;
-    height: 20px;
-    stroke: currentColor;
-    stroke-width: 2;
-    fill: none;
-}
-
-/* Conteneur des boutons */
-.action-bar {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 1rem;
-}
-
-/* Boutons Outlined (Bordure) */
-.btn-outline {
-    padding: 10px 18px;
-    border-radius: 8px;
-    border: 1px solid var(--border-soft);
-    background: transparent;
-    color: var(--text-main);
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-/* Effets au survol */
-.btn-outline:hover {
-    background: var(--bg-body);
-    border-color: var(--secondary);
-    color: var(--secondary);
-    transform: translateY(-1px);
-}
-
-/* Adaptation spécifique au Mode Sombre (si .dark est sur le body) */
-body.dark .btn-outline {
-    border-color: #334155;
-    background: rgba(255,255,255,0.02);
-}
-
-body.dark .btn-outline:hover {
-    background: rgba(59, 130, 246, 0.1); /* Bleu transparent */
-    border-color: var(--secondary);
-}
         /* --- RESPONSIVE MOBILE --- */
+        @media (max-width: 1024px) { 
+            :root { --sidebar-w: 80px; } 
+            .sidebar span, .logo-full { display: none; }
+            .sidebar .logo-short { display: block; }
+        }
+
         @media (max-width: 768px) {
             body { flex-direction: column; overflow-y: auto; height: auto; }
-            .sidebar { width: 100%; height: auto; position: sticky; top: 0; flex-direction: row; padding: 0.5rem; z-index: 100; }
-            .logo-box, .logout-box { display: none; }
-            .nav-links { display: flex; flex-direction: row; width: 100%; justify-content: space-around; }
+            .sidebar { 
+                width: 100%; height: auto; position: sticky; top: 0; 
+                flex-direction: row; align-items: center; padding: 0.5rem;
+            }
+            .logo-box, .sidebar div:last-child { display: none; }
+            .nav-links { display: flex; flex-direction: row; overflow-x: auto; scrollbar-width: none; }
+            .nav-links::-webkit-scrollbar { display: none; }
+            .nav-links a { padding: 8px 12px; white-space: nowrap; border-left: none; }
             .nav-links span { display: none; }
-            .main-content { padding: 1rem; }
-            .header-flex { flex-direction: column; text-align: center; }
+            .main-content { padding: 1rem; height: auto; }
+            .header-flex { flex-direction: column; text-align: center; gap: 10px; }
         }
+        /* --- MODIFICATION POUR GARDER LE TEXTE SUR MOBILE --- */
+@media (max-width: 768px) {
+    .nav-links span { 
+        display: inline !important; /* Force l'affichage du texte */
+        font-size: 0.75rem;          /* Réduit un peu la taille pour que ça loge */
+    }
+
+    .nav-links a { 
+        flex-direction: column;    /* Aligne l'icône au-dessus du texte */
+        gap: 4px;                  /* Espace réduit entre l'icône et le texte */
+        padding: 5px 10px;         /* Ajuste l'espacement */
+        min-width: 80px;           /* Assure une zone de clic confortable */
+        justify-content: center;
+    }
+
+    .icon {
+        width: 18px;               /* Icônes légèrement plus petites */
+        height: 18px;
+    }
+}
+@media (max-width: 768px) {
+    .sidebar {
+        /* ... tes règles actuelles ... */
+        z-index: 1000; /* Assure que la barre passe devant le contenu */
+    }
+    
+    .nav-links a.active {
+        background: rgba(255,255,255,0.2);
+        border-bottom: 3px solid var(--secondary); /* Barre en bas au lieu d'à gauche sur mobile */
+        border-left: none;
+    }
+}
     </style>
 </head>
 <body>
 
-    		<nav class="sidebar" id="sidebar">
-			<div class="logo-box">
-				<img src="https://i.postimg.cc/bJjy56Lq/Moniteo_1_removebg_preview.png" class="logo-full" alt="Logo">
-				<img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
-			</div>
-			<ul class="nav-links">
-				<li>
-					<a href="dashboard.html">
-						<svg class="icon" viewBox="0 0 24 24">
-							<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-						</svg>
-						<span>Accueil</span>
-					</a>
-				</li>
-				<li>
-					<a href="sales.html">
-						<svg class="icon" viewBox="0 0 24 24">
-							<circle cx="9" cy="21" r="1"></circle>
-							<circle cx="20" cy="21" r="1"></circle>
-							<path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-						</svg>
-						<span>Ventes</span>
-					</a>
-				</li>
-				<li>
-					<a href="inventory.html">
-						<svg class="icon" viewBox="0 0 24 24">
-							<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-						</svg>
-						<span>Inventaire</span>
-					</a>
-				</li>
-				<li>
-					<a href="expenses.html">
-						<svg class="icon" viewBox="0 0 24 24">
-							<line x1="12" y1="1" x2="12" y2="23"></line>
-							<path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-						</svg>
-						<span>Dépenses</span>
-					</a>
-				</li>
-				<li>
-					<a href="staff.html">
-						<svg class="icon" viewBox="0 0 24 24">
-							<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-							<circle cx="9" cy="7" r="4"></circle>
-						</svg>
-						<span>Staff</span>
-					</a>
-				</li>
-				<li>
-					<a href="reporting.html">
-						<svg class="icon" viewBox="0 0 24 24">
-							<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-						</svg>
-						<span>Reporting</span>
-					</a>
-				</li>
-				<li>
-				<li>
-					<a href="history.html">
-						<svg class="icon" viewBox="0 0 24 24">
-							<circle cx="12" cy="12" r="10"></circle>
-							<polyline points="12 6 12 12 16 14"></polyline>
-						</svg>
-						<span>Historique</span>
-					</a>
-				</li>
-				<a href="setting.html"  class="active">
-					<svg class="icon" viewBox="0 0 24 24">
-						<circle cx="12" cy="12" r="3"></circle>
-						<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-					</svg>
-					<span>Paramètres</span>
-				</a>
-				</li>
-			</ul>
-			<div style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
-				<a href="#" onclick="logout(); return false;" style="color:#ff6b6b; text-decoration:none; font-size:0.9rem; font-weight:600; display:flex; align-items:center; gap:10px; padding:12px 15px;">
-					<svg class="icon" viewBox="0 0 24 24">
-						<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-						<polyline points="16 17 21 12 16 7"></polyline>
-						<line x1="21" y1="12" x2="9" y2="12"></line>
-					</svg>
-					<span>Déconnexion</span>
-				</a>
-			</div>
-		</nav>
+    <nav class="sidebar" id="sidebar">
+        <div class="logo-box">
+            <img src="https://i.postimg.cc/bJjy56Lq/Moniteo_1_removebg_preview.png" class="logo-full" alt="Logo">
+            <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
+        </div>
+        <ul class="nav-links">
+            <li><a href="dashboard.html"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><span>Accueil</span></a></li>
+            <li><a href="sales.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg><span>Ventes</span></a></li>
+            <li><a href="inventory.html"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg><span>Inventaire</span></a></li>
+            <li><a href="expenses.html"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg><span>Dépenses</span></a></li>
+            <li><a href="staff.html"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg><span>Staff</span></a></li>
+            <li><a href="reporting.html"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg><span>Reporting</span></a></li>
+            <li><a href="history.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Historique</span></a></li>
+            <li>
+    <a href="setting.html" class="active">
+        <svg class="icon" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg> 
+        <span>Paramètres</span>
+    </a>
+</li>        </ul>
+        <div style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <a href="#" onclick="logout(); return false;" style="color:#ff6b6b; text-decoration:none; font-size:0.9rem; font-weight:600; display:flex; align-items:center; gap:10px; padding:12px 15px;">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <span>Déconnexion</span>
+            </a>
+        </div>
+    </nav>
+
     <main class="main-content">
         <header class="header-flex">
             <h2>Configuration Système</h2>
@@ -275,7 +200,7 @@ body.dark .btn-outline:hover {
 
         <div class="settings-grid">
             <div class="card">
-                <h3>Entreprise</h3>
+                <h3><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg> Entreprise</h3>
                 <div class="form-group">
                     <label>Nom du Business</label>
                     <input type="text" id="bizName" placeholder="Ex: Moniteo Umbrella Ltd">
@@ -298,8 +223,13 @@ body.dark .btn-outline:hover {
             </div>
 
             <div class="card">
-                <h3>Préférences</h3>
-                <div class="form-group">
+<h3>
+    <svg class="icon" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg> 
+    Préférences
+</h3>                <div class="form-group">
                     <label>Devise Principale</label>
                     <select id="baseCurrency">
                         <option value="€">Euro (€)</option>
@@ -327,33 +257,26 @@ body.dark .btn-outline:hover {
                     </label>
                 </div>
             </div>
-                <div class="card" style="margin-top: 2rem;">
-    <h3>
-        <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        Maintenance des Données
-    </h3>
-    <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 1.5rem;">
-        Utilisez ces outils pour importer vos données historiques ou sauvegarder votre base actuelle.
-    </p>
 
-    <div class="action-bar">
-        <button class="btn-outline" onclick="document.getElementById('importSalesExcel').click()">
-            <svg class="icon" viewBox="0 0 24 24" style="width:16px; height:16px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            Importer Ventes (Excel)
-        </button>
-        <input type="file" id="importSalesExcel" style="display:none" accept=".xlsx, .xls" onchange="processSalesImport(event)">
+            <div class="card">
+                <h3><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Maintenance</h3>
+                <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 1.5rem;">Sauvegardez ou importez vos ventes historiques.</p>
 
-        <button class="btn-outline" onclick="downloadTemplate()" style="border-color: var(--secondary); color: var(--secondary);">
-            <svg class="icon" viewBox="0 0 24 24" style="width:16px; height:16px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-            Télécharger le Modèle
-        </button>
-    </div>
-</div>
+                <div class="action-bar">
+                    <button class="btn-outline" onclick="document.getElementById('importSalesExcel').click()">
+                        Importer Ventes
+                    </button>
+                    <input type="file" id="importSalesExcel" style="display:none" accept=".xlsx, .xls" onchange="processSalesImport(event)">
+
+                    <button class="btn-outline" onclick="downloadTemplate()" style="border-color: var(--secondary); color: var(--secondary);">
+                        Modèle Excel
+                    </button>
+                </div>
+            </div>
+
             <div class="card danger-zone">
                 <h3 style="color: var(--danger);">Sécurité</h3>
-                <p style="font-size: 0.8rem; color: var(--text-light); margin-bottom: 1rem;">
-                    Ces actions supprimeront définitivement les données du navigateur.
-                </p>
+                <p style="font-size: 0.8rem; color: var(--text-light); margin-bottom: 1rem;">Actions irréversibles.</p>
                 <button class="btn-danger-soft" onclick="resetApp()">Réinitialiser l'Application</button>
             </div>
         </div>
@@ -363,48 +286,79 @@ body.dark .btn-outline:hover {
         </div>
     </main>
 
-    <script>
-        let base64Logo = "";
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
-        // Chargement initial
-        window.addEventListener('DOMContentLoaded', () => {
-            const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+<script>
+    // --- CONFIGURATION SUPABASE ---
+    const SUPABASE_URL = 'https://oysdycuouodarfkmdtop.supabase.co'; 
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k';
+    const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let base64Logo = "";
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        // 1. CHARGEMENT PRIORITAIRE DU LOCAL (Pour éviter le blanc à l'écran)
+        let config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+        applyConfigToUI(config);
+
+        // 2. SYNCHRONISATION AVEC SUPABASE (MAJ en arrière-plan)
+        try {
+            const { data, error } = await _db.from('settings').select('*').eq('id', 1).single();
             
-            document.getElementById('bizName').value = config.name || "";
-            document.getElementById('bizAddress').value = config.address || "";
-            document.getElementById('bizPhone').value = config.phone || "";
-            document.getElementById('baseCurrency').value = config.currency || "€";
-            document.getElementById('exchangeRate').value = config.rate || "";
-            document.getElementById('darkToggle').checked = config.darkMode || false;
-            document.getElementById('syncDate').textContent = config.lastUpdate || "Jamais";
-
-            if(config.logo) {
-                base64Logo = config.logo;
-                const preview = document.getElementById('logoPreview');
-                preview.src = base64Logo;
-                preview.style.display = 'block';
+            if (data && !error) {
+                const cloudConfig = {
+                    name: data.name,
+                    address: data.address,
+                    phone: data.phone,
+                    currency: data.currency,
+                    rate: data.rate,
+                    logo: data.logo_url,
+                    darkMode: config.darkMode // On préserve la préférence visuelle locale
+                };
+                localStorage.setItem('moniteo_config', JSON.stringify(cloudConfig));
+                applyConfigToUI(cloudConfig); // Mise à jour des champs avec les données Cloud
             }
-
-            if(config.darkMode) document.body.classList.add('dark-mode');
-            
-            handleResponsiveSidebar();
-        });
-
-        // Conversion Image en Base64
-        function previewAndConvertLogo() {
-            const file = document.getElementById('bizLogoInput').files[0];
-            const reader = new FileReader();
-            reader.onloadend = function() {
-                base64Logo = reader.result;
-                const preview = document.getElementById('logoPreview');
-                preview.src = base64Logo;
-                preview.style.display = 'block';
-            }
-            if (file) reader.readAsDataURL(file);
+        } catch (err) {
+            console.warn("Mode hors-ligne ou erreur de synchro Cloud.");
         }
+        
+        handleResponsiveSidebar();
+    });
 
-        // Sauvegarde unique et propre
-        function saveSettings() {
+    // Fonction pour remplir les champs HTML
+    function applyConfigToUI(config) {
+        if(!config) return;
+        if(document.getElementById('bizName')) document.getElementById('bizName').value = config.name || "";
+        if(document.getElementById('bizAddress')) document.getElementById('bizAddress').value = config.address || "";
+        if(document.getElementById('bizPhone')) document.getElementById('bizPhone').value = config.phone || "";
+        if(document.getElementById('baseCurrency')) document.getElementById('baseCurrency').value = config.currency || "FC";
+        if(document.getElementById('exchangeRate')) document.getElementById('exchangeRate').value = config.rate || "";
+        if(document.getElementById('darkToggle')) document.getElementById('darkToggle').checked = config.darkMode || false;
+        
+        if(config.logo) {
+            base64Logo = config.logo;
+            const preview = document.getElementById('logoPreview');
+            if(preview) { preview.src = base64Logo; preview.style.display = 'block'; }
+        }
+        if(config.darkMode) document.body.classList.add('dark-mode');
+    }
+
+    // --- CONVERSION LOGO ---
+    function previewAndConvertLogo() {
+        const file = document.getElementById('bizLogoInput').files[0];
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            base64Logo = reader.result;
+            const preview = document.getElementById('logoPreview');
+            if(preview) { preview.src = base64Logo; preview.style.display = 'block'; }
+        }
+        if (file) reader.readAsDataURL(file);
+    }
+
+    // --- SAUVEGARDE GÉNÉRALE ---
+    async function saveSettings() {
+        try {
             const config = {
                 name: document.getElementById('bizName').value,
                 address: document.getElementById('bizAddress').value,
@@ -412,91 +366,106 @@ body.dark .btn-outline:hover {
                 currency: document.getElementById('baseCurrency').value,
                 rate: document.getElementById('exchangeRate').value,
                 darkMode: document.getElementById('darkToggle').checked,
-                logo: base64Logo,
+                logo: base64Logo, 
                 lastUpdate: new Date().toLocaleString('fr-FR')
             };
 
+            // A. Sauvegarde locale immédiate
             localStorage.setItem('moniteo_config', JSON.stringify(config));
-            localStorage.setItem('currency', config.currency); // Synchro avec les autres pages
-
-            // Appliquer thème immédiatement
+            localStorage.setItem('currency', config.currency);
             document.body.classList.toggle('dark-mode', config.darkMode);
 
-            alert("Paramètres mis à jour !");
+            // B. Push vers Supabase
+            const { error } = await _db.from('settings').upsert({ 
+                id: 1, 
+                name: config.name,
+                address: config.address,
+                phone: config.phone,
+                currency: config.currency,
+                rate: parseFloat(config.rate) || 0,
+                logo_url: base64Logo,
+                updated_at: new Date()
+            });
+
+            if (error) throw error;
+
+            alert("✅ Configuration sauvegardée et synchronisée !");
             location.reload();
+        } catch (err) {
+            console.error(err);
+            alert("Sauvegarde locale réussie, mais erreur de synchro Cloud : " + err.message);
         }
+    }
 
-        function handleResponsiveSidebar() {
-            const sb = document.getElementById('sidebar');
-            if (window.innerWidth <= 1024) sb.classList.add('collapsed');
-            else sb.classList.remove('collapsed');
-        }
+    // --- IMPORTATION EXCEL ---
+    async function processSalesImport(event) {
+        const file = event.target.files[0];
+        if (!file) return;
 
-        window.addEventListener('resize', handleResponsiveSidebar);
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
-        function logout() {
-            if(confirm("Se déconnecter ?")) {
-                sessionStorage.clear();
-                window.location.href = "index.html";
+                if (confirm(`Importer ${jsonData.length} lignes de ventes vers Supabase ?`)) {
+                    const imported = jsonData.map(row => ({
+                        product: row.Produit || row.product || "Inconnu",
+                        date: row.Date || new Date().toISOString().split('T')[0],
+                        buy_price: parseFloat(row.Achat) || 0,
+                        sell_price: parseFloat(row.Vente) || 0,
+                        qty: parseInt(row.Qte) || 1
+                    }));
+
+                    const { error } = await _db.from('sales').insert(imported);
+                    if (error) throw error;
+                    alert("✅ Importation réussie !");
+                    location.reload();
+                }
+            } catch (err) {
+                alert("Erreur d'import : " + err.message);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // --- RÉINITIALISATION ---
+    async function resetApp() {
+        if(confirm("⚠️ ACTION CRITIQUE : Supprimer TOUTES les données (Ventes, Stock, Config) sur le Cloud et en local ?")) {
+            try {
+                // On vide les tables principales
+                await _db.from('inventory').delete().filter('id', 'neq', '00000000-0000-0000-0000-000000000000');
+                await _db.from('sales').delete().filter('id', 'neq', '00000000-0000-0000-0000-000000000000');
+                await _db.from('settings').delete().eq('id', 1);
+                
+                localStorage.clear(); 
+                alert("Application réinitialisée.");
+                window.location.href = "index.html"; 
+            } catch (err) {
+                alert("Erreur lors du reset : " + err.message);
             }
         }
+    }
 
-        function resetApp() {
-            if(confirm("Attention ! Effacer toutes les données ?")) {
-                localStorage.clear();
-                window.location.href = "index.html";
-            }
-        }
-function processSalesImport(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+    // --- LOGOUT & TEMPLATE ---
+    function logout() {
+        if(confirm("Se déconnecter ?")) { sessionStorage.clear(); window.location.href = "index.html"; }
+    }
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+    function downloadTemplate() {
+        const data = [["Produit", "Date", "Achat", "Vente", "Qte"], ["Exemple Article", new Date().toISOString().split('T')[0], 10, 15, 100]];
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Modèle");
+        XLSX.writeFile(wb, "Modele_Import_Moniteo.xlsx");
+    }
 
-            if (jsonData.length === 0) throw new Error("Fichier vide");
-
-            // Récupérer les ventes actuelles pour fusionner
-            let currentSales = JSON.parse(localStorage.getItem('salesData')) || [];
-
-            const importedSales = jsonData.map(row => ({
-                product: row.Produit || row.product || "Inconnu",
-                date: row.Date || new Date().toISOString().split('T')[0],
-                buy: parseFloat(row.Achat || row.buy) || 0,
-                sell: parseFloat(row.Vente || row.sell) || 0,
-                qty: parseInt(row.Qte || row.qty) || 1
-            }));
-
-            // Fusion et sauvegarde
-            const updatedSales = [...currentSales, ...importedSales];
-            localStorage.setItem('salesData', JSON.stringify(updatedSales));
-
-            alert(`✅ Succès ! ${importedSales.length} ventes ont été ajoutées à votre base de données.`);
-            event.target.value = ''; // Reset l'input
-
-        } catch (error) {
-            alert("❌ Erreur lors de l'importation. Vérifiez que votre fichier suit le modèle (Produit, Date, Achat, Vente, Qte).");
-        }
-    };
-    reader.readAsArrayBuffer(file);
-}
-
-// Fonction pour générer un modèle Excel vide pour l'utilisateur
-function downloadTemplate() {
-    const data = [
-        ["Produit", "Date", "Achat", "Vente", "Qte"],
-        ["Exemple Article", "2024-01-01", 10, 15, 5]
-    ];
-    const worksheet = XLSX.utils.aoa_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Modele_Ventes");
-    XLSX.writeFile(workbook, "Modele_Import_Moniteo.xlsx");
-}
-    </script>
+    function handleResponsiveSidebar() {
+        const sb = document.getElementById('sidebar');
+        if (sb && window.innerWidth <= 1024) sb.classList.add('collapsed');
+    }
+    window.addEventListener('resize', handleResponsiveSidebar);
+</script>
 </body>
 </html>
