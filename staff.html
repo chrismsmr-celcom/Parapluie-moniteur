@@ -9,6 +9,7 @@
 			    window.location.href = "index.html";
 			}
 		</script>
+		<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -435,62 +436,96 @@
 			</div>
 		</div>
 		<script>
-    // --- 1. VARIABLES & DONNÉES ---
-    let staffData = JSON.parse(localStorage.getItem('staffData')) || [];
-    let currentCurrency = "€"; // Valeur par défaut
+    // --- 1. CONFIGURATION SUPABASE ---
+    const _supabase = supabase.createClient('https://oysdycuouodarfkmdtop.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k');
+
+    // --- 2. VARIABLES & DONNÉES ---
+    let staffData = []; 
+    let currentCurrency = "€";
     let currentIdx = -1;
     let cChart = null;
     let sChart = null;
 
-    // --- 2. LOGIQUE DE SYNCHRONISATION (MONNAIE & THÈME) ---
+    // --- 3. LOGIQUE DE SYNCHRONISATION (MONNAIE & THÈME) ---
     function updateConfig() {
-        // On récupère la config globale faite dans setting.html
         const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-        
-        // Mise à jour de la monnaie
         currentCurrency = config.currency || localStorage.getItem('currency') || "€";
 
-        // Application du mode sombre
-        if (config.darkMode) {
-            document.body.classList.add('dark-mode');
-        } else {
-            document.body.classList.remove('dark-mode');
-        }
+        if (config.darkMode) document.body.classList.add('dark-mode');
+        else document.body.classList.remove('dark-mode');
 
-        // Mise à jour du nom de l'entreprise dans le titre
         const brandName = document.querySelector('.header-flex h2');
         if (brandName && config.name) {
             brandName.innerHTML = `Gestion du Personnel <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
         }
     }
 
-    // Fonction de nettoyage des nombres (déclarée UNE SEULE FOIS)
     function parseMoney(val) {
         if (val === null || val === undefined) return 0;
         if (typeof val === 'number') return val;
-        const clean = String(val).replace(/[^\d.-]/g, '');
-        return parseFloat(clean) || 0;
+        return parseFloat(String(val).replace(/[^\d.-]/g, '')) || 0;
     }
 
-    // --- 3. INITIALISATION ---
+    // --- 4. PERSISTENCE SUPABASE ---
+    async function loadStaff() {
+        try {
+            const { data, error } = await _supabase
+                .from('staff')
+                .select('id, name, role, salary, bonus, photo, created_at')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            
+            staffData = (data || []).map(emp => ({
+                ...emp,
+                contractType: emp.contractType || "CDI",
+                status: emp.status || "actif",
+                id_employee: emp.id_employee || emp.id.substring(0,8),
+                entryDate: emp.entryDate || new Date(emp.created_at).toISOString().split('T')[0],
+                expiryDate: emp.expiryDate || ""
+            }));
+
+            renderStaff();
+        } catch (err) {
+            console.error("Erreur de chargement:", err);
+            staffData = JSON.parse(localStorage.getItem('staffData')) || [];
+            renderStaff();
+        }
+    }
+
+    async function saveChange(index) {
+        const item = staffData[index];
+        const toSave = {
+            id: item.id,
+            name: item.name,
+            role: item.role,
+            salary: parseMoney(item.salary),
+            bonus: parseMoney(item.bonus),
+            photo: item.photo
+        };
+
+        const { error } = await _supabase.from('staff').upsert(toSave);
+        if (error) console.error("Erreur mise à jour Supabase:", error);
+        updateKPIs();
+    }
+
+    // --- 5. INITIALISATION ---
     document.addEventListener('DOMContentLoaded', () => {
-        updateConfig(); // Charger la monnaie et le thème en premier
-        renderStaff();  // Puis afficher les données
+        updateConfig();
+        loadStaff();
     });
 
-    // --- 4. RENDU ET AFFICHAGE ---
+    // --- 6. RENDU ET AFFICHAGE ---
     function renderStaff(filter = '') {
         const tbody = document.getElementById('staffTable');
         if(!tbody) return;
         tbody.innerHTML = '';
         
-        const limit = new Date(); 
-        limit.setDate(limit.getDate() + 30);
+        const limit = new Date(); limit.setDate(limit.getDate() + 30);
 
         staffData.forEach((e, i) => {
             if(e.name.toLowerCase().includes(filter.toLowerCase())) {
-                let isWarning = false;
-                if (e.expiryDate && e.status === 'actif' && new Date(e.expiryDate) <= limit) isWarning = true;
+                let isWarning = (e.expiryDate && e.status === 'actif' && new Date(e.expiryDate) <= limit);
 
                 const tr = document.createElement('tr');
                 if(isWarning) tr.classList.add('expiry-warning');
@@ -508,7 +543,7 @@
                         </div>
                     </td>
                     <td contenteditable="true" onblur="updateField(${i},'role',this.textContent)">${e.role}</td>
-                    <td>${e.id}</td>
+                    <td>${e.id_employee}</td>
                     <td style="font-size:0.75rem">In: ${e.entryDate}<br><span style="color:var(--danger)">${e.expiryDate ? 'Out: '+e.expiryDate : ''}</span></td>
                     <td><span class="status-badge ${e.status==='actif'?'active-bg':'inactive-bg'}" onclick="toggleStatus(${i})">${e.status}</span></td>
                     <td contenteditable="true" onblur="updateField(${i},'salary',this.textContent)" style="font-weight:600">
@@ -539,10 +574,10 @@
                 tbody.appendChild(tr);
             }
         });
-        updateKPIs();
+        updateKPIs(); 
     }
 
-    // --- 5. KPIs ET GRAPHIQUES ---
+    // --- 7. KPIs ET GRAPHIQUES ---
     function updateKPIs() {
         const total = staffData.length;
         const masse = staffData.reduce((s, e) => s + parseMoney(e.salary), 0);
@@ -591,54 +626,72 @@
         });
     }
 
-    // --- 6. ACTIONS ---
+    // --- 8. ACTIONS (CRUD) ---
     function updateField(i, k, v) {
-        if(k === 'salary' || k === 'bonus') {
-            staffData[i][k] = parseMoney(v);
-        } else {
-            staffData[i][k] = v.trim();
-        }
-        updateKPIs();
+        staffData[i][k] = (k === 'salary' || k === 'bonus') ? parseMoney(v) : v.trim();
+        saveChange(i);
     }
 
     function toggleStatus(i) {
         staffData[i].status = (staffData[i].status === 'actif') ? 'inactif' : 'actif';
+        saveChange(i);
         renderStaff();
     }
 
-    function removeEmp(i) {
-        if(confirm("Supprimer ce dossier ?")) {
+    async function removeEmp(i) {
+        if(!confirm("Supprimer ce dossier ?")) return;
+        const { error } = await _supabase.from('staff').delete().eq('id', staffData[i].id);
+        if(!error) {
             staffData.splice(i,1);
             renderStaff();
         }
     }
 
-    // --- 7. MODALE DOSSIER ---
+    async function addEmployee() {
+        const newEmp = { name: "Nouveau Collaborateur", role: "Poste", salary: 0, bonus: 0 };
+        const { data, error } = await _supabase.from('staff').insert([newEmp]).select();
+        if (!error && data) {
+            staffData.unshift({
+                ...data[0], 
+                contractType: "CDI", 
+                status: "actif", 
+                id_employee: data[0].id.substring(0,8),
+                entryDate: new Date().toISOString().split('T')[0]
+            });
+            renderStaff();
+            openModal(0);
+        }
+    }
+
+    // --- 9. MODALE DOSSIER ---
     function openModal(i) {
         currentIdx = i;
         const e = staffData[i];
         document.getElementById('editName').value = e.name;
         document.getElementById('editRole').value = e.role;
         document.getElementById('editContract').value = e.contractType;
-        document.getElementById('editID').value = e.id;
+        document.getElementById('editID').value = e.id_employee;
         document.getElementById('editEntryDate').value = e.entryDate;
         document.getElementById('editExpiryDate').value = e.expiryDate || '';
         document.getElementById('modalPhoto').src = e.photo || 'https://via.placeholder.com/100';
         document.getElementById('employeeModal').style.display = 'flex';
     }
 
-    function saveEmployeeDetails() {
+    async function saveEmployeeDetails() {
         const e = staffData[currentIdx];
         e.name = document.getElementById('editName').value;
         e.role = document.getElementById('editRole').value;
         e.contractType = document.getElementById('editContract').value;
-        e.id = document.getElementById('editID').value;
+        e.id_employee = document.getElementById('editID').value;
         e.entryDate = document.getElementById('editEntryDate').value;
         e.expiryDate = document.getElementById('editExpiryDate').value;
         
+        await saveChange(currentIdx);
         closeModal();
         renderStaff();
     }
+
+    function closeModal() { document.getElementById('employeeModal').style.display = 'none'; }
 
     function handlePhotoUpload(input) {
         if (input.files && input.files[0]) {
@@ -651,9 +704,7 @@
         }
     }
 
-    function closeModal() { document.getElementById('employeeModal').style.display = 'none'; }
-
-    // --- 8. FICHE DE PAIE (SYNCHRONISÉE) ---
+    // --- 10. FICHE DE PAIE & EXPORTS ---
     function showPayslip(i) {
         const e = staffData[i];
         if(!e) return;
@@ -772,84 +823,100 @@ function exportToPDF() {
 }
 
 // Fonction pour imprimer ou enregistrer UNE fiche de paie précise en PDF
+// Remplacez votre fonction downloadPayslipPDF actuelle par celle-ci :
 function downloadPayslipPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // 1. RÉCUPÉRATION DES PARAMÈTRES (Logo, Nom, Adresse)
+    // 1. Charger la config depuis les paramètres
     const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-    
-    // 2. RÉCUPÉRATION DES DONNÉES EMPLOYÉ
+    const rate = parseFloat(config.rate) || 1;
+    const currency = config.currency || "FC";
+
+    // 2. Récupérer les infos de l'employé sélectionné
     const name = document.getElementById('psName').innerText;
     const role = document.getElementById('psRole').innerText;
-    const idEmp = document.getElementById('psID').innerText;
-    const contract = document.getElementById('psContract').innerText;
-    const datePaie = document.getElementById('psDate').innerText;
-    const salaireBase = document.getElementById('psSalary').innerText;
-    const bonus = document.getElementById('psBonus').innerText;
-    const totalNet = document.getElementById('psTotal').innerText;
+    
+    // MATRICULE SIMPLIFIÉ (On prend les 8 premiers caractères de l'ID Supabase)
+    let rawId = document.getElementById('psID').innerText;
+    const idSimplifie = rawId.length > 8 ? rawId.substring(0, 8).toUpperCase() : rawId.toUpperCase();
 
-    // 3. EN-TÊTE DYNAMIQUE (Utilise vos paramètres)
-    // Logo (si configuré en Base64 dans les paramètres)
+    const period = document.getElementById('psDate').innerText;
+    const contract = document.getElementById('psContract').innerText;
+
+    // Montants
+    const salVal = parseFloat(document.getElementById('psSalary').innerText.replace(/[^0-9.-]+/g,"")) || 0;
+    const bonVal = parseFloat(document.getElementById('psBonus').innerText.replace(/[^0-9.-]+/g,"")) || 0;
+    const totalNet = salVal + bonVal;
+
+    // 3. EN-TÊTE (Logo + Infos Entreprise)
     if (config.logo) {
-        try {
-            doc.addImage(config.logo, 'PNG', 14, 10, 30, 30); 
-        } catch (e) { console.error("Erreur logo:", e); }
+        try { doc.addImage(config.logo, 'PNG', 14, 10, 25, 25); } catch (e) {}
     }
 
-    // Informations de l'entreprise
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.setTextColor(31, 60, 99); // Bleu Primaire
-    doc.text(config.name || "MONITEO UMBRELLA", 50, 20); // Décalé si logo présent
+    doc.setFontSize(16);
+    doc.setTextColor(31, 60, 99); 
+    doc.text(config.name || "MONITEO UMBRELLA", 45, 18);
     
-    doc.setFontSize(10);
+    doc.setFontSize(8);
     doc.setTextColor(100);
     doc.setFont("helvetica", "normal");
-    doc.text(config.address || "Adresse non configurée", 50, 27);
-    doc.text(config.email || "", 50, 32);
-    doc.text(config.phone || "", 50, 37);
+    doc.text(config.address || "Adresse non définie", 45, 24);
+    doc.text(`Tél: ${config.phone || "N/A"}`, 45, 28);
 
-    // 4. CORPS DU BULLETIN
-    doc.setFontSize(16);
+    // 4. TITRE DU BULLETIN
+    doc.setFontSize(14);
     doc.setTextColor(0);
-    doc.text("BULLETIN DE PAIE", 105, 55, { align: 'center' });
+    doc.text("BULLETIN DE PAIE", 105, 45, { align: 'center' });
     doc.setDrawColor(31, 60, 99);
-    doc.line(14, 60, 196, 60);
+    doc.line(14, 48, 196, 48);
 
-    // Détails Employé
-    doc.setFontSize(11);
-    doc.text(`Collaborateur : ${name}`, 14, 75);
-    doc.text(`Poste : ${role}`, 14, 82);
-    doc.text(`Matricule : ${idEmp}`, 120, 75);
-    doc.text(`Contrat : ${contract}`, 120, 82);
-    doc.text(`Période : ${datePaie}`, 14, 90);
+    // 5. INFOS EMPLOYÉ (Bloc Gauche et Droite)
+    doc.setFontSize(10);
+    doc.text(`NOM : ${name}`, 14, 58);
+    doc.text(`POSTE : ${role}`, 14, 64);
+    doc.text(`PÉRIODE : ${period}`, 14, 70);
 
-    // 5. TABLEAU FINANCIER
+    doc.text(`MATRICULE : ${idSimplifie}`, 130, 58); // MATRICULE COURT
+    doc.text(`CONTRAT : ${contract}`, 130, 64);
+
+    // 6. TABLEAU DES PAIEMENTS
+    const rows = [
+        ['Salaire de Base', `${salVal.toLocaleString()} ${currency}`],
+        ['Primes et Bonus', `${bonVal.toLocaleString()} ${currency}`],
+        [{ content: 'TOTAL NET À PAYER', styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }, 
+         { content: `${totalNet.toLocaleString()} ${currency}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }]
+    ];
+
+    // Ajouter la conversion en FC si la monnaie de base est le Dollar et qu'un taux existe
+    if (currency !== "FC" && rate > 1) {
+        const totalFC = totalNet * rate;
+        rows.push([
+            { content: 'CONTREVALEUR EN FRANCS (Taux: ' + rate + ')', styles: { fontSize: 8, textColor: [100] } },
+            { content: `${totalFC.toLocaleString()} FC`, styles: { fontSize: 9, fontStyle: 'italic' } }
+        ]);
+    }
+
     doc.autoTable({
-        startY: 100,
-        head: [['Désignation', 'Montant']],
-        body: [
-            ['Salaire de base mensuel', salaireBase],
-            ['Primes et Bonus', bonus],
-            [{ content: 'NET À PAYER', styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }, 
-             { content: totalNet, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }]
-        ],
+        startY: 80,
+        head: [['DÉSIGNATION', 'MONTANT']],
+        body: rows,
         theme: 'grid',
         headStyles: { fillColor: [31, 60, 99], halign: 'center' },
         columnStyles: { 1: { halign: 'right' } }
     });
 
-    // 6. PIED DE PAGE & SIGNATURES
-    const finalY = doc.lastAutoTable.finalY + 25;
-    doc.setFontSize(10);
-    doc.text("Signature de l'employeur", 14, finalY);
-    doc.text("Signature de l'employé", 150, finalY);
+    // 7. BAS DE PAGE (Signatures)
+    const finalY = doc.lastAutoTable.finalY + 30;
+    doc.setFontSize(9);
+    doc.text("Signature de l'Employeur", 14, finalY);
+    doc.text("Signature du Collaborateur", 140, finalY);
     doc.line(14, finalY + 15, 60, finalY + 15);
-    doc.line(150, finalY + 15, 190, finalY + 15);
+    doc.line(140, finalY + 15, 186, finalY + 15);
 
-    // 7. GÉNÉRATION DU FICHIER
-    doc.save(`Fiche_Paie_${name.replace(/\s+/g, '_')}.pdf`);
+    // 8. Sauvegarde
+    doc.save(`Bulletin_${idSimplifie}_${name.split(' ')[0]}.pdf`);
 }
 </script>
 	</body>
