@@ -271,43 +271,66 @@ body.dark-mode select {
         </div>
     </main>
 
-    <script>
-    // --- 1. CONFIGURATION ET VARIABLES ---
-    let charts = {};
-    let currentCurrency = localStorage.getItem('currency') || '€';
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-    // --- 2. INITIALISATION & THÈME ---
+<script>
+    // --- 1. CONFIGURATION SUPABASE ---
+    const SUPABASE_URL = 'https://oysdycuouodarfkmdtop.supabase.co'; 
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k';
+    const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let charts = {};
+    let currentCurrency = "FC";
+    let globalRate = 2800;
+
+    // --- 2. INITIALISATION ---
+    document.addEventListener('DOMContentLoaded', async () => {
+        applyGlobalSettings();
+        handleResponsiveSidebar();
+        await fetchDataAndRender();
+        
+        // Ecouter le changement de période si le select existe
+        const periodSelect = document.getElementById('analysisPeriod');
+        if(periodSelect) periodSelect.addEventListener('change', fetchDataAndRender);
+    });
+
     function applyGlobalSettings() {
         const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+        if (config.darkMode) document.body.classList.add('dark-mode');
         
-        // Appliquer le thème (Sombre/Clair)
-        if (config.darkMode) {
-            document.body.classList.add('dark-mode');
-        } else {
-            document.body.classList.remove('dark-mode');
-        }
+        currentCurrency = config.currency || "FC";
+        globalRate = parseFloat(config.rate) || 2800;
 
-        // Appliquer la devise
-        if (config.currency) {
-            currentCurrency = config.currency;
-            localStorage.setItem('currency', config.currency);
-        }
-
-        // Titre dynamique
         const brandName = document.querySelector('.header-flex h2');
         if (brandName && config.name) {
             brandName.innerHTML = `Analyses <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
         }
     }
 
-    // --- 3. LOGIQUE DE CALCUL DU REPORTING ---
-    function renderReporting() {
-        // Chargement des données fraîches
-        const salesData = JSON.parse(localStorage.getItem('salesData')) || [];
-        const inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
+    // --- 3. RÉCUPÉRATION DES DONNÉES (SUPABASE) ---
+    async function fetchDataAndRender() {
         const period = parseInt(document.getElementById('analysisPeriod')?.value || 7);
         
-        let totalRev = 0, totalCost = 0;
+        // Calcul de la date limite selon la période
+        const dateLimit = new Date();
+        dateLimit.setDate(dateLimit.getDate() - period);
+        const isoDateLimit = dateLimit.toISOString().split('T')[0];
+
+        // 1. Récupérer les ventes
+        const { data: sales } = await _db.from('sales').select('*').gte('date', isoDateLimit);
+        // 2. Récupérer l'inventaire
+        const { data: inventory } = await _db.from('inventory').select('*');
+        // 3. Récupérer les dépenses
+        const { data: expenses } = await _db.from('expenses').select('*').gte('date', isoDateLimit);
+
+        renderReporting(sales || [], inventory || [], expenses || [], period);
+    }
+
+    // --- 4. LOGIQUE DE CALCUL DU REPORTING ---
+    function renderReporting(salesData, inventoryData, expensesData, period) {
+        let totalRev = 0, totalCost = 0, totalExp = 0;
         let hourMap = Array(24).fill(0);
         let productMap = {};
         let dailyMap = {};
@@ -315,28 +338,34 @@ body.dark-mode select {
         // Analyse des ventes
         salesData.forEach(s => {
             const qty = parseInt(s.qty) || 0;
-            const sellPrice = parseFloat(s.sell) || 0;
-            const buyPrice = parseFloat(s.buy) || 0;
+            const sellPrice = parseFloat(s.sell_price) || 0;
+            const buyPrice = parseFloat(s.buy_price) || 0;
             
             totalRev += (sellPrice * qty);
             totalCost += (buyPrice * qty);
 
-            // Heure de pointe (si timestamp absent, on ignore pour le graph)
-            if (s.timestamp) {
-                const hour = new Date(s.timestamp).getHours();
-                hourMap[hour] += qty;
-            } else {
-                hourMap[12] += qty; // Valeur par défaut
-            }
+            // Heures de pointe (On utilise created_at si timestamp absent)
+            const hour = new Date(s.created_at || s.date).getHours();
+            hourMap[hour] += qty;
 
-            // Top produits & Évolution quotidienne
             if (s.product) productMap[s.product] = (productMap[s.product] || 0) + qty;
             if (s.date) dailyMap[s.date] = (dailyMap[s.date] || 0) + (sellPrice * qty);
+        });
+
+        // Analyse des dépenses
+        expensesData.forEach(e => {
+            // Conversion si la dépense n'est pas dans la devise cible
+            let amt = parseFloat(e.amount) || 0;
+            if (e.currency === "$" && currentCurrency === "FC") amt *= globalRate;
+            if (e.currency === "FC" && currentCurrency === "$") amt /= globalRate;
+            totalExp += amt;
         });
         
         // Mise à jour des Widgets
         document.getElementById('statRev').textContent = totalRev.toLocaleString() + " " + currentCurrency;
-        document.getElementById('statProf').textContent = (totalRev - totalCost).toLocaleString() + " " + currentCurrency;
+        // Profit Net = (Ventes - Coût d'achat) - Dépenses opérationnelles
+        const netProfit = (totalRev - totalCost) - totalExp;
+        document.getElementById('statProf').textContent = netProfit.toLocaleString() + " " + currentCurrency;
         
         const peakHour = hourMap.indexOf(Math.max(...hourMap));
         document.getElementById('statPeak').textContent = peakHour + "h";
@@ -353,13 +382,13 @@ body.dark-mode select {
                 const stock = parseInt(item.qty) || 0;
                 
                 let days = dailyRate > 0 ? Math.floor(stock / dailyRate) : "∞";
-                let status = '<span class="badge badge-success" style="background:#10b98122; color:#10b981; padding:4px 8px; border-radius:4px;">Ok</span>';
+                let status = '<span class="badge" style="background:#10b98122; color:#10b981; padding:4px 8px; border-radius:4px;">Ok</span>';
                 
                 if(stock === 0 || (days !== "∞" && days <= 3)) { 
-                    status = '<span class="badge badge-danger" style="background:#ef444422; color:#ef4444; padding:4px 8px; border-radius:4px;">Urgent</span>'; 
+                    status = '<span class="badge" style="background:#ef444422; color:#ef4444; padding:4px 8px; border-radius:4px;">Urgent</span>'; 
                     criticals++; 
                 } else if(days !== "∞" && days <= 7) { 
-                    status = '<span class="badge badge-warning" style="background:#f59e0b22; color:#f59e0b; padding:4px 8px; border-radius:4px;">Alerte</span>'; 
+                    status = '<span class="badge" style="background:#f59e0b22; color:#f59e0b; padding:4px 8px; border-radius:4px;">Alerte</span>'; 
                 }
                 
                 forecastBody.innerHTML += `<tr>
@@ -375,11 +404,11 @@ body.dark-mode select {
             document.getElementById('statStockHealth').textContent = health + "%";
         }
 
-        updateCharts(dailyMap, hourMap, productMap, totalRev, totalCost);
+        updateCharts(dailyMap, hourMap, productMap, totalRev, totalCost, totalExp);
     }
 
-    // --- 4. GESTION DES GRAPHIQUES ---
-    function updateCharts(daily, hours, products, rev, cost) {
+    // --- 5. GESTION DES GRAPHIQUES ---
+    function updateCharts(daily, hours, products, rev, cost, expenses) {
         const isDark = document.body.classList.contains('dark-mode');
         const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
         const textColor = isDark ? '#94a3b8' : '#64748b';
@@ -393,14 +422,6 @@ body.dark-mode select {
         charts.s = new Chart(document.getElementById('chartSales'), {
             type: 'line',
             data: { labels: days, datasets: [{ label: 'Chiffre d\'Affaires', data: days.map(d=>daily[d]), borderColor: '#3b82f6', tension: 0.4, fill:true, backgroundColor:'rgba(59, 130, 246, 0.1)' }] },
-            options: { responsive:true, maintainAspectRatio:false, scales: { y: { beginAtZero: true } } }
-        });
-
-        // Heures de pointe
-        if(charts.h) charts.h.destroy();
-        charts.h = new Chart(document.getElementById('chartHours'), {
-            type: 'bar',
-            data: { labels: Array.from({length:24}, (_,i)=>i+'h'), datasets: [{ label: 'Unités vendues', data: hours, backgroundColor: '#1f3c63' }] },
             options: { responsive:true, maintainAspectRatio:false }
         });
 
@@ -410,23 +431,25 @@ body.dark-mode select {
         charts.t = new Chart(document.getElementById('chartTopProd'), {
             type: 'doughnut',
             data: { labels: top.map(p=>p[0]), datasets: [{ data: top.map(p=>p[1]), backgroundColor: ['#1f3c63','#3b82f6','#10b981','#f59e0b','#ef4444'] }] },
-            options: { responsive:true, maintainAspectRatio:false, cutout: '75%', plugins: { legend: { position: 'bottom' } } }
+            options: { responsive:true, maintainAspectRatio:false, cutout: '75%' }
         });
 
-        // Marge / Profit
+        // Répartition financière (Coûts, Dépenses, Profit Net)
         if(charts.m) charts.m.destroy();
         charts.m = new Chart(document.getElementById('chartMargin'), {
             type: 'pie',
-            data: { labels: ['Coûts', 'Profit'], datasets: [{ data: [cost, rev-cost], backgroundColor: ['#e2e8f0', '#10b981'] }] },
-            options: { responsive:true, maintainAspectRatio:false, plugins: { legend: { position: 'bottom' } } }
+            data: { 
+                labels: ['Achat Marchandises', 'Dépenses Opé.', 'Profit Net'], 
+                datasets: [{ 
+                    data: [cost, expenses, (rev - cost - expenses)], 
+                    backgroundColor: ['#e2e8f0', '#ef4444', '#10b981'] 
+                }] 
+            },
+            options: { responsive:true, maintainAspectRatio:false }
         });
     }
 
-    // --- 5. UTILITAIRES ---
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('collapsed');
-    }
-
+    // --- 6. UTILITAIRES ---
     function handleResponsiveSidebar() {
         const width = window.innerWidth;
         const sb = document.getElementById('sidebar');
@@ -438,26 +461,15 @@ body.dark-mode select {
 
     function exportPDF() {
         const element = document.getElementById('printableArea');
-        if (!element) return alert("Zone d'impression non trouvée");
-        
         const opt = {
             margin: 5,
-            filename: `Rapport_Moniteo_${new Date().toLocaleDateString()}.pdf`,
+            filename: `Rapport_Business_${new Date().toLocaleDateString()}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
+            html2canvas: { scale: 2 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
         html2pdf().from(element).set(opt).save();
     }
-
-    // Events
-    window.addEventListener('resize', handleResponsiveSidebar);
-    
-    document.addEventListener('DOMContentLoaded', () => {
-        applyGlobalSettings();
-        handleResponsiveSidebar();
-        renderReporting();
-    });
 </script>
 </body>
 </html>
