@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -16,80 +17,133 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root {
-            --primary:#1f3c63; --secondary:#3b82f6; --success:#10b981; --danger:#ef4444;
-            --text-main:#1e293b; --text-light:#64748b; --bg-body:#f1f5f9; --bg-card:#ffffff;
-            --border-soft:#e2e8f0; --sidebar-w:260px;
+    /* --- VARIABLES --- */
+    :root {
+        --primary: #1f3c63; --secondary: #3b82f6; --success: #10b981; --danger: #ef4444;
+        --text-main: #1e293b; --text-light: #64748b; --bg-body: #f1f5f9; --bg-card: #ffffff;
+        --border-soft: #e2e8f0; --sidebar-w: 260px;
+    }
+
+    /* --- MODE SOMBRE (Harmonisé) --- */
+    body.dark, body.dark-mode {
+        --bg-body: #0f172a;
+        --bg-card: #1e293b;
+        --text-main: #f1f5f9;
+        --text-light: #94a3b8;
+        --border-soft: #334155;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+    
+    body { 
+        display: flex; 
+        height: 100vh; 
+        background: var(--bg-body); 
+        color: var(--text-main); 
+        transition: 0.3s; 
+        overflow: hidden; /* Empêche le scroll double sur desktop */
+    }
+
+    .icon { width: 20px; height: 20px; min-width: 20px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+    /* --- SIDEBAR RÉTACTABLE (Comme Inventory) --- */
+    .sidebar {
+        width: var(--sidebar-w); 
+        height: 100vh; 
+        background: var(--primary);
+        color: white; 
+        padding: 1rem; 
+        display: flex; 
+        flex-direction: column; 
+        transition: all 0.3s ease; 
+        flex-shrink: 0;
+        z-index: 1000;
+    }
+
+    /* Mode Rétracté (Tablette) */
+    .sidebar.collapsed { width: 80px; }
+    .sidebar.collapsed span, .sidebar.collapsed .logo-full { display: none; }
+    .sidebar.collapsed .logo-short { display: block; }
+    
+    .logo-box { padding: 1rem 0; text-align: center; border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 1.5rem; }
+    .logo-full { width: 140px; transition: 0.3s; }
+    .logo-short { display: none; width: 70px; margin: 0 auto; transition: 0.3s; }
+
+    .nav-links { list-style: none; flex: 1; overflow-y: auto; }
+    .nav-links a {
+        display: flex; align-items: center; gap: 12px; padding: 12px 15px; border-radius: 10px;
+        text-decoration: none; color: rgba(255,255,255,.7); font-size: .9rem; transition: .2s;
+        border-left: 3px solid transparent;
+    }
+    .nav-links a.active, .nav-links a:hover { 
+        background: rgba(255,255,255,0.15); 
+        color: #fff; 
+        border-left: 3px solid var(--secondary);
+    }
+
+    /* --- CONTENT --- */
+    .main-content { 
+        flex: 1; 
+        height: 100vh; 
+        overflow-y: auto; 
+        padding: 2rem; 
+        transition: 0.3s;
+        -webkit-overflow-scrolling: touch;
+    }
+    .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    
+    .summary-banner {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem;
+        background: var(--primary); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;
+    }
+    .summary-banner small { color: rgba(255,255,255,0.7); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
+    .summary-banner p { font-size: 1.4rem; font-weight: 700; margin-top: 5px; }
+
+    .card { background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-soft); margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th { text-align: left; padding: 12px; color: var(--text-light); border-bottom: 2px solid var(--border-soft); background: transparent; }
+    td { padding: 12px; border-bottom: 1px solid var(--border-soft); }
+
+    .action-bar { display: flex; gap: 10px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    button { padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
+    .btn-main { background: var(--primary); color: white; }
+    .btn-outline { background: var(--bg-card); border: 1px solid var(--border-soft); color: var(--text-main); }
+    .btn-danger { background: #fee2e2; color: var(--danger); }
+
+    .charts-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+    .chart-wrapper { min-height: 300px; }
+
+    /* --- RESPONSIVE : ADAPTATION IDENTIQUE À INVENTORY --- */
+    @media (max-width: 1024px) { 
+        :root { --sidebar-w: 80px; } 
+        .sidebar span, .logo-full { display: none; }
+        .sidebar .logo-short { display: block; }
+    }
+
+    @media (max-width: 768px) {
+        body { flex-direction: column; overflow-y: auto; height: auto; }
+        .sidebar { 
+            width: 100%; height: auto; position: sticky; top: 0; 
+            flex-direction: row; align-items: center; padding: 0.5rem;
         }
-
-        /* --- MODE SOMBRE --- */
-        body.dark {
-            --bg-body: #0f172a;
-            --bg-card: #1e293b;
-            --text-main: #f1f5f9;
-            --text-light: #94a3b8;
-            --border-soft: #334155;
-        }
-
-        * { margin:0; padding:0; box-sizing:border-box; font-family:Inter,sans-serif; }
-        body { display:flex; height: 100vh; background:var(--bg-body); color:var(--text-main); transition: 0.3s; }
-
-        .icon { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; fill: none; }
-
-        /* --- SIDEBAR --- */
-        .sidebar {
-            width: var(--sidebar-w); height: 100vh; background: var(--primary);
-            color: #fff; padding: 1rem; display: flex; flex-direction: column; transition: 0.3s;
-        }
-        .sidebar.collapsed { width: 80px; }
-        .sidebar.collapsed span, .sidebar.collapsed .logo-full { display: none; }
-        .sidebar.collapsed .logo-short { display: block; }
+        .logo-box { border: none; margin: 0; padding: 0 1rem; }
+        .nav-links { display: flex; flex-direction: row; overflow-x: auto; scrollbar-width: none; }
+        .nav-links::-webkit-scrollbar { display: none; }
+        .nav-links a { padding: 8px 12px; white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; }
+        .nav-links a.active { border-bottom: 3px solid var(--secondary); border-left: none; }
+        .nav-links span { display: none; }
         
-        .logo-box { padding: 1rem 0; text-align: center; border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 1.5rem; }
-        .logo-full { width: 140px; }
-        .logo-short { display: none; width: 40px; margin: 0 auto; }
-
-        .nav-links { list-style:none; flex:1; }
-        .nav-links a {
-            display:flex; align-items:center; gap:12px; padding:12px 15px; border-radius:10px;
-            text-decoration:none; color:rgba(255,255,255,.7); font-size:.9rem; transition:.2s;
-        }
-        .nav-links a.active, .nav-links a:hover { background:rgba(255,255,255,0.1); color:#fff; }
-
-        /* --- CONTENT --- */
-        .main-content { flex: 1; overflow-y: auto; padding: 2rem; }
-        .header-flex { display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; }
+        .sidebar div:last-child { display: none; } /* Cache le bouton déco de la sidebar sur mobile */
         
-        .summary-banner {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;
-            background: var(--primary); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;
-        }
-        .summary-banner small { opacity: 0.7; font-size: 0.7rem; text-transform: uppercase; }
-        .summary-banner p { font-size: 1.5rem; font-weight: 700; }
-
-        .card { background:var(--bg-card); padding:1.5rem; border-radius:12px; border: 1px solid var(--border-soft); margin-bottom: 1.5rem; }
-        
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 12px; color: var(--text-light); border-bottom: 2px solid var(--border-soft); }
-        td { padding: 12px; border-bottom: 1px solid var(--border-soft); }
-
-        .action-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        button { padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; }
-        .btn-main { background: var(--secondary); color: white; }
-        .btn-outline { background: transparent; border: 1px solid var(--border-soft); color: var(--text-main); }
-        .btn-danger { background: #fee2e2; color: var(--danger); }
-
-        .charts-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-        .chart-wrapper { height: 300px; }
-
-        @media (max-width: 768px) {
-            .charts-container { grid-template-columns: 1fr; }
-            .sidebar { display: none; } /* On pourrait ajouter un menu burger ici */
-        }
-    </style>
-</head>
+        .main-content { padding: 1rem; height: auto; }
+        .header-flex { flex-direction: column; gap: 1rem; text-align: center; }
+        .summary-banner { grid-template-columns: 1fr 1fr; gap: 10px; padding: 1rem; }
+        .summary-banner p { font-size: 1.1rem; }
+    }
+</style></head>
 <body>
 
    <nav class="sidebar" id="sidebar">
@@ -205,282 +259,350 @@
         </div>
 
         <div class="card">
-            <input type="text" id="filterProduct" oninput="renderTable(this.value)" placeholder="Rechercher une vente..." style="width:100%; padding: 12px; border: 1px solid var(--border-soft); border-radius: 10px; margin-bottom: 1rem; background: var(--bg-body); color: var(--text-main);">
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th><input type="checkbox" onclick="toggleSelectAll(this)"></th>
-                            <th>Produit</th>
-                            <th>Date</th>
-                            <th>Achat</th>
-                            <th>Vente</th>
-                            <th>Qté</th>
-                            <th>Bénéfice</th>
-                        </tr>
-                    </thead>
-                    <tbody id="salesTable"></tbody>
-                </table>
+    <input type="text" id="filterProduct" oninput="renderTable(this.value)" placeholder="Rechercher une vente..." style="width:100%; padding: 12px; border: 1px solid var(--border-soft); border-radius: 10px; margin-bottom: 1rem; background: var(--bg-body); color: var(--text-main);">
+    
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th><input type="checkbox" onclick="toggleSelectAll(this)"></th>
+                    <th>Produit</th>
+                    <th>Date</th>
+                    <th>Achat</th>
+                    <th>Vente</th>
+                    <th>Qté</th>
+                    <th>Bénéfice</th>
+                </tr>
+            </thead>
+            <tbody id="salesTable">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="charts-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+    <div class="card chart-wrapper">
+        <h4 style="margin-bottom: 10px; opacity: 0.8;">Répartition des Ventes</h4>
+        <canvas id="salesChart"></canvas>
+    </div>
+    <div class="card chart-wrapper">
+        <h4 style="margin-bottom: 10px; opacity: 0.8;">Évolution du Profit</h4>
+        <canvas id="profitChart"></canvas>
+    </div>
+</div>
+
+<div id="modalHorsStock" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
+    <div class="card" style="width:95%; max-width:400px; padding:25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h3 style="margin-bottom: 15px;">📦 Produit Hors Stock</h3>
+        <p style="font-size: 0.9em; opacity: 0.7; margin-bottom: 15px;">Ce produit ne sera pas déduit de votre inventaire Supabase.</p>
+        
+        <input type="hidden" id="modalRowIndex">
+        
+        <label style="display:block; margin-bottom:5px; font-weight:600;">Nom du produit</label>
+        <input type="text" id="hsName" placeholder="Ex: Frais de port, Service..." style="width:100%; margin-bottom:15px; padding:10px; border-radius:8px; border:1px solid var(--border-soft); background: var(--bg-body); color: var(--text-main);">
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+            <div>
+                <label style="display:block; margin-bottom:5px; font-weight:600;">Prix Achat</label>
+                <input type="number" id="hsBuy" value="0" step="0.01" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-soft); background: var(--bg-body); color: var(--text-main);">
+            </div>
+            <div>
+                <label style="display:block; margin-bottom:5px; font-weight:600;">Prix Vente</label>
+                <input type="number" id="hsSell" value="0" step="0.01" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-soft); background: var(--bg-body); color: var(--text-main);">
             </div>
         </div>
 
-        <div class="charts-container">
-            <div class="card chart-wrapper"><canvas id="salesChart"></canvas></div>
-            <div class="card chart-wrapper"><canvas id="profitChart"></canvas></div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-main" onclick="saveHorsStock()" style="flex:2; padding: 12px; border-radius: 8px; cursor: pointer; background: #3b82f6; color: white; border: none; font-weight: bold;">Enregistrer</button>
+            <button class="btn-outline" onclick="closeModal()" style="flex:1; padding: 12px; border-radius: 8px; cursor: pointer; background: transparent; border: 1px solid var(--border-soft); color: var(--text-main);">Annuler</button>
         </div>
-    </main>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // --- CONFIGURATION SUPABASE ---
+    const SUPABASE_URL = 'https://oysdycuouodarfkmdtop.supabase.co'; 
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k';
+    const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-   <script>
-    let salesData = JSON.parse(localStorage.getItem('salesData')) || [];
-    let undoStack = [];
-    let currentCurrency = "€";
+    let salesData = [];
+    let inventoryData = []; 
+    let currentCurrency = "FC";
     let salesChart, profitChart;
 
-    // --- INITIALISATION ---
-    function applyGlobalConfig() {
+    // --- 1. INITIALISATION ---
+    async function init() {
         const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-        currentCurrency = config.currency || "€";
+        currentCurrency = config.currency || "FC";
         if (config.darkMode) document.body.classList.add('dark');
-        if (config.name) document.getElementById('pageTitle').textContent = `Ventes | ${config.name}`;
-        if (config.logo) {
-            document.getElementById('dynamicLogoContainer').innerHTML = `<img src="${config.logo}" id="companyLogo" style="height:40px; border-radius:5px;">`;
-        }
+        
+        await fetchData(); // Charger Ventes + Inventaire
     }
 
-    // --- LOGIQUE DE STOCK TEMPS RÉEL ---
-    function adjustInventoryStock(productName, quantityChange, isHorsStock) {
-        if (!productName || isHorsStock) return;
-        let inventory = JSON.parse(localStorage.getItem('inventoryData')) || [];
-        // Utilisation de .product pour correspondre à ton inventaire
-        let item = inventory.find(i => i.product.trim().toLowerCase() === productName.trim().toLowerCase());
-        
-        if (item) {
-            item.qty = (parseInt(item.qty) || 0) + quantityChange;
-            localStorage.setItem('inventoryData', JSON.stringify(inventory));
-            window.dispatchEvent(new Event('storage')); // Notifie l'onglet inventaire
-        }
-    }
-
-    // --- LIAISON INVENTAIRE & TABLEAU ---
-    function renderTable(filter = '') {
-        const tbody = document.getElementById('salesTable');
-        const inventory = JSON.parse(localStorage.getItem('inventoryData')) || [];
-        tbody.innerHTML = '';
-        
-        let totalS = 0, totalP = 0, totalQ = 0;
-
-        salesData.forEach((s, index) => {
-            if(s.product.toLowerCase().includes(filter.toLowerCase())) {
-                const profit = (parseFloat(s.sell) - parseFloat(s.buy)) * parseInt(s.qty);
-                totalS += parseFloat(s.sell) * parseInt(s.qty);
-                totalP += profit;
-                totalQ += parseInt(s.qty);
-
-                // Construction des options : désactivé si stock <= 0
-                const options = inventory.map(item => {
-                    const isOutOfStock = (parseInt(item.qty) <= 0);
-                    return `<option value="${item.product}" 
-                        ${item.product === s.product ? 'selected' : ''} 
-                        ${isOutOfStock && item.product !== s.product ? 'disabled' : ''}>
-                        ${item.product} ${isOutOfStock ? '(RUPTURE)' : `(Stock: ${item.qty})`}
-                    </option>`;
-                }).join('');
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><input type="checkbox" class="row-check"></td>
-                    <td>
-                        <select onchange="handleSelectProduct(${index}, this)" style="width:100%; background:transparent; color:inherit; border:none; font-weight:600; cursor:pointer;">
-                            <option value="">-- Choisir Produit --</option>
-                            <optgroup label="Inventaire">
-                                ${options}
-                            </optgroup>
-                            <optgroup label="Autre">
-                                <option value="HORS_STOCK" ${s.isHorsStock ? 'selected' : ''}>+ Produit hors stock</option>
-                            </optgroup>
-                        </select>
-                    </td>
-                    <td contenteditable="true" onblur="updateRow(${index}, 'date', this)">${s.date}</td>
-                    <td style="opacity:0.7;">${s.buy}</td>
-                    <td contenteditable="true" onblur="updateRow(${index}, 'sell', this)">${s.sell}</td>
-                    <td contenteditable="true" onfocus="this.oldValue = this.innerText" onblur="updateQuantity(${index}, this)">${s.qty}</td>
-                    <td style="font-weight:bold; color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'}">
-                        ${profit.toFixed(2)} ${currentCurrency}
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            }
-        });
-
-        document.getElementById('totalSales').textContent = totalS.toLocaleString() + " " + currentCurrency;
-        document.getElementById('totalProfit').textContent = totalP.toLocaleString() + " " + currentCurrency;
-        document.getElementById('totalQuantity').textContent = totalQ;
-        
-        localStorage.setItem('salesData', JSON.stringify(salesData));
-        updateCharts();
-    }
-
-    // Gestion intelligente du menu déroulant
-    function handleSelectProduct(index, selectElement) {
-        const val = selectElement.value;
-        
-        if (val === "HORS_STOCK") {
-            const customName = prompt("Nom du produit hors stock :");
-            if (customName) {
-                saveUndo();
-                // Si on remplace un produit d'inventaire, on rend son stock
-                if (salesData[index].product && !salesData[index].isHorsStock) {
-                    adjustInventoryStock(salesData[index].product, parseInt(salesData[index].qty), false);
-                }
-                salesData[index].product = customName;
-                salesData[index].isHorsStock = true;
-                salesData[index].buy = 0;
-                salesData[index].sell = 0;
-                renderTable();
-            } else {
-                selectElement.value = ""; 
-            }
-        } else {
-            // Produit de l'inventaire
-            saveUndo();
-            const inventory = JSON.parse(localStorage.getItem('inventoryData')) || [];
-            const item = inventory.find(i => i.product === val);
-            
-            // On rend le stock de l'ancien produit s'il existait
-            if (salesData[index].product && !salesData[index].isHorsStock) {
-                adjustInventoryStock(salesData[index].product, parseInt(salesData[index].qty), false);
-            }
-
-            if(item) {
-                salesData[index].product = item.product;
-                salesData[index].isHorsStock = false;
-                salesData[index].buy = item.buy || 0;
-                salesData[index].sell = item.sell || 0;
-                // On déduit le stock du nouveau produit
-                adjustInventoryStock(item.product, -parseInt(salesData[index].qty), false);
-            }
+    async function fetchData() {
+        try {
+            const [salesRes, invRes] = await Promise.all([
+                _db.from('sales').select('*').order('created_at', { ascending: false }),
+                _db.from('inventory').select('*').order('product', { ascending: true })
+            ]);
+            salesData = salesRes.data || [];
+            inventoryData = invRes.data || [];
             renderTable();
+        } catch (err) { console.error("Erreur chargement:", err); }
+    }
+
+    // --- 2. LOGIQUE DE STOCK (MERGE) ---
+    async function adjustInventoryStock(productName, quantityChange) {
+        if (!productName) return;
+        
+        const item = inventoryData.find(i => i.product === productName);
+        if (!item) return; // Si c'est un produit "Hors Stock", on ignore
+
+        const newQty = (parseInt(item.qty) || 0) + quantityChange;
+        
+        const { error } = await _db.from('inventory')
+            .update({ qty: newQty })
+            .eq('product', productName);
+
+        if (!error) {
+            // Notifier l'onglet Inventaire s'il est ouvert
+            localStorage.setItem('inventory_trigger', Date.now());
         }
     }
 
-    function updateQuantity(index, el) {
+    // --- 3. RENDU DU TABLEAU ---
+    function renderTable(filter = '') {
+    const tbody = document.getElementById('salesTable');
+    tbody.innerHTML = '';
+    let totalS = 0, totalP = 0, totalQ = 0;
+
+    salesData.forEach((s, index) => {
+        if (s.product.toLowerCase().includes(filter.toLowerCase())) {
+            const buyPrice = parseFloat(s.buy_price || 0);
+            const sellPrice = parseFloat(s.sell_price || 0);
+            const qty = parseInt(s.qty || 0);
+            const profit = (sellPrice - buyPrice) * qty;
+            
+            totalS += (sellPrice * qty);
+            totalP += profit;
+            totalQ += qty;
+
+            const options = inventoryData.map(item => {
+                const isOutOfStock = (parseInt(item.qty) <= 0);
+                return `<option value="${item.product}" 
+                    ${item.product === s.product ? 'selected' : ''} 
+                    ${isOutOfStock && item.product !== s.product ? 'disabled' : ''}>
+                    ${item.product} ${isOutOfStock ? '(RUPTURE)' : `(Stock: ${item.qty})`}
+                </option>`;
+            }).join('');
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="checkbox" class="row-check" data-id="${s.id}"></td>
+                <td>
+                    <select onchange="handleSelectProduct(${index}, this)" style="width:100%; background:transparent; color:inherit; border:none; font-weight:600;">
+                        <option value="">-- Choisir --</option>
+                        <optgroup label="Inventaire">${options}</optgroup>
+                        <option value="HORS_STOCK" ${s.is_hors_stock ? 'selected' : ''}>
+                            ${s.is_hors_stock ? s.product + ' (Hors Stock)' : '+ Hors Stock'}
+                        </option>
+                    </select>
+                </td>
+                <td contenteditable="true" onblur="updateField(${index}, 'date', this)">${s.date || ''}</td>
+                <td style="opacity:0.7;">${buyPrice}</td>
+                <td contenteditable="true" onblur="updateField(${index}, 'sell_price', this)">${sellPrice}</td>
+                <td contenteditable="true" onfocus="this.oldValue = this.innerText" onblur="handleQtyChange(${index}, this)">${qty}</td>
+                <td style="font-weight:bold; color:${profit >= 0 ? '#10b981' : '#ff4d4d'}">
+                    ${profit.toFixed(2)} ${currentCurrency}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        }
+    });
+
+    document.getElementById('totalSales').textContent = totalS.toLocaleString() + " " + currentCurrency;
+    document.getElementById('totalProfit').textContent = totalP.toLocaleString() + " " + currentCurrency;
+    document.getElementById('totalQuantity').textContent = totalQ;
+    updateCharts();
+}
+    // --- 4. GESTION DES ACTIONS (MERGE) ---
+    async function handleSelectProduct(index, select) {
+    const val = select.value;
+    const oldProduct = salesData[index].product;
+    const oldQty = parseInt(salesData[index].qty) || 0;
+
+    if (oldProduct && !salesData[index].is_hors_stock) {
+        await adjustInventoryStock(oldProduct, oldQty);
+    }
+
+    if (val === "HORS_STOCK") {
+        document.getElementById('modalRowIndex').value = index;
+        document.getElementById('modalHorsStock').style.display = 'flex';
+    } else {
+        const item = inventoryData.find(i => i.product === val);
+        if (item) {
+            await adjustInventoryStock(item.product, -1);
+            
+            const updates = { 
+                product: item.product, 
+                buy_price: parseFloat(item.buy_price) || 0, // On injecte le prix d'achat ici
+                sell_price: parseFloat(item.sell_price) || 0, 
+                qty: 1,
+                is_hors_stock: false 
+            };
+
+            const { error } = await _db.from('sales').update(updates).eq('id', salesData[index].id);
+            
+            if (error) {
+                console.error("Erreur:", error.message);
+            } else {
+                await fetchData(); // Force la recharge pour mettre à jour salesData localement
+            }
+        }
+    }
+}
+
+    async function handleQtyChange(index, el) {
         const newQty = parseInt(el.innerText) || 0;
         const oldQty = parseInt(el.oldValue) || 0;
-        const diff = oldQty - newQty; 
+        const diff = oldQty - newQty; // Si on augmente la vente (ex: 1 vers 3), diff = -2 (on retire 2 du stock)
 
         if (diff !== 0) {
-            saveUndo();
-            salesData[index].qty = newQty;
-            // On ajuste le stock seulement si ce n'est pas un produit "Hors Stock"
-            if (!salesData[index].isHorsStock) {
-                adjustInventoryStock(salesData[index].product, diff, false);
+            // Mettre à jour la base de données
+            await updateSupabaseRow(salesData[index].id, { qty: newQty });
+            
+            // Ajuster le stock si ce n'est pas du hors stock
+            if (!salesData[index].is_hors_stock) {
+                await adjustInventoryStock(salesData[index].product, diff);
             }
-            renderTable();
+            await fetchData();
         }
     }
 
-    function addRow() {
-        saveUndo();
-        salesData.push({ product: '', date: new Date().toISOString().split('T')[0], buy: 0, sell: 0, qty: 1, isHorsStock: false });
-        renderTable();
+    async function saveHorsStock() {
+    const index = document.getElementById('modalRowIndex').value;
+    const productName = document.getElementById('hsName').value; // Ex: "Pain"
+    
+    const updates = {
+        product: productName,
+        buy_price: parseFloat(document.getElementById('hsBuy').value) || 0,
+        sell_price: parseFloat(document.getElementById('hsSell').value) || 0,
+        qty: 1,
+        is_hors_stock: true
+    };
+
+    const { error } = await _db.from('sales').update(updates).eq('id', salesData[index].id);
+    
+    if (error) {
+        console.error("Erreur Hors Stock:", error.message);
+    } else {
+        document.getElementById('modalHorsStock').style.display = 'none';
+        await fetchData(); // Recharge tout pour mettre à jour l'affichage
+    }
+}
+
+    // --- 5. FONCTIONS SUPABASE ---
+    async function updateField(index, field, el) {
+    let val = el.innerText.trim();
+    const rowId = salesData[index].id;
+
+    // Conversion numérique si nécessaire
+    if (field === 'sell_price' || field === 'buy_price') {
+        val = parseFloat(val.replace(',', '.')) || 0;
+    }
+    if (field === 'qty') {
+        val = parseInt(val) || 0;
     }
 
-    function deleteSelectedRow() {
-        if(!confirm("Supprimer les lignes sélectionnées ? Le stock sera rendu.")) return;
-        saveUndo();
-        const checks = document.querySelectorAll('.row-check');
-        
-        salesData.forEach((sale, i) => {
-            if (checks[i].checked && sale.product && !sale.isHorsStock) {
-                adjustInventoryStock(sale.product, parseInt(sale.qty), false);
+    const { error } = await _db.from('sales')
+        .update({ [field]: val })
+        .eq('id', rowId);
+
+    if (error) {
+        console.error("Erreur de mise à jour:", error.message);
+        el.style.color = "red"; // Indicateur visuel d'erreur
+    } else {
+        el.style.color = "inherit";
+        // Mettre à jour la donnée locale pour les calculs de profit
+        salesData[index][field] = val;
+        renderTable(); 
+    }
+}
+    async function updateSupabaseRow(id, updates) {
+        const { error } = await _db.from('sales').update(updates).eq('id', id);
+        if (error) console.error("Update error:", error);
+    }
+
+    async function addRow() {
+    // On insère le minimum requis pour créer la ligne
+    // Supabase générera l'ID automatiquement
+    const { data, error } = await _db.from('sales').insert([{ 
+        date: new Date().toISOString().split('T')[0],
+        product: '',
+        qty: 0,
+        buy_price: 0,
+        sell_price: 0,
+        is_hors_stock: false
+    }]).select();
+
+    if (error) {
+        console.error("Erreur insertion sales:", error.message);
+        alert("Erreur lors de la création de la vente : " + error.message);
+    } else {
+        // Recharger les données pour afficher la nouvelle ligne avec son ID
+        await fetchData();
+    }
+}
+    async function deleteSelectedRow() {
+        const checks = document.querySelectorAll('.row-check:checked');
+        if (checks.length === 0 || !confirm("Supprimer ? Le stock sera rendu.")) return;
+
+        for (let check of checks) {
+            const id = check.getAttribute('data-id');
+            const sale = salesData.find(s => s.id == id);
+            
+            // Rendre le stock avant suppression
+            if (sale && sale.product && !sale.is_hors_stock) {
+                await adjustInventoryStock(sale.product, parseInt(sale.qty));
             }
-        });
-
-        salesData = salesData.filter((_, i) => !checks[i].checked);
-        renderTable();
-    }
-
-    function closeDay() {
-        if(salesData.length === 0) return alert("Rien à clôturer.");
-        if(confirm("Confirmer la clôture ? Les ventes seront archivées.")) {
-            let history = JSON.parse(localStorage.getItem('historyData')) || [];
-            history.push({ 
-                date: new Date().toLocaleString(), 
-                totalCA: document.getElementById('totalSales').textContent,
-                data: [...salesData] 
-            });
-            localStorage.setItem('historyData', JSON.stringify(history));
-            salesData = []; 
-            renderTable();
-            alert("✅ Archivage terminé !");
+            await _db.from('sales').delete().eq('id', id);
         }
+        await fetchData();
     }
 
-    // --- PDF / GRAPHS / UTILS ---
-    function exportPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-        doc.setFontSize(18);
-        doc.text(config.name || "Rapport de Ventes", 14, 22);
-        const rows = salesData.map(s => [s.product, s.date, s.qty, `${s.sell} ${currentCurrency}`, `${((s.sell - s.buy) * s.qty).toFixed(2)} ${currentCurrency}`]);
-        doc.autoTable({ head: [['Produit', 'Date', 'Qté', 'Vente', 'Profit']], body: rows, startY: 45, theme: 'grid' });
-        doc.save(`Ventes_${new Date().toLocaleDateString()}.pdf`);
-    }
-
-    function updateRow(index, field, el) {
-        salesData[index][field] = el.innerText;
-        localStorage.setItem('salesData', JSON.stringify(salesData));
-        updateCharts(); 
-    }
-
-    function saveUndo() { undoStack.push(JSON.stringify(salesData)); }
-    function undo() { if(undoStack.length) { salesData = JSON.parse(undoStack.pop()); renderTable(); } }
-
+    // --- 6. GRAPHIQUES ---
     function updateCharts() {
-        const canvasSales = document.getElementById('salesChart');
-        const canvasProfit = document.getElementById('profitChart');
-        if(!canvasSales || !canvasProfit) return;
-        const lastItems = salesData.slice(-5);
-        const labels = lastItems.map(s => s.product || "...");
-        const dataVentes = lastItems.map(s => s.sell * s.qty);
-        const dataProfit = lastItems.map(s => (s.sell - s.buy) * s.qty);
+        const ctxS = document.getElementById('salesChart')?.getContext('2d');
+        const ctxP = document.getElementById('profitChart')?.getContext('2d');
+        if(!ctxS || !ctxP) return;
+
         if(salesChart) salesChart.destroy();
         if(profitChart) profitChart.destroy();
-        salesChart = new Chart(canvasSales.getContext('2d'), { type: 'bar', data: { labels, datasets: [{ label: 'CA', data: dataVentes, backgroundColor: '#3b82f6' }] } });
-        profitChart = new Chart(canvasProfit.getContext('2d'), { type: 'line', data: { labels, datasets: [{ label: 'Profit', data: dataProfit, borderColor: '#10b981' }] } });
+
+        const lastFive = salesData.slice(0, 5).reverse();
+        const labels = lastFive.map(s => s.product || "...");
+        const dataVentes = lastFive.map(s => (s.sell_price || 0) * (s.qty || 0));
+        const dataProfit = lastFive.map(s => ((s.sell_price || 0) - (s.buy_price || 0)) * (s.qty || 0));
+
+        salesChart = new Chart(ctxS, { type: 'bar', data: { labels, datasets: [{ label: 'Ventes', data: dataVentes, backgroundColor: '#3b82f6' }] }, options: { responsive: true } });
+        profitChart = new Chart(ctxP, { type: 'line', data: { labels, datasets: [{ label: 'Profit', data: dataProfit, borderColor: '#10b981', fill: true, backgroundColor: 'rgba(16, 185, 129, 0.1)' }] }, options: { responsive: true } });
     }
 
-    function importExcel(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-            saveUndo();
-            const newSales = jsonData.map(row => ({
-                product: row.Produit || row.product || "Importé",
-                date: row.Date || new Date().toISOString().split('T')[0],
-                buy: parseFloat(row.Achat || row.buy) || 0,
-                sell: parseFloat(row.Vente || row.sell) || 0,
-                qty: parseInt(row.Qte || row.qty) || 1,
-                isHorsStock: true // Par sécurité, l'import Excel est considéré hors stock pour ne pas casser l'inventaire existant
-            }));
-            salesData = [...salesData, ...newSales];
-            renderTable();
-            event.target.value = '';
-        };
-        reader.readAsArrayBuffer(file);
+    document.addEventListener('DOMContentLoaded', init);
+    // Ajoute ces petites fonctions utilitaires si elles ne sont pas déjà dans ton JS principal
+    function closeModal() {
+        document.getElementById('modalHorsStock').style.display = 'none';
+        // Reset des champs
+        document.getElementById('hsName').value = '';
+        document.getElementById('hsBuy').value = '0';
+        document.getElementById('hsSell').value = '0';
     }
 
-    function logout() { sessionStorage.clear(); window.location.href="index.html"; }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        applyGlobalConfig();
-        renderTable();
-    });
+    function toggleSelectAll(master) {
+        const checkboxes = document.querySelectorAll('.row-check');
+        checkboxes.forEach(cb => cb.checked = master.checked);
+    }
 </script>
 </body>
 </html>
