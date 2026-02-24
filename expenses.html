@@ -295,66 +295,82 @@ body.dark-mode select {
     </div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 <script>
-    // --- 1. CONFIGURATION & VARIABLES ---
-    const exchangeRates = { EUR: 1, USD: 1.08, CDF: 2800 }; 
-    let expenses = JSON.parse(localStorage.getItem('expensesData')) || [];
-    let currentCurrency = "€";
+    // --- 1. CONFIGURATION SUPABASE ---
+    const SUPABASE_URL = 'https://oysdycuouodarfkmdtop.supabase.co'; 
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k';
+    const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let expenses = [];
+    let currentCurrency = "FC";
+    let globalRate = 2800; // Taux par défaut si non trouvé
 
     // --- 2. INITIALISATION ---
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         applyGlobalSettings();
         
-        // Initialiser la date du jour par défaut
         if(document.getElementById('expenseDate')) {
             document.getElementById('expenseDate').valueAsDate = new Date();
         }
         
-        // Écouter le changement de devise locale pour recalculer le tableau
+        // Charger les données depuis Supabase
+        fetchExpenses();
+
         const currencySelector = document.getElementById('expenseCurrency');
         if(currencySelector) {
             currencySelector.addEventListener('change', renderExpenses);
         }
-        
-        renderExpenses();
     });
 
     function applyGlobalSettings() {
         const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
         
-        // 1. Appliquer le thème (Sombre/Clair)
-        if (config.darkMode) {
-            document.body.classList.add('dark-mode');
-        } else {
-            document.body.classList.remove('dark-mode');
-        }
+        if (config.darkMode) document.body.classList.add('dark-mode');
 
-        // 2. Récupérer la devise globale
-        currentCurrency = config.currency || "€";
+        currentCurrency = config.currency || "FC";
+        globalRate = parseFloat(config.rate) || 2800;
         
-        // Mettre à jour le sélecteur de devise de la page s'il existe
         const select = document.getElementById('expenseCurrency');
         if (select) select.value = currentCurrency;
 
-        // 3. Mettre à jour le titre du dashboard
         const brandName = document.querySelector('.header-flex h2');
         if (brandName && config.name) {
             brandName.innerHTML = `Dépenses <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
         }
     }
 
-    // --- 3. LOGIQUE DE CALCUL ---
+    // --- 3. LOGIQUE DE CALCUL (DYNAMIQUE) ---
     function convertCurrency(amount, fromCurrency, toCurrency) {
-        // Normalisation des symboles pour le calcul
-        const from = fromCurrency === "€" ? "EUR" : (fromCurrency === "$" ? "USD" : fromCurrency);
-        const to = toCurrency === "€" ? "EUR" : (toCurrency === "$" ? "USD" : toCurrency);
+        if (fromCurrency === toCurrency) return amount;
         
-        const amountInEUR = amount / (exchangeRates[from] || 1);
-        return amountInEUR * (exchangeRates[to] || 1);
+        // Si on convertit du Dollar vers le Franc Congolais
+        if ((fromCurrency === "$" || fromCurrency === "USD") && toCurrency === "FC") {
+            return amount * globalRate;
+        }
+        // Si on convertit du Franc Congolais vers le Dollar
+        if (fromCurrency === "FC" && (toCurrency === "$" || toCurrency === "USD")) {
+            return amount / globalRate;
+        }
+        return amount; 
     }
 
-    // --- 4. ACTIONS ---
-    function addExpense() {
+    // --- 4. CHARGEMENT & ACTIONS SUPABASE ---
+    async function fetchExpenses() {
+        const { data, error } = await _db
+            .from('expenses')
+            .select('*')
+            .order('date', { ascending: false });
+
+        if (!error) {
+            expenses = data || [];
+            renderExpenses();
+        }
+    }
+
+    async function addExpense() {
         const date = document.getElementById('expenseDate').value;
         const label = document.getElementById('expenseLabel').value.trim();
         const amount = parseFloat(document.getElementById('expenseAmount').value);
@@ -366,69 +382,64 @@ body.dark-mode select {
             return; 
         }
 
-        const newExpense = { 
-            id: Date.now(), 
-            date, 
-            label, 
-            category, 
-            amount, 
-            currency 
-        };
+        const { error } = await _db.from('expenses').insert([{ 
+            date, label, category, amount, currency 
+        }]);
 
-        expenses.unshift(newExpense);
-        saveExpenses();
-        
-        // Reset des champs
-        document.getElementById('expenseLabel').value = '';
-        document.getElementById('expenseAmount').value = '';
-        document.getElementById('expenseLabel').focus();
-    }
-
-    function deleteExpense(id) {
-        if(confirm("Supprimer cette dépense ?")) {
-            expenses = expenses.filter(e => e.id !== id);
-            saveExpenses();
+        if (error) {
+            alert("Erreur: " + error.message);
+        } else {
+            document.getElementById('expenseLabel').value = '';
+            document.getElementById('expenseAmount').value = '';
+            fetchExpenses();
         }
     }
 
-    function saveExpenses() {
-        localStorage.setItem('expensesData', JSON.stringify(expenses));
-        renderExpenses();
+    async function deleteExpense(id) {
+        if(confirm("Supprimer cette dépense ?")) {
+            const { error } = await _db.from('expenses').delete().eq('id', id);
+            if (!error) fetchExpenses();
+        }
     }
 
-    // --- 5. RENDU DU TABLEAU ---
+    // --- 5. RENDU DU TABLEAU (CORRIGÉ POUR L'ERREUR VALUE) ---
     function renderExpenses() {
         const table = document.getElementById('expensesTable');
-        const targetCurrency = document.getElementById('expenseCurrency').value;
-        const totalDisplay = document.getElementById('expensesTotal');
         if(!table) return;
+
+        // Sécurité pour l'erreur "value" : si le select n'existe pas, on utilise la devise globale
+        const currencySelector = document.getElementById('expenseCurrency');
+        const targetCurrency = currencySelector ? currencySelector.value : currentCurrency;
+        
+        const totalDisplay = document.getElementById('expensesTotal');
 
         table.innerHTML = '';
         let totalGlobal = 0;
 
         expenses.forEach(e => {
-            const convertedAmount = convertCurrency(e.amount, e.currency, targetCurrency);
-            totalGlobal += convertedAmount;
+    // Sécurité : si currency est vide dans la base, on utilise la devise par défaut
+    const expenseCurrency = e.currency || "FC"; 
+    const convertedAmount = convertCurrency(e.amount, expenseCurrency, targetCurrency);
+    totalGlobal += convertedAmount;
 
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${new Date(e.date).toLocaleDateString('fr-FR')}</td>
-                <td style="font-weight:600">${e.label}</td>
-                <td><span class="badge" style="background:rgba(239, 68, 68, 0.1); color:var(--danger); padding:4px 8px; border-radius:4px; font-size:0.85em;">${e.category}</span></td>
-                <td style="color:var(--text-light); font-size:0.9em;">${e.amount.toLocaleString()} ${e.currency}</td>
-                <td style="font-weight:700; color:var(--danger)">
-                    - ${convertedAmount.toLocaleString(undefined, {minimumFractionDigits:2})} ${targetCurrency}
-                </td>
-                <td style="text-align: right;">
-                    <button onclick="deleteExpense(${e.id})" style="background:none; border:none; color:var(--danger); cursor:pointer;">
-                        <svg style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                    </button>
-                </td>
-            `;
-            table.appendChild(row);
-        });
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td>${e.date ? new Date(e.date).toLocaleDateString('fr-FR') : '-'}</td>
+        <td style="font-weight:600">${e.label || 'Sans nom'}</td>
+        <td><span class="badge" style="background:rgba(239, 68, 68, 0.1); color:var(--danger); padding:4px 8px; border-radius:4px; font-size:0.85em;">${e.category || 'Général'}</span></td>
+        <td style="color:var(--text-light); font-size:0.9em;">${(e.amount || 0).toLocaleString()} ${expenseCurrency}</td>
+        <td style="font-weight:700; color:var(--danger)">
+            - ${convertedAmount.toLocaleString(undefined, {minimumFractionDigits:2})} ${targetCurrency}
+        </td>
+        <td style="text-align: right;">
+            <button onclick="deleteExpense('${e.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer;">
+                <svg style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+        </td>
+    `;
+    table.appendChild(row);
+});
 
-        // Mise à jour du total avec formatage monétaire
         if(totalDisplay) {
             totalDisplay.textContent = totalGlobal.toLocaleString(undefined, {
                 minimumFractionDigits: 2,
@@ -437,7 +448,7 @@ body.dark-mode select {
         }
     }
 
-    // --- 6. EXPORTS & RECHERCHE ---
+    // --- 6. AUTRES FONCTIONS ---
     function filterExpenses() {
         const query = document.getElementById('searchInput').value.toLowerCase();
         const rows = document.querySelectorAll('#expensesTable tr');
@@ -447,7 +458,9 @@ body.dark-mode select {
     }
 
     function exportExpensesExcel() {
-        const targetCurrency = document.getElementById('expenseCurrency').value;
+        const currencySelector = document.getElementById('expenseCurrency');
+        const targetCurrency = currencySelector ? currencySelector.value : currentCurrency;
+
         const wsData = [["Date", "Libellé", "Catégorie", "Montant Original", "Devise", `Valeur en ${targetCurrency}`]];
         expenses.forEach(e => {
             const converted = convertCurrency(e.amount, e.currency, targetCurrency);
