@@ -279,221 +279,369 @@ body.dark-mode .btn-outline { background: #1e293b; color: white; border-color: v
     </div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// --- 1. VARIABLES GLOBALES ---
-let inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
-let undoStack = [];
-let saveTimeout;
-let currentCurrency = "FC"; // Déclaration unique pour toute la page
+// --- CONFIGURATION SUPABASE ---
+const SUPABASE_URL = 'https://oysdycuouodarfkmdtop.supabase.co'; 
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k';
+const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// --- 2. INITIALISATION ---
-document.addEventListener('DOMContentLoaded', () => {
-    // On appelle la fonction de configuration globale
+let inventoryData = [];
+let saveTimeout;
+let currentCurrency = "FC";
+
+document.addEventListener('DOMContentLoaded', async () => {
     applyGlobalConfig();
-    renderInventory();
+    await loadInventory();
     
-    // ÉCOUTEUR : Met à jour si une autre page (ex: Ventes) modifie le stock ou la config
-    window.addEventListener('storage', (e) => {
-        if (e.key === 'inventoryData' || e.key === 'moniteo_config') {
-            inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
-            applyGlobalConfig();
-            renderInventory();
-        }
+    window.addEventListener('storage', async (e) => {
+        if (e.key === 'inventory_trigger') await loadInventory();
     });
 
-    // Recherche
     document.getElementById('searchBar')?.addEventListener('input', (e) => {
         filterTable(e.target.value.toLowerCase());
     });
 
-    // Sauvegarde automatique lors de la saisie dans le tableau
-    document.getElementById('inventoryTable')?.addEventListener('input', () => {
+    // ÉCOUTEUR PRINCIPAL : Gestion des entrées
+    document.getElementById('inventoryTable')?.addEventListener('input', (e) => {
+        const target = e.target;
+        
+        // Sécurité : Si on modifie Quantité, Prix Achat ou Prix Vente
+        if (target.classList.contains('edit-cell') && target.cellIndex >= 2) {
+            validateNumericInput(target);
+        }
+
+        // Mise à jour visuelle immédiate
+        updateBannerUI_Live(); 
+        
+        // Sauvegarde différée
         showSavingStatus();
         clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(saveInventory, 800);
+        saveTimeout = setTimeout(saveInventory, 1500);
     });
 });
-
-// --- 3. CONFIGURATION GLOBALE ---
+// --- 1. CONFIGURATION & TITRE ---
 function applyGlobalConfig() {
     const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
     currentCurrency = config.currency || "FC";
+    if (config.darkMode) document.body.classList.add('dark', 'dark-mode');
 
-    // Mise à jour du Titre avec le nom de l'entreprise
+    // Récupération du nom de l'entreprise (Ancien JS)
     const brand = document.querySelector('.header-flex h2');
     if (brand && config.name) {
-        brand.innerHTML = `Gestion de l'Inventaire <small style="font-size: 0.6em; color: var(--secondary); opacity: 0.8;">| ${config.name}</small>`;
+        brand.innerHTML = `Gestion de l'Inventaire <small style="font-size: 0.6em; opacity: 0.8;">| ${config.name}</small>`;
     }
-
-    // Gestion du Mode Sombre (Classes 'dark' et 'dark-mode' pour compatibilité)
-    if (config.darkMode) {
-        document.body.classList.add('dark', 'dark-mode');
-    } else {
-        document.body.classList.remove('dark', 'dark-mode');
-    }
-
-    // Mise à jour de tous les symboles de devise sur la page
-    document.querySelectorAll('.currency-label').forEach(el => {
-        el.textContent = currentCurrency;
-    });
 }
 
-// --- 4. RENDU & AFFICHAGE ---
+// --- 2. CHARGEMENT & RENDU (Avec Alertes de l'ancien JS) ---
+async function loadInventory() {
+    const { data, error } = await _db.from('inventory').select('*').order('created_at', { ascending: false });
+    if (!error) { 
+        inventoryData = data; 
+        renderInventory(); 
+    }
+}
+
 function renderInventory(dataToRender = inventoryData) {
     const tbody = document.getElementById('inventoryTable');
-    const alertList = document.getElementById('alertList');
+    const alertList = document.getElementById('alertList'); // Récupéré de l'ancien JS
     if(!tbody) return;
 
     tbody.innerHTML = '';
-    if(alertList) alertList.innerHTML = '';
-
-    let tQty = 0, tBuyTotal = 0, tSellTotal = 0;
+    if(alertList) alertList.innerHTML = ''; // Reset des alertes
 
     dataToRender.forEach((item, index) => {
         const qty = parseInt(item.qty) || 0;
-        const buy = parseFloat(item.buy) || 0;
-        const sell = parseFloat(item.sell) || 0;
+        const buy = parseFloat(item.buy_price) || 0;
+        const sell = parseFloat(item.sell_price) || 0;
         const margin = sell - buy;
 
-        tQty += qty;
-        tBuyTotal += (qty * buy);
-        tSellTotal += (qty * sell);
-
-        // Alertes de stock dans la petite liste latérale
+        // --- GESTION DES ALERTES (Ancien JS) ---
         if(alertList) {
             if(qty <= 0) {
-                alertList.innerHTML += `<li class="alert-item" style="color: #ef4444; margin-bottom:5px; list-style:none; font-size:0.85rem;">🔴 Rupture : <strong>${item.product}</strong></li>`;
+                alertList.innerHTML += `<li style="color: #ef4444; font-size:0.85rem;">🔴 Rupture : <strong>${item.product}</strong></li>`;
             } else if(qty <= 5) {
-                alertList.innerHTML += `<li class="alert-item" style="color: #f59e0b; margin-bottom:5px; list-style:none; font-size:0.85rem;">🟠 Faible : <strong>${item.product}</strong> (${qty})</li>`;
+                alertList.innerHTML += `<li style="color: #f59e0b; font-size:0.85rem;">🟠 Faible : <strong>${item.product}</strong> (${qty})</li>`;
             }
         }
 
         const tr = document.createElement('tr');
-        // Style visuel pour les lignes hors stock
+        tr.setAttribute('data-id', item.id);
+        
+        // Style visuel pour rupture (Ancien JS)
         if(qty <= 0) tr.style.background = "rgba(239, 68, 68, 0.05)";
 
         tr.innerHTML = `
             <td><input type="checkbox" data-index="${index}"></td>
             <td contenteditable="true" class="edit-cell" style="font-weight:600">${item.product || ''}</td>
-            <td contenteditable="true" class="edit-cell" style="color: ${qty <= 5 ? '#ef4444' : 'inherit'}; font-weight:bold;">${qty}</td>
+            <td contenteditable="true" class="edit-cell" style="font-weight:bold; color: ${qty <= 5 ? '#ef4444' : 'inherit'};">${qty}</td>
             <td contenteditable="true" class="edit-cell">${buy}</td>
             <td contenteditable="true" class="edit-cell">${sell}</td>
-            <td style="font-weight:600; color: ${margin >= 0 ? 'var(--success)' : 'var(--danger)'}">
+            <td style="font-weight:600; color: ${margin >= 0 ? '#10b981' : '#ef4444'}">
                 ${margin.toLocaleString()} ${currentCurrency}
             </td>
         `;
         tbody.appendChild(tr);
     });
-
-    updateBannerUI(tQty, tBuyTotal, tSellTotal);
+    updateBannerUI();
 }
 
-function updateBannerUI(qty, buyTotal, sellTotal) {
-    const profitTotal = sellTotal - buyTotal;
+// --- 3. CALCULS BANNIÈRE (Version Complète) ---
+function updateBannerUI() {
+    let tQty = 0, tBuyTotal = 0, tSellTotal = 0;
     
-    if(document.getElementById('countStock')) document.getElementById('countStock').textContent = qty;
-    if(document.getElementById('stockValue')) document.getElementById('stockValue').textContent = buyTotal.toLocaleString() + " " + currentCurrency;
-    if(document.getElementById('saleValue')) document.getElementById('saleValue').textContent = sellTotal.toLocaleString() + " " + currentCurrency;
+    inventoryData.forEach(item => {
+        const q = parseInt(item.qty) || 0;
+        const b = parseFloat(item.buy_price) || 0;
+        const s = parseFloat(item.sell_price) || 0;
+        tQty += q;
+        tBuyTotal += (q * b);
+        tSellTotal += (q * s);
+    });
+
+    const tProfit = tSellTotal - tBuyTotal;
+
+    if(document.getElementById('countStock')) document.getElementById('countStock').textContent = tQty;
+    if(document.getElementById('stockValue')) document.getElementById('stockValue').textContent = tBuyTotal.toLocaleString() + " " + currentCurrency;
+    if(document.getElementById('saleValue')) document.getElementById('saleValue').textContent = tSellTotal.toLocaleString() + " " + currentCurrency;
     
+    // Ajout du Profit Potentiel (Ancien JS)
     const profitEl = document.getElementById('profitValue');
     if(profitEl) {
-        profitEl.textContent = profitTotal.toLocaleString() + " " + currentCurrency;
-        profitEl.style.color = profitTotal >= 0 ? "var(--success)" : "var(--danger)";
+        profitEl.textContent = tProfit.toLocaleString() + " " + currentCurrency;
+        profitEl.style.color = tProfit >= 0 ? "#10b981" : "#ef4444";
     }
 }
 
-// --- 5. GESTION DES DONNÉES ---
-function saveInventory() {
+// --- 4. SAUVEGARDE & ACTIONS (Version Supabase) ---
+async function saveInventory() {
     const rows = document.querySelectorAll('#inventoryTable tr');
-    const newData = [];
+    const updates = [];
     
     rows.forEach(tr => {
-        if (tr.cells.length >= 5) {
-            const name = tr.cells[1].innerText.trim();
-            if (!name) return;
-            newData.push({
-                product: name,
-                qty: parseInt(tr.cells[2].innerText) || 0,
-                buy: parseFloat(tr.cells[3].innerText.replace(',', '.')) || 0,
-                sell: parseFloat(tr.cells[4].innerText.replace(',', '.')) || 0
+        const id = tr.getAttribute('data-id');
+        const name = tr.cells[1].innerText.trim();
+        if (name && id) {
+            updates.push({ 
+                id: id, 
+                product: name, 
+                qty: parseInt(tr.cells[2].innerText) || 0, 
+                buy_price: parseFloat(tr.cells[3].innerText.replace(',', '.')) || 0,
+                sell_price: parseFloat(tr.cells[4].innerText.replace(',', '.')) || 0 
             });
         }
     });
 
-    inventoryData = newData;
-    localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+    const { error } = await _db.from('inventory').upsert(updates, { onConflict: 'id' });
     
-    // Notification pour le Dashboard et les autres pages
-    window.dispatchEvent(new Event('storage')); 
-    
-    renderInventory();
-    hideSavingStatus();
-}
-
-function addRow() {
-    saveUndo();
-    inventoryData.unshift({product: 'Nouveau Produit', qty: 0, buy: 0, sell: 0});
-    renderInventory();
-    saveInventory();
-}
-
-function deleteSelectedRow() {
-    const checkboxes = document.querySelectorAll('#inventoryTable input[type="checkbox"]:checked');
-    if (checkboxes.length === 0) return;
-    
-    if(confirm(`Supprimer ${checkboxes.length} article(s) ?`)) {
-        saveUndo();
-        const rows = Array.from(document.querySelectorAll('#inventoryTable tr'));
-        inventoryData = inventoryData.filter((_, i) => !rows[i].querySelector('input').checked);
-        
-        localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
-        window.dispatchEvent(new Event('storage'));
-        renderInventory();
+    if(!error) {
+        inventoryData = updates;
+        updateBannerUI(); // Mise à jour immédiate des totaux
+        hideSavingStatus();
     }
 }
 
-// --- 6. UTILITAIRES ---
-function filterTable(query) {
-    const filtered = inventoryData.filter(item => 
-        item.product.toLowerCase().includes(query)
-    );
+async function addRow() {
+    const { error } = await _db.from('inventory').insert([
+        { product: "Nouveau Produit", qty: 0, buy_price: 0, sell_price: 0 }
+    ]);
+
+    if(!error) await loadInventory();
+}
+
+async function deleteSelectedRow() {
+    const checks = document.querySelectorAll('#inventoryTable input[type="checkbox"]:checked');
+    if (checks.length === 0 || !confirm("Supprimer ces articles ?")) return;
+    
+    for (let cb of checks) {
+        const index = cb.dataset.index;
+        const idToDelete = inventoryData[index].id;
+        await _db.from('inventory').delete().eq('id', idToDelete);
+    }
+    await loadInventory();
+}
+
+// --- 5. UTILITAIRES ---
+function filterTable(q) { 
+    const filtered = inventoryData.filter(i => i.product.toLowerCase().includes(q));
     renderInventory(filtered);
 }
 
-function showSavingStatus() {
-    const status = document.getElementById('saveStatus');
-    if(!status) return;
-    status.style.opacity = "1";
-    status.innerHTML = "⏳ Enregistrement...";
-    status.style.color = "var(--text-light)";
+function showSavingStatus() { 
+    const s = document.getElementById('saveStatus'); 
+    if(s) { s.style.opacity = "1"; s.innerHTML = "⏳ Synchronisation..."; s.style.color = "orange"; } 
 }
 
-function hideSavingStatus() {
-    const status = document.getElementById('saveStatus');
-    if(!status) return;
-    status.innerHTML = "● Enregistré";
-    status.style.color = "#10b981";
-    setTimeout(() => { status.style.opacity = "0"; }, 2000);
+function hideSavingStatus() { 
+    const s = document.getElementById('saveStatus'); 
+    if(s) { s.innerHTML = "● Synchronisé"; s.style.color = "#10b981"; setTimeout(() => s.style.opacity = "0", 2000); } 
 }
+async function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+    
+    // Titre et Infos
+    doc.setFontSize(18);
+    doc.text(config.name || "Moniteo Umbrella", 14, 20);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text("Rapport d'Inventaire - " + new Date().toLocaleDateString(), 14, 28);
 
-function saveUndo() {
-    undoStack.push(JSON.stringify(inventoryData));
-    if(undoStack.length > 20) undoStack.shift();
+    // Préparation des données du tableau
+    const body = inventoryData.map(item => [
+        item.product,
+        item.qty,
+        `${item.buy_price} ${currentCurrency}`,
+        `${item.sell_price} ${currentCurrency}`,
+        `${(item.sell_price - item.buy_price).toFixed(2)} ${currentCurrency}`
+    ]);
+
+    doc.autoTable({
+        startY: 35,
+        head: [['Produit', 'Quantité', 'Prix Achat', 'Prix Vente', 'Marge unit.']],
+        body: body,
+        theme: 'striped',
+        headStyles: { fillColor: [31, 60, 99] } // Couleur var(--primary)
+    });
+
+    doc.save(`Inventaire_${new Date().toISOString().split('T')[0]}.pdf`);
 }
-
-function undo() {
-    if(undoStack.length > 0) {
-        inventoryData = JSON.parse(undoStack.pop());
-        localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
-        window.dispatchEvent(new Event('storage'));
-        renderInventory();
+function exportInventory() {
+    const ws = XLSX.utils.json_to_sheet(inventoryData.map(item => ({
+        "Produit": item.product,
+        "Quantité": item.qty,
+        "Prix Achat": item.buy_price,
+        "Prix Vente": item.sell_price,
+        "Marge": item.sell_price - item.buy_price
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Inventaire");
+    XLSX.writeFile(wb, "Inventaire_Moniteo.xlsx");
+}
+async function clearInventory() {
+    if (confirm("⚠️ ATTENTION : Voulez-vous vraiment supprimer TOUT l'inventaire ? Cette action est irréversible.")) {
+        const { error } = await _db.from('inventory').delete().neq('qty', -1); // Supprime tout
+        if (!error) {
+            await loadInventory();
+        } else {
+            alert("Erreur lors de la suppression : " + error.message);
+        }
     }
 }
+// --- IMPORTATION EXCEL AVEC NETTOYAGE (ANTI-MARGE NULLE) ---
+document.getElementById('importInventory').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-function logout() {
-    if(confirm("Se déconnecter ?")) { 
-        sessionStorage.clear(); 
-        window.location.href = "index.html"; 
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+
+            if (jsonData.length === 0) return;
+
+            if (confirm(`Importer ${jsonData.length} produits ?`)) {
+                showSavingStatus();
+
+                const formattedData = jsonData.map(row => {
+                    // Fonction interne pour nettoyer les nombres (enlève espaces, remplace virgule par point)
+                    const cleanNum = (val) => {
+                        if (!val) return 0;
+                        let s = val.toString().replace(/\s/g, '').replace(',', '.');
+                        return parseFloat(s) || 0;
+                    };
+
+                    return {
+                        product: row.Produit || row.product || "Sans nom",
+                        qty: Math.floor(cleanNum(row.Quantité || row.qty)),
+                        buy_price: cleanNum(row.PrixAchat || row.buy_price),
+                        sell_price: cleanNum(row.PrixVente || row.sell_price)
+                    };
+                });
+
+                // Utilisation de upsert pour écraser les anciennes valeurs fausses
+                const { error } = await _db
+                    .from('inventory')
+                    .upsert(formattedData, { onConflict: 'product' }); 
+
+                if (error) {
+                    alert("Erreur Supabase: " + error.message);
+                } else {
+                    alert("Importation réussie et données nettoyées !");
+                    await loadInventory();
+                }
+                hideSavingStatus();
+            }
+        } catch (err) {
+            alert("Erreur de format.");
+            console.error(err);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+});
+// --- NOUVELLE FONCTION : CALCUL TEMPS RÉEL ---
+function updateBannerUI_Live() {
+    const rows = document.querySelectorAll('#inventoryTable tr');
+    let tQty = 0, tBuyTotal = 0, tSellTotal = 0;
+
+    rows.forEach(tr => {
+        // Nettoyage des données pour éviter les erreurs de calcul (NaN)
+        const q = parseInt(tr.cells[2].innerText.replace(/\s/g, '')) || 0;
+        const b = parseFloat(tr.cells[3].innerText.replace(/\s/g, '').replace(',', '.')) || 0;
+        const s = parseFloat(tr.cells[4].innerText.replace(/\s/g, '').replace(',', '.')) || 0;
+        
+        const margin = s - b;
+        
+        // Mise à jour de la colonne Marge (cellule 5)
+        const marginCell = tr.cells[5];
+        if (marginCell) {
+            marginCell.innerText = `${margin.toLocaleString()} ${currentCurrency}`;
+            marginCell.style.color = margin >= 0 ? '#10b981' : '#ef4444';
+        }
+
+        // Totaux pour la bannière
+        tQty += q;
+        tBuyTotal += (q * b);
+        tSellTotal += (q * s);
+    });
+
+    // Mise à jour des éléments de la bannière bleue
+    const tProfit = tSellTotal - tBuyTotal;
+    
+    const elements = {
+        'countStock': tQty,
+        'stockValue': `${tBuyTotal.toLocaleString()} ${currentCurrency}`,
+        'saleValue': `${tSellTotal.toLocaleString()} ${currentCurrency}`,
+        'profitValue': `${tProfit.toLocaleString()} ${currentCurrency}`
+    };
+
+    for (let id in elements) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = elements[id];
+            if (id === 'profitValue') el.style.color = tProfit >= 0 ? "#6ee7b7" : "#ef4444";
+        }
+    }
+}
+// --- FONCTION DE SÉCURITÉ : BLOCAGE DES LETTRES ---
+function validateNumericInput(cell) {
+    // On autorise les chiffres, le point et la virgule
+    // On supprime tout le reste instantanément
+    const originalText = cell.innerText;
+    const cleanedText = originalText.replace(/[^0-9.,]/g, '');
+    
+    if (originalText !== cleanedText) {
+        cell.innerText = cleanedText;
+        // Replacer le curseur à la fin pour ne pas gêner la frappe
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(cell);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
     }
 }
 </script>
