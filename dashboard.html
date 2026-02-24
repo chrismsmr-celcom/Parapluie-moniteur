@@ -14,6 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         /* Couleurs pour le Mode Sombre */
@@ -254,114 +255,123 @@ body.dark-mode select {
     </div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
-    let mainChart = null;
-    let stockChart = null;
+    // --- CONFIGURATION SUPABASE ---
+    const SUPABASE_URL = 'https://oysdycuouodarfkmdtop.supabase.co'; 
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k';
+    
+    // CHANGEMENT ICI : on utilise _db au lieu de supabase
+    const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let mainChartObj = null; // Renommé pour éviter conflit avec l'ID du canvas
+    let stockChartObj = null;
     let currentCurrency = "FC";
 
     // --- 1. CONFIGURATION GLOBALE ---
     function applyGlobalConfig() {
         const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
         currentCurrency = config.currency || "FC";
-
-        // Nom de l'entreprise
         const title = document.getElementById('companyTitle');
         if (config.name && title) {
             title.innerHTML = `Tableau de Bord <small style="font-size:0.6em; color:var(--secondary)">| ${config.name}</small>`;
         }
-
-        // Logo dynamique
         const logoCont = document.getElementById('dynamicLogoContainer');
         if (config.logo && logoCont) {
             logoCont.innerHTML = `<img src="${config.logo}" style="height: 45px; width: auto; border-radius: 5px; object-fit: contain;">`;
         }
-        
-        // Mode Sombre
         if (config.darkMode) document.body.classList.add('dark');
         else document.body.classList.remove('dark');
     }
 
-    // --- 2. INITIALISATION ET SYNCHRONISATION ---
-    function initDashboard() {
+    // --- 2. INITIALISATION ET RÉCUPÉRATION DONNÉES ---
+    async function initDashboard() {
         applyGlobalConfig();
         
-        // Récupération de TOUTES les sources de données
-        const sales = JSON.parse(localStorage.getItem('salesData')) || [];
-        const inventory = JSON.parse(localStorage.getItem('inventoryData')) || [];
-        const expenses = JSON.parse(localStorage.getItem('expensesData')) || [];
-        const staff = JSON.parse(localStorage.getItem('staffData')) || [];
+        try {
+            // Utilisation de _db.from au lieu de supabase.from
+            const [rSales, rInventory, rExpenses, rStaff] = await Promise.all([
+                _db.from('sales').select('*'),
+                _db.from('inventory').select('*'),
+                _db.from('expenses').select('*'),
+                _db.from('staff').select('*')
+            ]);
 
-        // --- CALCULS FINANCIERS RÉELS ---
-        // CA = Somme de (Prix Vente * Quantité)
-        let totalCA = sales.reduce((sum, s) => sum + (parseFloat(s.sell || 0) * parseInt(s.qty || 0)), 0);
-        
-        // Profit Brut = Somme de ((Vente - Achat) * Quantité)
-        let grossProfit = sales.reduce((sum, s) => {
-            const profitUnitaire = parseFloat(s.sell || 0) - parseFloat(s.buy || 0);
-            return sum + (profitUnitaire * parseInt(s.qty || 0));
-        }, 0);
-        
-        // Charges = Dépenses Directes + (Salaires + Bonus Staff)
-        let otherExp = expenses.reduce((sum, e) => sum + (parseFloat(e.amount || 0)), 0);
-        let payroll = staff.reduce((sum, e) => {
-            const s = parseFloat(String(e.salary).replace(/[^\d.-]/g, '')) || 0;
-            const b = parseFloat(String(e.bonus).replace(/[^\d.-]/g, '')) || 0;
-            return sum + s + b;
-        }, 0);
+            const sales = rSales.data || [];
+            const inventory = rInventory.data || [];
+            const expenses = rExpenses.data || [];
+            const staff = rStaff.data || [];
 
-        let totalCharges = otherExp + payroll;
-        let netProfit = grossProfit - totalCharges;
-
-        // --- MISE À JOUR DE L'INTERFACE (KPI) ---
-        document.getElementById('totalCA').textContent = totalCA.toLocaleString() + " " + currentCurrency;
-        document.getElementById('totalExpenses').textContent = totalCharges.toLocaleString() + " " + currentCurrency;
-        
-        const profitEl = document.getElementById('totalProfit');
-        profitEl.textContent = netProfit.toLocaleString() + " " + currentCurrency;
-        profitEl.style.color = netProfit >= 0 ? "var(--success)" : "var(--danger)";
-
-        document.getElementById('totalStock').textContent = `${inventory.length} Réf / ${staff.length} Pers.`;
-
-        // --- INJECTION STAFF ---
-        const staffContainer = document.getElementById('staffListContainer');
-        document.getElementById('staffCountLabel').textContent = staff.length;
-        
-        if (staffContainer) {
-            staffContainer.innerHTML = staff.map(member => `
-                <div style="min-width: 90px; text-align: center; flex-shrink: 0;">
-                    <div style="width: 55px; height: 55px; border-radius: 50%; overflow: hidden; margin: 0 auto 8px; border: 2px solid var(--secondary); background: #eee;">
-                        <img src="${member.photo || 'https://ui-avatars.com/api/?name='+encodeURIComponent(member.name)}" 
-                             style="width: 100%; height: 100%; object-fit: cover;">
-                    </div>
-                    <p style="font-size: 0.75rem; font-weight: 700; margin: 0; color: var(--text-main);">${member.name.split(' ')[0]}</p>
-                    <p style="font-size: 0.6rem; color: var(--text-light);">${member.role || 'Staff'}</p>
-                </div>
-            `).join('') || '<p style="font-size:0.8rem">Aucun membre.</p>';
-        }
-
-        // --- INJECTION ALERTES STOCKS ---
-        const stockStatusList = document.getElementById('stockStatusList');
-        if (stockStatusList) {
-            // On trie par quantité (les plus bas en premier)
-            const lowStock = [...inventory].sort((a,b) => (parseInt(a.qty)||0) - (parseInt(b.qty)||0)).slice(0, 4);
+            // --- CALCULS FINANCIERS ---
+            let totalCA = sales.reduce((sum, s) => sum + (parseFloat(s.sell_price || 0) * parseInt(s.qty || 0)), 0);
             
-            stockStatusList.innerHTML = lowStock.map(item => {
-                const q = parseInt(item.qty) || 0;
-                const isLow = q <= 5;
-                return `
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: ${isDark()?'#1e293b':'#f8fafc'}; border-radius: 8px; border-left: 4px solid ${isLow?'var(--danger)':'var(--success)'};">
-                        <div>
-                            <span style="font-size: 0.85rem; font-weight: 600;">${item.product || item.name}</span>
-                            <br><span style="font-size: 0.7rem; color: var(--text-light);">Prix: ${item.sell || item.sellPrice} ${currentCurrency}</span>
-                        </div>
-                        <span style="font-size: 0.85rem; font-weight: 700; color: ${isLow?'var(--danger)':'var(--success)'};">${q} en stock</span>
-                    </div>
-                `;
-            }).join('') || '<p>Inventaire vide.</p>';
-        }
+            let grossProfit = sales.reduce((sum, s) => {
+                const profitUnitaire = parseFloat(s.sell_price || 0) - parseFloat(s.buy_price || 0);
+                return sum + (profitUnitaire * parseInt(s.qty || 0));
+            }, 0);
+            
+            let otherExp = expenses.reduce((sum, e) => sum + (parseFloat(e.amount || 0)), 0);
+            let payroll = staff.reduce((sum, e) => {
+                const s = parseFloat(String(e.salary || 0).replace(/[^\d.-]/g, '')) || 0;
+                const b = parseFloat(String(e.bonus || 0).replace(/[^\d.-]/g, '')) || 0;
+                return sum + s + b;
+            }, 0);
 
-        renderCharts(sales, inventory);
+            let totalCharges = otherExp + payroll;
+            let netProfit = grossProfit - totalCharges;
+
+            // --- MISE À JOUR KPI ---
+            document.getElementById('totalCA').textContent = totalCA.toLocaleString() + " " + currentCurrency;
+            document.getElementById('totalExpenses').textContent = totalCharges.toLocaleString() + " " + currentCurrency;
+            
+            const profitEl = document.getElementById('totalProfit');
+            profitEl.textContent = netProfit.toLocaleString() + " " + currentCurrency;
+            profitEl.style.color = netProfit >= 0 ? "var(--success)" : "var(--danger)";
+
+            document.getElementById('totalStock').textContent = `${inventory.length} Réf / ${staff.length} Pers.`;
+
+            // --- INJECTION STAFF ---
+            const staffContainer = document.getElementById('staffListContainer');
+            if (staffContainer) {
+                document.getElementById('staffCountLabel').textContent = staff.length;
+                staffContainer.innerHTML = staff.map(member => `
+                    <div style="min-width: 90px; text-align: center; flex-shrink: 0;">
+                        <div style="width: 55px; height: 55px; border-radius: 50%; overflow: hidden; margin: 0 auto 8px; border: 2px solid var(--secondary); background: #eee;">
+                            <img src="${member.photo || 'https://ui-avatars.com/api/?name='+encodeURIComponent(member.name)}" 
+                                 style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <p style="font-size: 0.75rem; font-weight: 700; margin: 0; color: var(--text-main);">${member.name ? member.name.split(' ')[0] : 'Inconnu'}</p>
+                        <p style="font-size: 0.6rem; color: var(--text-light);">${member.role || 'Staff'}</p>
+                    </div>
+                `).join('') || '<p style="font-size:0.8rem">Aucun membre.</p>';
+            }
+
+            // --- ALERTES STOCKS ---
+            const stockStatusList = document.getElementById('stockStatusList');
+            if (stockStatusList) {
+                const lowStock = [...inventory].sort((a,b) => (parseInt(a.qty)||0) - (parseInt(b.qty)||0)).slice(0, 4);
+                stockStatusList.innerHTML = lowStock.map(item => {
+                    const q = parseInt(item.qty) || 0;
+                    const isLow = q <= 5;
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: ${isDark()?'#1e293b':'#f8fafc'}; border-radius: 8px; border-left: 4px solid ${isLow?'var(--danger)':'var(--success)'};">
+                            <div>
+                                <span style="font-size: 0.85rem; font-weight: 600;">${item.product || 'Produit sans nom'}</span>
+                                <br><span style="font-size: 0.7rem; color: var(--text-light);">Prix: ${item.sell_price || 0} ${currentCurrency}</span>
+                            </div>
+                            <span style="font-size: 0.85rem; font-weight: 700; color: ${isLow?'var(--danger)':'var(--success)'};">${q} en stock</span>
+                        </div>
+                    `;
+                }).join('') || '<p>Inventaire vide.</p>';
+            }
+
+            renderCharts(sales, inventory);
+
+        } catch (err) {
+            console.error("Erreur d'initialisation du Dashboard:", err);
+        }
     }
 
     // --- 3. GRAPHIQUES ---
@@ -369,17 +379,16 @@ body.dark-mode select {
         const isDarkTheme = isDark();
         const textColor = isDarkTheme ? '#94a3b8' : '#64748b';
 
-        // Évolution des Ventes (regroupées par date)
         const dailyVentes = {};
         sales.forEach(s => {
             const d = s.date || "Inconnue";
-            dailyVentes[d] = (dailyVentes[d] || 0) + (parseFloat(s.sell) * parseInt(s.qty));
+            dailyVentes[d] = (dailyVentes[d] || 0) + (parseFloat(s.sell_price || 0) * parseInt(s.qty || 0));
         });
         const dates = Object.keys(dailyVentes).sort().slice(-7);
 
         const ctx1 = document.getElementById('mainChart').getContext('2d');
-        if(mainChart) mainChart.destroy();
-        mainChart = new Chart(ctx1, {
+        if(mainChartObj) mainChartObj.destroy();
+        mainChartObj = new Chart(ctx1, {
             type: 'line',
             data: {
                 labels: dates,
@@ -401,15 +410,14 @@ body.dark-mode select {
             }
         });
 
-        // Distribution Stock
         const ctx2 = document.getElementById('stockChart').getContext('2d');
-        if(stockChart) stockChart.destroy();
-        stockChart = new Chart(ctx2, {
+        if(stockChartObj) stockChartObj.destroy();
+        stockChartObj = new Chart(ctx2, {
             type: 'doughnut',
             data: {
                 labels: inventory.slice(0, 5).map(i => i.product || i.name),
                 datasets: [{
-                    data: inventory.slice(0, 5).map(i => i.qty || i.quantity),
+                    data: inventory.slice(0, 5).map(i => i.qty || 0),
                     backgroundColor: ['#1f3c63', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
                     borderWidth: 0
                 }]
@@ -421,41 +429,32 @@ body.dark-mode select {
         });
     }
 
-    // --- 4. EXPORT PDF PRO ---
+    // --- 4. EXPORT PDF ---
     function exportDashboardPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
 
-        // Header avec logo si présent
-        if(config.logo) {
-            try { doc.addImage(config.logo, 'PNG', 14, 10, 20, 20); } catch(e){}
-        }
-        
         doc.setFontSize(18);
         doc.setTextColor(31, 60, 99);
-        doc.text(config.name || "TERRA VOYAGE SARL", config.logo ? 40 : 14, 20);
+        doc.text(config.name || "MONITEO BUSINESS", 14, 20);
         
         doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text("RAPPORT RÉSUMÉ GÉNÉRAL - " + new Date().toLocaleDateString(), config.logo ? 40 : 14, 27);
-        doc.line(14, 35, 196, 35);
+        doc.text("RAPPORT RÉSUMÉ GÉNÉRAL - " + new Date().toLocaleDateString(), 14, 27);
 
-        // Tableau des indicateurs financiers
         doc.autoTable({
-            startY: 45,
+            startY: 35,
             head: [['Indicateur clé', 'Montant / Valeur']],
             body: [
                 ['Chiffre d\'Affaires Global', document.getElementById('totalCA').textContent],
-                ['Total Charges (Staff + Dépenses)', document.getElementById('totalExpenses').textContent],
+                ['Total Charges', document.getElementById('totalExpenses').textContent],
                 ['Bénéfice Net Réel', document.getElementById('totalProfit').textContent],
-                ['Effectif Staff / Références Stock', document.getElementById('totalStock').textContent]
+                ['Stock / Staff', document.getElementById('totalStock').textContent]
             ],
-            headStyles: { fillColor: [31, 60, 99], fontStyle: 'bold' },
-            theme: 'striped'
+            headStyles: { fillColor: [31, 60, 99] }
         });
 
-        doc.save(`Resume_Business_${new Date().toISOString().split('T')[0]}.pdf`);
+        doc.save(`Rapport_${new Date().toISOString().split('T')[0]}.pdf`);
     }
 
     // --- UTILS ---
@@ -467,9 +466,16 @@ body.dark-mode select {
         const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
         config.darkMode = isDark();
         localStorage.setItem('moniteo_config', JSON.stringify(config));
+        renderCharts([], []); // Rafraîchir les couleurs des graphs
         initDashboard();
     }
-    function logout() { if(confirm("Se déconnecter ?")) { sessionStorage.clear(); window.location.href="index.html"; } }
+    async function logout() { 
+        if(confirm("Se déconnecter ?")) { 
+            await _db.auth.signOut(); 
+            sessionStorage.clear(); 
+            window.location.href="index.html"; 
+        } 
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
         const dateEl = document.getElementById('dateDisplay');
@@ -478,4 +484,4 @@ body.dark-mode select {
     });
 </script>
 </body>
-</html>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+</html>
