@@ -479,33 +479,103 @@ function hideSavingStatus() {
 async function generatePDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-    
-    // Titre et Infos
-    doc.setFontSize(18);
-    doc.text(config.name || "Moniteo Umbrella", 14, 20);
-    doc.setFontSize(11);
-    doc.setTextColor(100);
-    doc.text("Rapport d'Inventaire - " + new Date().toLocaleDateString(), 14, 28);
+    const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Préparation des données du tableau
-    const body = inventoryData.map(item => [
-        item.product,
-        item.qty,
-        `${item.buy_price} ${currentCurrency}`,
-        `${item.sell_price} ${currentCurrency}`,
-        `${(item.sell_price - item.buy_price).toFixed(2)} ${currentCurrency}`
-    ]);
+    // 1. Récupération de l'utilisateur actuel
+    const { data: { user } } = await _db.auth.getUser();
+    if (!user) return alert("Session expirée");
+
+    // 2. Récupération des infos entreprise (Settings)
+    const { data: settings } = await _db
+        .from('settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    const bizName = settings?.company_name || "MONITEO PRO";
+    const bizAddress = settings?.address || "Rapport d'Inventaire";
+    const bizLogo = settings?.logo_url || null;
+
+    // --- EN-TÊTE PROFESSIONNEL ---
+    if (bizLogo) {
+        try {
+            doc.addImage(bizLogo, 'PNG', 14, 10, 25, 25);
+        } catch (e) { console.error("Logo non compatible", e); }
+    }
+
+    doc.setFontSize(18);
+    doc.setTextColor(31, 60, 99); // Couleur var(--primary)
+    doc.text(bizName.toUpperCase(), bizLogo ? 45 : 14, 20);
+    
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.text(bizAddress, bizLogo ? 45 : 14, 26);
+    doc.text(`Inventaire au : ${new Date().toLocaleString('fr-FR')}`, bizLogo ? 45 : 14, 31);
+
+    // --- RÉSUMÉ DE L'INVENTAIRE (BANNIÈRE) ---
+    doc.setFontSize(14);
+    doc.setTextColor(31, 60, 99);
+    doc.text("RÉSUMÉ DES VALEURS", 14, 45);
+
+    const countStock = document.getElementById('countStock')?.textContent || "0";
+    const stockValue = document.getElementById('stockValue')?.textContent || "0";
+    const saleValue = document.getElementById('saleValue')?.textContent || "0";
+    const profitValue = document.getElementById('profitValue')?.textContent || "0";
 
     doc.autoTable({
-        startY: 35,
-        head: [['Produit', 'Quantité', 'Prix Achat', 'Prix Vente', 'Marge unit.']],
-        body: body,
-        theme: 'striped',
-        headStyles: { fillColor: [31, 60, 99] } // Couleur var(--primary)
+        startY: 50,
+        head: [['Articles Totaux', 'Valeur Achat', 'Valeur Vente', 'Profit Potentiel']],
+        body: [[countStock, stockValue, saleValue, profitValue]],
+        theme: 'grid',
+        headStyles: { fillColor: [31, 60, 99], halign: 'center' },
+        styles: { halign: 'center', fontSize: 10, fontStyle: 'bold' }
     });
 
-    doc.save(`Inventaire_${new Date().toISOString().split('T')[0]}.pdf`);
+    // --- TABLEAU DES PRODUITS ---
+    doc.setFontSize(14);
+    doc.text("DÉTAIL DES ARTICLES EN STOCK", 14, doc.lastAutoTable.finalY + 15);
+
+    const body = inventoryData.map(item => {
+        const qty = parseInt(item.qty) || 0;
+        let status = "OK";
+        if (qty <= 0) status = "RUPTURE";
+        else if (qty <= 5) status = "FAIBLE";
+
+        return [
+            item.product,
+            qty,
+            `${item.buy_price.toLocaleString()} ${currentCurrency}`,
+            `${item.sell_price.toLocaleString()} ${currentCurrency}`,
+            status
+        ];
+    });
+
+    doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 20,
+        head: [['Produit', 'Qté', 'Prix Achat', 'Prix Vente', 'Statut']],
+        body: body,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] }, // Couleur var(--secondary)
+        didParseCell: function(data) {
+            // Coloration du texte selon le statut
+            if (data.section === 'body' && data.column.index === 4) {
+                if (data.cell.raw === 'RUPTURE') data.cell.styles.textColor = [239, 68, 68]; // Rouge
+                if (data.cell.raw === 'FAIBLE') data.cell.styles.textColor = [245, 158, 11];  // Orange
+                if (data.cell.raw === 'OK') data.cell.styles.textColor = [16, 185, 129];      // Vert
+            }
+        }
+    });
+
+    // --- PIED DE PAGE ---
+    const pageCount = doc.internal.getNumberOfPages();
+    for(let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Moniteo Umbrella System - Page ${i} / ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    }
+
+    doc.save(`Inventaire_${bizName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
 function exportInventory() {
     const ws = XLSX.utils.json_to_sheet(inventoryData.map(item => ({
@@ -644,6 +714,13 @@ function validateNumericInput(cell) {
         sel.addRange(range);
     }
 }
+async function logout() { 
+        if(confirm("Se déconnecter ?")) { 
+            await _db.auth.signOut(); 
+            window.location.replace("index.html"); 
+        } 
+    }
+
 </script>
 </body>
 </html>
