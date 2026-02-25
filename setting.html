@@ -48,7 +48,7 @@
 
         .logo-box { padding: 1rem 0; text-align: center; border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 1.5rem; }
         .logo-full { width: 140px; }
-        .logo-short { display: none; width: 40px; margin: 0 auto; }
+        .logo-short { display: none; width: 70px; margin: 0 auto; }
 
         .nav-links { list-style:none; flex:1; overflow-y: auto; }
         .nav-links a {
@@ -193,98 +193,83 @@
     </nav>
 
     <main class="main-content">
-        <header class="header-flex">
-            <h2>Configuration Système</h2>
-            <p style="font-size: 0.85rem; color: var(--text-light);">Dernière synchro : <span id="syncDate">--/--</span></p>
-        </header>
+    <header class="header-flex">
+        <div>
+            <h2>Paramètres & Profil</h2>
+            <p id="userEmailDisplay" style="font-size: 0.85rem; color: var(--secondary); font-weight: 600;">Chargement du compte...</p>
+        </div>
+        <button class="btn-save" onclick="saveAllData()" style="margin:0; width:auto; padding:10px 25px;">Enregistrer Tout</button>
+    </header>
 
-        <div class="settings-grid">
-            <div class="card">
-                <h3><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg> Entreprise</h3>
-                <div class="form-group">
-                    <label>Nom du Business</label>
-                    <input type="text" id="bizName" placeholder="Ex: Moniteo Umbrella Ltd">
-                </div>
-                <div class="form-group">
-                    <label>Adresse physique</label>
-                    <textarea id="bizAddress" rows="2" placeholder="Kinshasa, Gombe..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Contact (WhatsApp)</label>
-                    <input type="text" id="bizPhone" placeholder="+243 ...">
-                </div>
-                <div class="form-group">
-                    <label>Logo de l'entreprise</label>
-                    <input type="file" id="bizLogoInput" accept="image/*" onchange="previewAndConvertLogo()">
-                    <div style="margin-top:10px; text-align:center;">
-                        <img id="logoPreview" src="" style="max-height: 50px; display:none; margin: 0 auto; border-radius: 4px;">
-                    </div>
+    <div class="settings-grid">
+        <div class="card">
+            <h3><svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Identité Admin</h3>
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="position: relative; display: inline-block;">
+                    <img id="avatarPreview" src="https://ui-avatars.com/api/?name=Admin&background=1f3c63&color=fff" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border-soft);">
+                    <input type="file" id="avatarInput" hidden accept="image/*" onchange="previewAvatar()">
+                    <button onclick="document.getElementById('avatarInput').click()" style="position: absolute; bottom: 0; right: 0; background: var(--secondary); border: none; border-radius: 50%; width: 25px; height: 25px; color: white; cursor: pointer;">+</button>
                 </div>
             </div>
-
-            <div class="card">
-<h3>
-    <svg class="icon" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="3"></circle>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-    </svg> 
-    Préférences
-</h3>                <div class="form-group">
-                    <label>Devise Principale</label>
-                    <select id="baseCurrency">
-                        <option value="€">Euro (€)</option>
-                        <option value="$">Dollar ($)</option>
-                        <option value="FC">Franc Congolais (FC)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Taux de change (1$ = ? FC)</label>
-                    <input type="number" id="exchangeRate" placeholder="Ex: 2850">
-                </div>
-                
-                <div class="toggle-item">
-                    <span>Mode Sombre</span>
-                    <label class="switch">
-                        <input type="checkbox" id="darkToggle">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="toggle-item">
-                    <span>Alertes Stock Bas</span>
-                    <label class="switch">
-                        <input type="checkbox" id="stockAlertToggle" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
+            <div class="form-group">
+                <label>Nom Complet</label>
+                <input type="text" id="adminFullName" placeholder="Ex: Jean Dupont">
             </div>
-
-            <div class="card">
-                <h3><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Maintenance</h3>
-                <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 1.5rem;">Sauvegardez ou importez vos ventes historiques.</p>
-
-                <div class="action-bar">
-                    <button class="btn-outline" onclick="document.getElementById('importSalesExcel').click()">
-                        Importer Ventes
-                    </button>
-                    <input type="file" id="importSalesExcel" style="display:none" accept=".xlsx, .xls" onchange="processSalesImport(event)">
-
-                    <button class="btn-outline" onclick="downloadTemplate()" style="border-color: var(--secondary); color: var(--secondary);">
-                        Modèle Excel
-                    </button>
-                </div>
-            </div>
-
-            <div class="card danger-zone">
-                <h3 style="color: var(--danger);">Sécurité</h3>
-                <p style="font-size: 0.8rem; color: var(--text-light); margin-bottom: 1rem;">Actions irréversibles.</p>
-                <button class="btn-danger-soft" onclick="resetApp()">Réinitialiser l'Application</button>
+            <div class="form-group">
+                <label>Rôle / Titre</label>
+                <input type="text" id="adminRole" value="Administrateur Principal" readonly style="background: var(--bg-body); opacity: 0.7;">
             </div>
         </div>
 
-        <div style="max-width: 500px; margin: 2rem auto;">
-            <button class="btn-save" onclick="saveSettings()">Enregistrer les modifications</button>
+        <div class="card">
+            <h3><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg> Entreprise</h3>
+            <div class="form-group">
+                <label>Nom du Business</label>
+                <input type="text" id="bizName" placeholder="Ex: Moniteo Umbrella Ltd">
+            </div>
+            <div class="form-group">
+                <label>Adresse physique</label>
+                <textarea id="bizAddress" rows="2" placeholder="Kinshasa, Gombe..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Logo du Business</label>
+                <input type="file" id="bizLogoInput" accept="image/*" onchange="previewLogo()">
+                <div style="margin-top:10px; text-align:center;">
+                    <img id="logoPreview" src="" style="max-height: 40px; display:none; margin: 0 auto;">
+                </div>
+            </div>
         </div>
-    </main>
+
+        <div class="card">
+            <h3><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle></svg> Préférences Système</h3>
+            <div class="form-group">
+                <label>Devise de base</label>
+                <select id="baseCurrency">
+                    <option value="$">Dollar ($)</option>
+                    <option value="FC">Franc Congolais (FC)</option>
+                    <option value="€">Euro (€)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Taux de change (1$ = ? FC)</label>
+                <input type="number" id="exchangeRate" placeholder="Ex: 2850">
+            </div>
+            <div class="toggle-item">
+                <span>Mode Sombre</span>
+                <label class="switch">
+                    <input type="checkbox" id="darkToggle" onchange="toggleDarkModeUI()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="card danger-zone">
+            <h3 style="color: var(--danger);">Zone de Danger</h3>
+            <button class="btn-danger-soft" onclick="resetApp()" style="margin-bottom: 10px;">Réinitialiser les données</button>
+            <button class="btn-outline" onclick="logout()" style="width: 100%; justify-content: center; color: var(--danger);">Déconnexion</button>
+        </div>
+    </div>
+</main>
 
    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -295,177 +280,131 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k';
     const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    let currentUser = null;
     let base64Logo = "";
+    let base64Avatar = "";
 
     window.addEventListener('DOMContentLoaded', async () => {
-        // 1. CHARGEMENT PRIORITAIRE DU LOCAL (Pour éviter le blanc à l'écran)
-        let config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-        applyConfigToUI(config);
+        // 1. Récupérer l'utilisateur connecté
+        const { data: { user } } = await _db.auth.getUser();
+        if (!user) { window.location.href = "index.html"; return; }
+        currentUser = user;
+        document.getElementById('userEmailDisplay').textContent = "Connecté : " + user.email;
 
-        // 2. SYNCHRONISATION AVEC SUPABASE (MAJ en arrière-plan)
-        try {
-            const { data, error } = await _db.from('settings').select('*').eq('id', 1).single();
-            
-            if (data && !error) {
-                const cloudConfig = {
-                    name: data.name,
-                    address: data.address,
-                    phone: data.phone,
-                    currency: data.currency,
-                    rate: data.rate,
-                    logo: data.logo_url,
-                    darkMode: config.darkMode // On préserve la préférence visuelle locale
-                };
-                localStorage.setItem('moniteo_config', JSON.stringify(cloudConfig));
-                applyConfigToUI(cloudConfig); // Mise à jour des champs avec les données Cloud
-            }
-        } catch (err) {
-            console.warn("Mode hors-ligne ou erreur de synchro Cloud.");
-        }
-        
-        handleResponsiveSidebar();
+        // 2. Charger les données du Profil
+        loadProfileData();
+
+        // 3. Charger les données Settings
+        loadSettingsData();
     });
 
-    // Fonction pour remplir les champs HTML
-    function applyConfigToUI(config) {
-        if(!config) return;
-        if(document.getElementById('bizName')) document.getElementById('bizName').value = config.name || "";
-        if(document.getElementById('bizAddress')) document.getElementById('bizAddress').value = config.address || "";
-        if(document.getElementById('bizPhone')) document.getElementById('bizPhone').value = config.phone || "";
-        if(document.getElementById('baseCurrency')) document.getElementById('baseCurrency').value = config.currency || "FC";
-        if(document.getElementById('exchangeRate')) document.getElementById('exchangeRate').value = config.rate || "";
-        if(document.getElementById('darkToggle')) document.getElementById('darkToggle').checked = config.darkMode || false;
-        
-        if(config.logo) {
-            base64Logo = config.logo;
-            const preview = document.getElementById('logoPreview');
-            if(preview) { preview.src = base64Logo; preview.style.display = 'block'; }
+    async function loadProfileData() {
+        const { data, error } = await _db.from('profiles').select('*').eq('id', currentUser.id).single();
+        if (data) {
+            document.getElementById('adminFullName').value = data.full_name || "";
+            if (data.avatar_url) {
+                document.getElementById('avatarPreview').src = data.avatar_url;
+                base64Avatar = data.avatar_url;
+            }
         }
-        if(config.darkMode) document.body.classList.add('dark-mode');
     }
 
-    // --- CONVERSION LOGO ---
-    function previewAndConvertLogo() {
+    async function loadSettingsData() {
+        // On cherche les settings liés à l'ID de l'utilisateur connecté
+        const { data, error } = await _db.from('settings')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .maybeSingle(); // maybeSingle évite l'erreur si la ligne n'existe pas encore
+
+        if (data) {
+            document.getElementById('bizName').value = data.company_name || "";
+            document.getElementById('bizAddress').value = data.address || "";
+            document.getElementById('baseCurrency').value = data.currency || "$";
+            document.getElementById('exchangeRate').value = data.rate || "";
+            document.getElementById('darkToggle').checked = data.dark_mode;
+            
+            if (data.logo_url) {
+                const preview = document.getElementById('logoPreview');
+                preview.src = data.logo_url;
+                preview.style.display = 'block';
+                base64Logo = data.logo_url;
+            }
+            // Appliquer le mode sombre au chargement
+            if(data.dark_mode) document.body.classList.add('dark-mode');
+        }
+    }
+    // --- PREVIEWS ---
+    function previewAvatar() {
+        const file = document.getElementById('avatarInput').files[0];
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            base64Avatar = reader.result;
+            document.getElementById('avatarPreview').src = base64Avatar;
+        };
+        if (file) reader.readAsDataURL(file);
+    }
+
+    function previewLogo() {
         const file = document.getElementById('bizLogoInput').files[0];
         const reader = new FileReader();
         reader.onloadend = () => {
             base64Logo = reader.result;
-            const preview = document.getElementById('logoPreview');
-            if(preview) { preview.src = base64Logo; preview.style.display = 'block'; }
-        }
+            document.getElementById('logoPreview').src = base64Logo;
+            document.getElementById('logoPreview').style.display = 'block';
+        };
         if (file) reader.readAsDataURL(file);
     }
 
-    // --- SAUVEGARDE GÉNÉRALE ---
-    async function saveSettings() {
+    // --- SAUVEGARDE GLOBALE ---
+    async function saveAllData() {
+        const saveBtn = document.querySelector('.btn-save');
+        saveBtn.textContent = "⏳ Enregistrement...";
+        saveBtn.disabled = true;
+
         try {
-            const config = {
-                name: document.getElementById('bizName').value,
-                address: document.getElementById('bizAddress').value,
-                phone: document.getElementById('bizPhone').value,
-                currency: document.getElementById('baseCurrency').value,
-                rate: document.getElementById('exchangeRate').value,
-                darkMode: document.getElementById('darkToggle').checked,
-                logo: base64Logo, 
-                lastUpdate: new Date().toLocaleString('fr-FR')
-            };
-
-            // A. Sauvegarde locale immédiate
-            localStorage.setItem('moniteo_config', JSON.stringify(config));
-            localStorage.setItem('currency', config.currency);
-            document.body.classList.toggle('dark-mode', config.darkMode);
-
-            // B. Push vers Supabase
-            const { error } = await _db.from('settings').upsert({ 
-                id: 1, 
-                name: config.name,
-                address: config.address,
-                phone: config.phone,
-                currency: config.currency,
-                rate: parseFloat(config.rate) || 0,
-                logo_url: base64Logo,
+            // A. Sauvegarde Profil (Identité)
+            const { error: pErr } = await _db.from('profiles').upsert({
+                id: currentUser.id,
+                full_name: document.getElementById('adminFullName').value,
+                avatar_url: base64Avatar,
                 updated_at: new Date()
             });
 
-            if (error) throw error;
+            // B. Sauvegarde Settings (Entreprise & Préférences)
+            const { error: sErr } = await _db.from('settings').upsert({
+                user_id: currentUser.id, // On utilise l'ID de l'utilisateur
+                company_name: document.getElementById('bizName').value,
+                address: document.getElementById('bizAddress').value,
+                currency: document.getElementById('baseCurrency').value,
+                rate: parseFloat(document.getElementById('exchangeRate').value) || 0,
+                dark_mode: document.getElementById('darkToggle').checked,
+                logo_url: base64Logo,
+                updated_at: new Date()
+            }, { onConflict: 'user_id' }); // Important pour ne pas créer de doublons
 
-            alert("✅ Configuration sauvegardée et synchronisée !");
+            if (pErr || sErr) {
+                console.error("Profil Error:", pErr, "Settings Error:", sErr);
+                throw new Error("Erreur de synchronisation avec la base de données.");
+            }
+
+            alert("✅ Configuration mise à jour !");
             location.reload();
         } catch (err) {
-            console.error(err);
-            alert("Sauvegarde locale réussie, mais erreur de synchro Cloud : " + err.message);
+            alert(err.message);
+            saveBtn.textContent = "Enregistrer Tout";
+            saveBtn.disabled = false;
         }
     }
 
-    // --- IMPORTATION EXCEL ---
-    async function processSalesImport(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-
-                if (confirm(`Importer ${jsonData.length} lignes de ventes vers Supabase ?`)) {
-                    const imported = jsonData.map(row => ({
-                        product: row.Produit || row.product || "Inconnu",
-                        date: row.Date || new Date().toISOString().split('T')[0],
-                        buy_price: parseFloat(row.Achat) || 0,
-                        sell_price: parseFloat(row.Vente) || 0,
-                        qty: parseInt(row.Qte) || 1
-                    }));
-
-                    const { error } = await _db.from('sales').insert(imported);
-                    if (error) throw error;
-                    alert("✅ Importation réussie !");
-                    location.reload();
-                }
-            } catch (err) {
-                alert("Erreur d'import : " + err.message);
-            }
-        };
-        reader.readAsArrayBuffer(file);
+    function toggleDarkModeUI() {
+        document.body.classList.toggle('dark-mode', document.getElementById('darkToggle').checked);
     }
 
-    // --- RÉINITIALISATION ---
-    async function resetApp() {
-        if(confirm("⚠️ ACTION CRITIQUE : Supprimer TOUTES les données (Ventes, Stock, Config) sur le Cloud et en local ?")) {
-            try {
-                // On vide les tables principales
-                await _db.from('inventory').delete().filter('id', 'neq', '00000000-0000-0000-0000-000000000000');
-                await _db.from('sales').delete().filter('id', 'neq', '00000000-0000-0000-0000-000000000000');
-                await _db.from('settings').delete().eq('id', 1);
-                
-                localStorage.clear(); 
-                alert("Application réinitialisée.");
-                window.location.href = "index.html"; 
-            } catch (err) {
-                alert("Erreur lors du reset : " + err.message);
-            }
-        }
-    }
-
-    // --- LOGOUT & TEMPLATE ---
     function logout() {
-        if(confirm("Se déconnecter ?")) { sessionStorage.clear(); window.location.href = "index.html"; }
+        _db.auth.signOut();
+        sessionStorage.clear();
+        window.location.href = "index.html";
     }
-
-    function downloadTemplate() {
-        const data = [["Produit", "Date", "Achat", "Vente", "Qte"], ["Exemple Article", new Date().toISOString().split('T')[0], 10, 15, 100]];
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Modèle");
-        XLSX.writeFile(wb, "Modele_Import_Moniteo.xlsx");
-    }
-
-    function handleResponsiveSidebar() {
-        const sb = document.getElementById('sidebar');
-        if (sb && window.innerWidth <= 1024) sb.classList.add('collapsed');
-    }
-    window.addEventListener('resize', handleResponsiveSidebar);
-</script>
+    </script>
 </body>
 </html>
