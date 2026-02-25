@@ -250,8 +250,7 @@
         <div class="action-bar">
             <button class="btn-main" onclick="addRow()">+ Nouvelle Vente</button>
             <button class="btn-outline" onclick="undo()">Annuler</button>
-            <button class="btn-outline" onclick="exportPDF()">PDF</button>
-            <button class="btn-outline" onclick="exportExcel()">Excel</button>
+            <button onclick="exportSalesPDF()" class="btn-export">PDF</button>            <button class="btn-outline" onclick="exportExcel()">Excel</button>
             <button class="btn-danger" onclick="deleteSelectedRow()">Supprimer</button>
             <button class="btn-main" style="background:#10b981" onclick="closeDay()">Clôturer Journée</button>
             <button class="btn-outline" onclick="document.getElementById('excelFileInput').click()">Importer Excel</button>
@@ -293,7 +292,7 @@
 
 <div id="modalHorsStock" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
     <div class="card" style="width:95%; max-width:400px; padding:25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-        <h3 style="margin-bottom: 15px;">📦 Produit Hors Stock</h3>
+        <h3 style="margin-bottom: 15px;">Produit Hors Stock</h3>
         <p style="font-size: 0.9em; opacity: 0.7; margin-bottom: 15px;">Ce produit ne sera pas déduit de votre inventaire Supabase.</p>
         
         <input type="hidden" id="modalRowIndex">
@@ -330,29 +329,73 @@
     let inventoryData = []; 
     let currentCurrency = "FC";
     let salesChart, profitChart;
-
+    let currentUser = null; // Ajout de la variable globale manquante
     // --- 1. INITIALISATION ---
     async function init() {
+        // 1. Vérifier l'utilisateur d'abord
+        const { data: { user }, error } = await _db.auth.getUser();
+        if (error || !user) {
+            window.location.replace("index.html");
+            return;
+        }
+        currentUser = user; // On stocke l'utilisateur ici
+
+        // 2. Charger la config et les données
         const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
         currentCurrency = config.currency || "FC";
         if (config.darkMode) document.body.classList.add('dark');
         
-        await fetchData(); // Charger Ventes + Inventaire
+        await fetchData(); 
     }
-
     async function fetchData() {
+        if (!currentUser) return;
         try {
             const [salesRes, invRes] = await Promise.all([
-                _db.from('sales').select('*').order('created_at', { ascending: false }),
-                _db.from('inventory').select('*').order('product', { ascending: true })
+                _db.from('sales')
+                   .select('*')
+                   .eq('user_id', currentUser.id) // Filtre obligatoire
+                   .order('date', { ascending: false }), // Tri par date plutôt que created_at
+                _db.from('inventory')
+                   .select('*')
+                   .eq('user_id', currentUser.id)
+                   .order('product', { ascending: true })
             ]);
+            
+            if (salesRes.error) throw salesRes.error;
+
             salesData = salesRes.data || [];
             inventoryData = invRes.data || [];
             renderTable();
-        } catch (err) { console.error("Erreur chargement:", err); }
+        } catch (err) { 
+            console.error("Erreur chargement sales:", err.message); 
+        }
     }
+    // --- AJOUT D'UNE LIGNE ---
+    async function addRow() {
+        if (!currentUser) {
+            alert("Session expirée");
+            return;
+        }
 
-    // --- 2. LOGIQUE DE STOCK (MERGE) ---
+        // On inclut obligatoirement le user_id pour passer la sécurité RLS
+        const { data, error } = await _db.from('sales').insert([{ 
+            user_id: currentUser.id, // CRUCIAL : lie la vente à l'utilisateur
+            date: new Date().toISOString().split('T')[0],
+            product: '',
+            qty: 0,
+            buy_price: 0,
+            sell_price: 0,
+            is_hors_stock: false
+        }]).select();
+
+        if (error) {
+            console.error("Erreur insertion sales:", error.message);
+            alert("Erreur : " + error.message);
+        } else {
+            await fetchData(); // Recharge le tableau
+        }
+    }
+        // --- 2. LOGIQUE DE STOCK (MERGE) ---
     async function adjustInventoryStock(productName, quantityChange) {
         if (!productName) return;
         
@@ -603,6 +646,167 @@
         const checkboxes = document.querySelectorAll('.row-check');
         checkboxes.forEach(cb => cb.checked = master.checked);
     }
+    async function exportSalesPDF() {
+    if (!currentUser) {
+        alert("Erreur : Utilisateur non identifié.");
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // 1. Récupération des infos complètes de l'entreprise
+    const { data: settings } = await _db
+        .from('settings')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+    const bizName = settings?.company_name || "MONITEO PRO";
+    const bizAddress = settings?.address || "Rapport détaillé des ventes";
+    const bizLogo = settings?.logo_url || null;
+
+    // --- EN-TÊTE (Design Dashboard) ---
+    if (bizLogo) {
+        try {
+            doc.addImage(bizLogo, 'PNG', 14, 10, 25, 25);
+        } catch (e) { console.error("Erreur logo PDF", e); }
+    }
+
+    doc.setFontSize(18);
+    doc.setTextColor(31, 60, 99); // Bleu primaire
+    doc.text(bizName.toUpperCase(), bizLogo ? 45 : 14, 20);
+    
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.text(bizAddress, bizLogo ? 45 : 14, 26);
+    doc.text(`Rapport généré le : ${new Date().toLocaleString('fr-FR')}`, bizLogo ? 45 : 14, 31);
+
+    // --- SECTION 1 : RÉSUMÉ DES VENTES (KPIs) ---
+    doc.setFontSize(14);
+    doc.setTextColor(31, 60, 99);
+    doc.text("RÉSUMÉ DE LA PÉRIODE", 14, 45);
+
+    const totalVentes = document.getElementById('totalSales')?.textContent || "0";
+    const totalProfit = document.getElementById('totalProfit')?.textContent || "0";
+    const totalQty = document.getElementById('totalQuantity')?.textContent || "0";
+
+    doc.autoTable({
+        startY: 50,
+        head: [['Indicateur', 'Valeur']],
+        body: [
+            ['Chiffre d\'Affaires (CA)', totalVentes],
+            ['Marge Bénéficiaire Totale', totalProfit],
+            ['Volume de produits vendus', totalQty]
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [31, 60, 99] },
+        styles: { fontSize: 10 }
+    });
+
+    // --- SECTION 2 : GRAPHIQUES ---
+    let finalY = doc.lastAutoTable.finalY + 15;
+    doc.setFontSize(14);
+    doc.text("ANALYSES GRAPHIQUES", 14, finalY);
+
+    try {
+        // Graphique des Ventes (Barres)
+        const canvasSales = document.getElementById('salesChart');
+        if (canvasSales) {
+            const imgSales = canvasSales.toDataURL('image/png', 1.0);
+            doc.addImage(imgSales, 'PNG', 14, finalY + 5, 90, 50);
+        }
+
+        // Graphique du Profit (Ligne)
+        const canvasProfit = document.getElementById('profitChart');
+        if (canvasProfit) {
+            const imgProfit = canvasProfit.toDataURL('image/png', 1.0);
+            doc.addImage(imgProfit, 'PNG', 110, finalY + 5, 80, 50);
+        }
+    } catch (e) {
+        console.warn("Graphiques indisponibles");
+    }
+
+    // --- SECTION 3 : TABLEAU DÉTAILLÉ ---
+    // On passe à une nouvelle page si le tableau est long
+    doc.addPage();
+    doc.setFontSize(14);
+    doc.setTextColor(31, 60, 99);
+    doc.text("LISTE DÉTAILLÉE DES TRANSACTIONS", 14, 20);
+
+    const tableBody = salesData.map(s => {
+        const buy = parseFloat(s.buy_price || 0);
+        const sell = parseFloat(s.sell_price || 0);
+        const qty = parseInt(s.qty || 0);
+        const prof = (sell - buy) * qty;
+        return [
+            s.date || '-',
+            s.product || 'Inconnu',
+            qty,
+            `${sell.toLocaleString()} ${currentCurrency}`,
+            `${prof.toLocaleString()} ${currentCurrency}`
+        ];
+    });
+
+    doc.autoTable({
+        startY: 25,
+        head: [['Date', 'Produit', 'Qté', 'Prix Vente', 'Profit']],
+        body: tableBody,
+        headStyles: { fillColor: [59, 130, 246] }, // Bleu secondaire
+        foot: [[ '', 'TOTAUX', totalQty, totalVentes, totalProfit ]],
+        footStyles: { fillColor: [240, 240, 240], textColor: [0,0,0], fontStyle: 'bold' }
+    });
+
+    // --- PIED DE PAGE ---
+    const pageCount = doc.internal.getNumberOfPages();
+    for(let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Moniteo Umbrella - Page ${i} / ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    }
+
+    doc.save(`Rapport_Ventes_${bizName.replace(/\s+/g, '_')}.pdf`);
+}
+function exportExcel() {
+    if (salesData.length === 0) {
+        alert("Aucune donnée à exporter.");
+        return;
+    }
+
+    // Préparation des données pour Excel
+    const dataToExport = salesData.map(s => ({
+        Date: s.date,
+        Produit: s.product,
+        Quantité: s.qty,
+        "Prix Achat": s.buy_price,
+        "Prix Vente": s.sell_price,
+        Total: s.qty * s.sell_price,
+        Profit: (s.sell_price - s.buy_price) * s.qty
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Ventes");
+
+    // Téléchargement
+    XLSX.writeFile(workbook, `Ventes_Moniteo_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+async function undo() {
+    if (confirm("Annuler les modifications non enregistrées et rafraîchir la liste ?")) {
+        await fetchData(); // Recharge simplement les données depuis Supabase
+    }
+}
+async function closeDay() {
+    const totalVentes = document.getElementById('totalSales').textContent;
+    const totalProfit = document.getElementById('totalProfit').textContent;
+    
+    if (confirm(`--- CLÔTURE DU JOUR ---\nTotal Ventes : ${totalVentes}\nProfit : ${totalProfit}\n\nVoulez-vous clôturer et générer le rapport PDF ?`)) {
+        await exportSalesPDF(); // Appelle ta fonction PDF déjà créée
+        alert("Journée clôturée avec succès !");
+    }
+}
 </script>
 </body>
 </html>
