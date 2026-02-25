@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Moniteo Umbrella - Dépenses</title>
-    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script>
         if (sessionStorage.getItem('isLogged') !== 'true') {
             window.location.href = "index.html";
@@ -227,40 +228,38 @@ body.dark-mode select {
     </div>
 
     <div class="card">
-        <div class="form-grid">
-            <div class="input-group">
-                <label>Date</label>
-                <input type="date" id="expenseDate">
-            </div>
-            <div class="input-group">
-                <label>Libellé</label>
-                <input id="expenseLabel" placeholder="Ex: Loyer...">
-            </div>
-            <div class="input-group">
-                <label>Catégorie</label>
-                <select id="expenseCategory">
-                    <option value="Fixe">Fixe</option>
-                    <option value="Variable">Variable</option>
-                    <option value="RH">Salaires</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Logistique">Logistique</option>
+    <div class="form-grid">
+        <div class="input-group">
+            <label>Date</label>
+            <input type="date" id="expenseDate">
+        </div>
+        <div class="input-group">
+            <label>Libellé</label>
+            <input type="text" id="expenseLabel" placeholder="Ex: Loyer, Transport...">
+        </div>
+        <div class="input-group">
+            <label>Catégorie</label>
+            <select id="expenseCategory">
+                <option value="Fixe">Fixe</option>
+                <option value="Variable">Variable</option>
+                <option value="RH">Salaires</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Logistique">Logistique</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Montant</label>
+            <div style="display: flex; gap: 5px;">
+                <input type="number" id="expenseAmount" placeholder="0.00" style="flex:1">
+                <select id="inputCurrency" style="width: 80px;">
+                    <option value="FC">FC</option>
+                    <option value="USD">USD ($)</option>
                 </select>
             </div>
-            <div class="input-group">
-                <label>Montant</label>
-                <div style="display: flex; gap: 5px;">
-                    <input type="number" id="expenseAmount" placeholder="0.00" style="flex:1">
-                    <select id="expenseCurrency" style="width: 70px;">
-                        <option value="EUR">EUR</option>
-                        <option value="USD">USD</option>
-                        <option value="CDF">CDF</option>
-                    </select>
-                </div>
-            </div>
-            <button class="btn-add" onclick="addExpense()">+ Ajouter</button>
         </div>
+        <button class="btn-add" onclick="addExpense()">+ Ajouter la charge</button>
     </div>
-    
+</div>    
      <div class="card" style="margin-bottom: 1rem;">
     <div class="input-group">
         <label>Rechercher une dépense</label>
@@ -296,8 +295,12 @@ body.dark-mode select {
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
     // --- 1. CONFIGURATION SUPABASE ---
     const SUPABASE_URL = 'https://oysdycuouodarfkmdtop.supabase.co'; 
@@ -359,42 +362,53 @@ body.dark-mode select {
 
     // --- 4. CHARGEMENT & ACTIONS SUPABASE ---
     async function fetchExpenses() {
-        const { data, error } = await _db
-            .from('expenses')
-            .select('*')
-            .order('date', { ascending: false });
+    const { data: { user } } = await _db.auth.getUser();
+    if (!user) return;
 
-        if (!error) {
-            expenses = data || [];
-            renderExpenses();
-        }
+    const { data, error } = await _db
+        .from('expenses')
+        .select('*')
+        .eq('user_id', user.id) // Filtrer pour ne voir que SES dépenses
+        .order('date', { ascending: false });
+
+    if (!error) {
+        expenses = data || [];
+        renderExpenses();
     }
+}
 
     async function addExpense() {
-        const date = document.getElementById('expenseDate').value;
-        const label = document.getElementById('expenseLabel').value.trim();
-        const amount = parseFloat(document.getElementById('expenseAmount').value);
-        const currency = document.getElementById('expenseCurrency').value;
-        const category = document.getElementById('expenseCategory').value;
+    const { data: { user } } = await _db.auth.getUser();
+    if (!user) return alert("Session expirée");
 
-        if(!label || isNaN(amount) || amount <= 0 || !date) { 
-            alert("Veuillez remplir tous les champs correctement."); 
-            return; 
-        }
+    const date = document.getElementById('expenseDate').value;
+    const label = document.getElementById('expenseLabel').value.trim();
+    const amount = parseFloat(document.getElementById('expenseAmount').value);
+    
+    // On récupère la devise choisie pour CETTE dépense précise
+    const specificCurrency = document.getElementById('inputCurrency').value; 
+    const category = document.getElementById('expenseCategory').value;
 
-        const { error } = await _db.from('expenses').insert([{ 
-            date, label, category, amount, currency 
-        }]);
+    if(!label || isNaN(amount)) return alert("Veuillez remplir le libellé et le montant.");
 
-        if (error) {
-            alert("Erreur: " + error.message);
-        } else {
-            document.getElementById('expenseLabel').value = '';
-            document.getElementById('expenseAmount').value = '';
-            fetchExpenses();
-        }
+    const { error } = await _db.from('expenses').insert([{ 
+        user_id: user.id,
+        date: date,
+        label: label,      // Maintenant reconnu grâce au SQL ci-dessus
+        amount: amount,
+        currency: specificCurrency, // Enregistre FC ou USD selon ton choix
+        category: category
+    }]);
+
+    if (error) {
+        alert("Erreur: " + error.message);
+    } else {
+        // Reset des champs
+        document.getElementById('expenseLabel').value = '';
+        document.getElementById('expenseAmount').value = '';
+        fetchExpenses(); 
     }
-
+}
     async function deleteExpense(id) {
         if(confirm("Supprimer cette dépense ?")) {
             const { error } = await _db.from('expenses').delete().eq('id', id);
@@ -404,49 +418,52 @@ body.dark-mode select {
 
     // --- 5. RENDU DU TABLEAU (CORRIGÉ POUR L'ERREUR VALUE) ---
     function renderExpenses() {
-        const table = document.getElementById('expensesTable');
-        if(!table) return;
+    const table = document.getElementById('expensesTable');
+    if(!table) return;
 
-        // Sécurité pour l'erreur "value" : si le select n'existe pas, on utilise la devise globale
-        const currencySelector = document.getElementById('expenseCurrency');
-        const targetCurrency = currencySelector ? currencySelector.value : currentCurrency;
-        
-        const totalDisplay = document.getElementById('expensesTotal');
+    const currencySelector = document.getElementById('expenseCurrency');
+    const targetCurrency = currencySelector ? currencySelector.value : currentCurrency;
+    
+    const totalDisplay = document.getElementById('expensesTotal');
+    table.innerHTML = '';
+    let totalGlobal = 0;
 
-        table.innerHTML = '';
-        let totalGlobal = 0;
+    expenses.forEach(e => {
+        // 1. RÉCUPÉRATION DU LIBELLÉ (Vérifie 'label' puis 'description')
+        const displayLabel = e.label || e.description || 'Sans nom';
 
-        expenses.forEach(e => {
-    // Sécurité : si currency est vide dans la base, on utilise la devise par défaut
-    const expenseCurrency = e.currency || "FC"; 
-    const convertedAmount = convertCurrency(e.amount, expenseCurrency, targetCurrency);
-    totalGlobal += convertedAmount;
+        // 2. GESTION DE LA DEVISE LIGNE PAR LIGNE
+        const expenseCurrency = e.currency || "FC"; 
+        const convertedAmount = convertCurrency(e.amount, expenseCurrency, targetCurrency);
+        totalGlobal += convertedAmount;
 
-    const row = document.createElement('tr');
-    row.innerHTML = `
-        <td>${e.date ? new Date(e.date).toLocaleDateString('fr-FR') : '-'}</td>
-        <td style="font-weight:600">${e.label || 'Sans nom'}</td>
-        <td><span class="badge" style="background:rgba(239, 68, 68, 0.1); color:var(--danger); padding:4px 8px; border-radius:4px; font-size:0.85em;">${e.category || 'Général'}</span></td>
-        <td style="color:var(--text-light); font-size:0.9em;">${(e.amount || 0).toLocaleString()} ${expenseCurrency}</td>
-        <td style="font-weight:700; color:var(--danger)">
-            - ${convertedAmount.toLocaleString(undefined, {minimumFractionDigits:2})} ${targetCurrency}
-        </td>
-        <td style="text-align: right;">
-            <button onclick="deleteExpense('${e.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer;">
-                <svg style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
-        </td>
-    `;
-    table.appendChild(row);
-});
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${e.date ? new Date(e.date).toLocaleDateString('fr-FR') : '-'}</td>
+            <td style="font-weight:600">${displayLabel}</td>
+            <td><span class="badge-cat">${e.category || 'Général'}</span></td>
+            <td style="color:var(--text-light); font-size:0.9em;">
+                ${(e.amount || 0).toLocaleString()} ${expenseCurrency}
+            </td>
+            <td style="font-weight:700; color:var(--danger)">
+                - ${convertedAmount.toLocaleString(undefined, {minimumFractionDigits:2})} ${targetCurrency}
+            </td>
+            <td style="text-align: right;">
+                <button onclick="deleteExpense('${e.id}')" class="btn-delete">
+                    <svg style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+            </td>
+        `;
+        table.appendChild(row);
+    });
 
-        if(totalDisplay) {
-            totalDisplay.textContent = totalGlobal.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }) + " " + targetCurrency;
-        }
+    if(totalDisplay) {
+        totalDisplay.textContent = totalGlobal.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }) + " " + targetCurrency;
     }
+}
 
     // --- 6. AUTRES FONCTIONS ---
     function filterExpenses() {
@@ -472,12 +489,75 @@ body.dark-mode select {
         XLSX.writeFile(wb, `Depenses_${new Date().toLocaleDateString()}.xlsx`);
     }
 
-    function logout() {
-        if(confirm("Se déconnecter ?")) {
-            sessionStorage.clear();
-            window.location.href = "index.html";
-        }
+    async function logout() {
+    if(confirm("Se déconnecter ?")) {
+        await _db.auth.signOut(); // Déconnexion réelle de Supabase
+        localStorage.removeItem('sb-oysdycuouodarfkmdtop-auth-token'); // Nettoyage propre
+        window.location.href = "index.html";
     }
+}
+    async function exportExpensesPDF() {
+    // Vérification de sécurité
+    if (!window.jspdf) return alert("Erreur: Bibliothèque jsPDF non trouvée.");
+    if (!window.jspdf.jsPDF.API.autoTable) return alert("Erreur: Plugin autoTable non trouvé. Vérifiez vos scripts imports.");
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // 1. Récupération de l'utilisateur
+    const { data: { user } } = await _db.auth.getUser();
+    if (!user) return alert("Session expirée");
+
+    // 2. Infos entreprise
+    const { data: settings } = await _db
+        .from('settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    const bizName = settings?.company_name || "MONITEO PRO";
+    const bizLogo = settings?.logo_url || null;
+    const currencySelector = document.getElementById('expenseCurrency');
+    const targetCurrency = currencySelector ? currencySelector.value : currentCurrency;
+
+    // --- EN-TÊTE ---
+    if (bizLogo) {
+        try { doc.addImage(bizLogo, 'PNG', 14, 10, 25, 25); } catch (e) {}
+    }
+    doc.setFontSize(18);
+    doc.setTextColor(31, 60, 99);
+    doc.text(bizName.toUpperCase(), bizLogo ? 45 : 14, 20);
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.text(`Rapport des Dépenses - ${new Date().toLocaleDateString('fr-FR')}`, bizLogo ? 45 : 14, 26);
+
+    // --- TABLEAU ---
+    const totalGlobal = document.getElementById('expensesTotal')?.textContent || "0";
+    const tableBody = expenses.map(e => {
+        const expenseCurrency = e.currency || "FC";
+        const converted = convertCurrency(e.amount, expenseCurrency, targetCurrency);
+        return [
+            e.date ? new Date(e.date).toLocaleDateString('fr-FR') : '-',
+            e.label || 'Sans nom',
+            e.category || 'Général',
+            `${(e.amount || 0).toLocaleString()} ${expenseCurrency}`,
+            `${converted.toLocaleString(undefined, {minimumFractionDigits:2})} ${targetCurrency}`
+        ];
+    });
+
+    // Appel de autoTable
+    doc.autoTable({
+        startY: 40,
+        head: [['Date', 'Libellé', 'Catégorie', 'Montant Orig.', `Total (${targetCurrency})`]],
+        body: tableBody,
+        headStyles: { fillColor: [31, 60, 99] },
+        foot: [[ '', '', '', 'TOTAL GÉNÉRAL', totalGlobal ]],
+        footStyles: { fillColor: [240, 240, 240], textColor: [0,0,0], fontStyle: 'bold' }
+    });
+
+    doc.save(`Depenses_${bizName.replace(/\s+/g, '_')}.pdf`);
+}
 </script>
 </body>
 </html>
