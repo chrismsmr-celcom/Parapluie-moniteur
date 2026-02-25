@@ -10,7 +10,8 @@
             window.location.href = "index.html";
         }
     </script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -262,41 +263,72 @@ body.dark-mode select {
     // --- CONFIGURATION SUPABASE ---
     const SUPABASE_URL = 'https://oysdycuouodarfkmdtop.supabase.co'; 
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k';
-    
-    // CHANGEMENT ICI : on utilise _db au lieu de supabase
     const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let mainChartObj = null; // Renommé pour éviter conflit avec l'ID du canvas
+    let mainChartObj = null; 
     let stockChartObj = null;
     let currentCurrency = "FC";
+    let currentUser = null;
 
-    // --- 1. CONFIGURATION GLOBALE ---
-    function applyGlobalConfig() {
-        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+    // --- 0. SÉCURITÉ STRICTE (ANTI-BOUCLE) ---
+    async function checkAuth() {
+        // getUser est plus fiable que getSession car il vérifie le token côté serveur
+        const { data: { user }, error } = await _db.auth.getUser();
+        
+        if (error || !user) {
+            console.warn("Session invalide ou expirée.");
+            window.location.replace("index.html");
+            return;
+        }
+        
+        currentUser = user;
+        console.log("Accès autorisé :", user.email);
+        initDashboard(); 
+    }
+
+    // --- 1. CONFIGURATION GLOBALE (DATABASE + LOCAL) ---
+    async function applyGlobalConfig() {
+        // On essaye d'abord de charger les réglages depuis Supabase
+        const { data: settings, error } = await _db
+            .from('settings')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .single();
+
+        const config = settings || JSON.parse(localStorage.getItem('moniteo_config')) || {};
+        
         currentCurrency = config.currency || "FC";
+        
+        // Mise à jour du Titre
         const title = document.getElementById('companyTitle');
         if (config.name && title) {
             title.innerHTML = `Tableau de Bord <small style="font-size:0.6em; color:var(--secondary)">| ${config.name}</small>`;
         }
+        
+        // Mise à jour du Logo
         const logoCont = document.getElementById('dynamicLogoContainer');
         if (config.logo && logoCont) {
             logoCont.innerHTML = `<img src="${config.logo}" style="height: 45px; width: auto; border-radius: 5px; object-fit: contain;">`;
         }
-        if (config.darkMode) document.body.classList.add('dark');
+        
+        // Mode Sombre
+        if (config.dark_mode || config.darkMode) document.body.classList.add('dark');
         else document.body.classList.remove('dark');
     }
 
     // --- 2. INITIALISATION ET RÉCUPÉRATION DONNÉES ---
     async function initDashboard() {
-        applyGlobalConfig();
+        await applyGlobalConfig();
         
         try {
-            // Utilisation de _db.from au lieu de supabase.from
+            const userId = currentUser.id;
+
+            // Récupération multi-tables filtrée par USER_ID
             const [rSales, rInventory, rExpenses, rStaff] = await Promise.all([
-                _db.from('sales').select('*'),
-                _db.from('inventory').select('*'),
-                _db.from('expenses').select('*'),
-                _db.from('staff').select('*')
+                _db.from('sales').select('*').eq('user_id', userId),
+                _db.from('inventory').select('*').eq('user_id', userId),
+                _db.from('expenses').select('*').eq('user_id', userId),
+                _db.from('staff').select('*').eq('user_id', userId)
             ]);
 
             const sales = rSales.data || [];
@@ -323,27 +355,29 @@ body.dark-mode select {
             let netProfit = grossProfit - totalCharges;
 
             // --- MISE À JOUR KPI ---
-            document.getElementById('totalCA').textContent = totalCA.toLocaleString() + " " + currentCurrency;
-            document.getElementById('totalExpenses').textContent = totalCharges.toLocaleString() + " " + currentCurrency;
+            if(document.getElementById('totalCA')) document.getElementById('totalCA').textContent = totalCA.toLocaleString() + " " + currentCurrency;
+            if(document.getElementById('totalExpenses')) document.getElementById('totalExpenses').textContent = totalCharges.toLocaleString() + " " + currentCurrency;
             
             const profitEl = document.getElementById('totalProfit');
-            profitEl.textContent = netProfit.toLocaleString() + " " + currentCurrency;
-            profitEl.style.color = netProfit >= 0 ? "var(--success)" : "var(--danger)";
+            if (profitEl) {
+                profitEl.textContent = netProfit.toLocaleString() + " " + currentCurrency;
+                profitEl.style.color = netProfit >= 0 ? "#10b981" : "#ef4444";
+            }
 
-            document.getElementById('totalStock').textContent = `${inventory.length} Réf / ${staff.length} Pers.`;
+            if(document.getElementById('totalStock')) document.getElementById('totalStock').textContent = `${inventory.length} Réf / ${staff.length} Pers.`;
 
             // --- INJECTION STAFF ---
             const staffContainer = document.getElementById('staffListContainer');
             if (staffContainer) {
-                document.getElementById('staffCountLabel').textContent = staff.length;
+                if(document.getElementById('staffCountLabel')) document.getElementById('staffCountLabel').textContent = staff.length;
                 staffContainer.innerHTML = staff.map(member => `
                     <div style="min-width: 90px; text-align: center; flex-shrink: 0;">
-                        <div style="width: 55px; height: 55px; border-radius: 50%; overflow: hidden; margin: 0 auto 8px; border: 2px solid var(--secondary); background: #eee;">
+                        <div style="width: 55px; height: 55px; border-radius: 50%; overflow: hidden; margin: 0 auto 8px; border: 2px solid #3b82f6; background: #eee;">
                             <img src="${member.photo || 'https://ui-avatars.com/api/?name='+encodeURIComponent(member.name)}" 
                                  style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
-                        <p style="font-size: 0.75rem; font-weight: 700; margin: 0; color: var(--text-main);">${member.name ? member.name.split(' ')[0] : 'Inconnu'}</p>
-                        <p style="font-size: 0.6rem; color: var(--text-light);">${member.role || 'Staff'}</p>
+                        <p style="font-size: 0.75rem; font-weight: 700; margin: 0;">${member.name ? member.name.split(' ')[0] : 'Inconnu'}</p>
+                        <p style="font-size: 0.6rem; opacity: 0.8;">${member.role || 'Staff'}</p>
                     </div>
                 `).join('') || '<p style="font-size:0.8rem">Aucun membre.</p>';
             }
@@ -356,12 +390,12 @@ body.dark-mode select {
                     const q = parseInt(item.qty) || 0;
                     const isLow = q <= 5;
                     return `
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: ${isDark()?'#1e293b':'#f8fafc'}; border-radius: 8px; border-left: 4px solid ${isLow?'var(--danger)':'var(--success)'};">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px; border-left: 4px solid ${isLow?'#ef4444':'#10b981'}; margin-bottom: 5px;">
                             <div>
-                                <span style="font-size: 0.85rem; font-weight: 600;">${item.product || 'Produit sans nom'}</span>
-                                <br><span style="font-size: 0.7rem; color: var(--text-light);">Prix: ${item.sell_price || 0} ${currentCurrency}</span>
+                                <span style="font-size: 0.85rem; font-weight: 600;">${item.product || 'Produit'}</span>
+                                <br><span style="font-size: 0.7rem; opacity: 0.7;">Prix: ${item.sell_price || 0} ${currentCurrency}</span>
                             </div>
-                            <span style="font-size: 0.85rem; font-weight: 700; color: ${isLow?'var(--danger)':'var(--success)'};">${q} en stock</span>
+                            <span style="font-size: 0.85rem; font-weight: 700; color: ${isLow?'#ef4444':'#10b981'};">${q} en stock</span>
                         </div>
                     `;
                 }).join('') || '<p>Inventaire vide.</p>';
@@ -379,6 +413,7 @@ body.dark-mode select {
         const isDarkTheme = isDark();
         const textColor = isDarkTheme ? '#94a3b8' : '#64748b';
 
+        // Logique Ventes/Date
         const dailyVentes = {};
         sales.forEach(s => {
             const d = s.date || "Inconnue";
@@ -386,102 +421,207 @@ body.dark-mode select {
         });
         const dates = Object.keys(dailyVentes).sort().slice(-7);
 
-        const ctx1 = document.getElementById('mainChart').getContext('2d');
-        if(mainChartObj) mainChartObj.destroy();
-        mainChartObj = new Chart(ctx1, {
-            type: 'line',
-            data: {
-                labels: dates,
-                datasets: [{
-                    label: 'Chiffre d\'Affaires',
-                    data: dates.map(d => dailyVentes[d]),
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    fill: true, tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { ticks: { color: textColor }, grid: { display: false } },
-                    y: { ticks: { color: textColor }, grid: { color: isDarkTheme ? '#334155' : '#e2e8f0' } }
+        const canvasMain = document.getElementById('mainChart');
+        if (canvasMain) {
+            const ctx1 = canvasMain.getContext('2d');
+            if(mainChartObj) mainChartObj.destroy();
+            mainChartObj = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Chiffre d\'Affaires',
+                        data: dates.map(d => dailyVentes[d]),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true, tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: textColor }, grid: { display: false } },
+                        y: { ticks: { color: textColor }, grid: { color: isDarkTheme ? '#334155' : '#e2e8f0' } }
+                    }
                 }
-            }
-        });
+            });
+        }
 
-        const ctx2 = document.getElementById('stockChart').getContext('2d');
-        if(stockChartObj) stockChartObj.destroy();
-        stockChartObj = new Chart(ctx2, {
-            type: 'doughnut',
-            data: {
-                labels: inventory.slice(0, 5).map(i => i.product || i.name),
-                datasets: [{
-                    data: inventory.slice(0, 5).map(i => i.qty || 0),
-                    backgroundColor: ['#1f3c63', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { color: textColor, boxWidth: 10 } } }
-            }
-        });
+        const canvasStock = document.getElementById('stockChart');
+        if (canvasStock) {
+            const ctx2 = canvasStock.getContext('2d');
+            if(stockChartObj) stockChartObj.destroy();
+            stockChartObj = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: inventory.slice(0, 5).map(i => i.product || i.name),
+                    datasets: [{
+                        data: inventory.slice(0, 5).map(i => i.qty || 0),
+                        backgroundColor: ['#1f3c63', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: textColor, boxWidth: 10 } } }
+                }
+            });
+        }
     }
 
-    // --- 4. EXPORT PDF ---
-    function exportDashboardPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-
-        doc.setFontSize(18);
-        doc.setTextColor(31, 60, 99);
-        doc.text(config.name || "MONITEO BUSINESS", 14, 20);
-        
-        doc.setFontSize(10);
-        doc.text("RAPPORT RÉSUMÉ GÉNÉRAL - " + new Date().toLocaleDateString(), 14, 27);
-
-        doc.autoTable({
-            startY: 35,
-            head: [['Indicateur clé', 'Montant / Valeur']],
-            body: [
-                ['Chiffre d\'Affaires Global', document.getElementById('totalCA').textContent],
-                ['Total Charges', document.getElementById('totalExpenses').textContent],
-                ['Bénéfice Net Réel', document.getElementById('totalProfit').textContent],
-                ['Stock / Staff', document.getElementById('totalStock').textContent]
-            ],
-            headStyles: { fillColor: [31, 60, 99] }
-        });
-
-        doc.save(`Rapport_${new Date().toISOString().split('T')[0]}.pdf`);
-    }
-
-    // --- UTILS ---
-    function isDark() { return document.body.classList.contains('dark') || document.body.classList.contains('dark-mode'); }
-    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
-    function toggleTheme() {
-        document.body.classList.toggle('dark-mode');
-        document.body.classList.toggle('dark');
-        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-        config.darkMode = isDark();
-        localStorage.setItem('moniteo_config', JSON.stringify(config));
-        renderCharts([], []); // Rafraîchir les couleurs des graphs
-        initDashboard();
-    }
+    // --- 4. ACTIONS ---
     async function logout() { 
         if(confirm("Se déconnecter ?")) { 
             await _db.auth.signOut(); 
-            sessionStorage.clear(); 
-            window.location.href="index.html"; 
+            window.location.replace("index.html"); 
         } 
     }
 
+    function isDark() { return document.body.classList.contains('dark'); }
+    
+    // --- DÉMARRAGE ---
     document.addEventListener('DOMContentLoaded', () => {
         const dateEl = document.getElementById('dateDisplay');
         if(dateEl) dateEl.textContent = new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
-        initDashboard();
+        
+        checkAuth(); // Lance la vérification serveur avant tout
     });
+    async function exportDashboardPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // 1. Récupération des données entreprise (Settings)
+    const { data: settings } = await _db
+        .from('settings')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+    const companyName = settings?.company_name || "MONITEO PRO";
+    const companyAddress = settings?.address || "Rapport d'activité";
+    const companyLogo = settings?.logo_url || null;
+
+    // --- EN-TÊTE ---
+    if (companyLogo) {
+        try {
+            // On ajoute le logo (si c'est du base64)
+            doc.addImage(companyLogo, 'PNG', 14, 10, 25, 25);
+        } catch(e) { console.error("Erreur logo PDF", e); }
+    }
+
+    doc.setFontSize(18);
+    doc.setTextColor(31, 60, 99); 
+    doc.text(companyName.toUpperCase(), companyLogo ? 45 : 14, 20);
+    
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.text(companyAddress, companyLogo ? 45 : 14, 26);
+    doc.text(`Généré le : ${new Date().toLocaleString('fr-FR')}`, companyLogo ? 45 : 14, 31);
+
+    // --- SECTION 1 : CHIFFRES CLÉS (KPI) ---
+    doc.setFontSize(14);
+    doc.setTextColor(31, 60, 99);
+    doc.text("RÉSUMÉ FINANCIER", 14, 45);
+
+    const ca = document.getElementById('totalCA')?.textContent || "0";
+    const depenses = document.getElementById('totalExpenses')?.textContent || "0";
+    const profit = document.getElementById('totalProfit')?.textContent || "0";
+
+    doc.autoTable({
+        startY: 50,
+        head: [['Indicateur', 'Montant']],
+        body: [
+            ['Chiffre d\'Affaires (CA)', ca],
+            ['Total Dépenses & Salaires', depenses],
+            ['Résultat Net (Bénéfice/Perte)', profit]
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [31, 60, 99], halign: 'center' },
+        styles: { fontSize: 11 }
+    });
+
+    // --- SECTION 2 : GRAPHIQUES (Conversion Canvas en Image) ---
+    let finalY = doc.lastAutoTable.finalY + 15;
+    doc.setFontSize(14);
+    doc.text("ANALYSES VISUELLES", 14, finalY);
+
+    try {
+        // Capture du graphique linéaire (Ventes)
+        const canvasMain = document.getElementById('mainChart');
+        if (canvasMain) {
+            const imgData1 = canvasMain.toDataURL('image/png', 1.0);
+            doc.addImage(imgData1, 'PNG', 14, finalY + 5, 90, 50);
+        }
+
+        // Capture du graphique circulaire (Stock)
+        const canvasStock = document.getElementById('stockChart');
+        if (canvasStock) {
+            const imgData2 = canvasStock.toDataURL('image/png', 1.0);
+            doc.addImage(imgData2, 'PNG', 110, finalY + 5, 80, 50);
+        }
+    } catch (e) {
+        doc.setFontSize(10);
+        doc.text("Graphiques non disponibles dans l'export.", 14, finalY + 10);
+    }
+
+    // --- SECTION 3 : ÉTAT DES STOCKS (TABLEAU) ---
+    const { data: inventory } = await _db.from('inventory').select('*').eq('user_id', currentUser.id);
+    
+    if (inventory && inventory.length > 0) {
+        doc.addPage(); // Nouvelle page pour les tableaux détaillés
+        doc.setFontSize(14);
+        doc.setTextColor(31, 60, 99);
+        doc.text("DÉTAIL DE L'INVENTAIRE ET STOCKS", 14, 20);
+
+        const tableBody = inventory.map(item => [
+            item.product || 'N/A',
+            item.qty || 0,
+            `${item.buy_price || 0} ${currentCurrency}`,
+            `${item.sell_price || 0} ${currentCurrency}`,
+            ((item.qty || 0) <= 5 ? 'BAS' : 'OK')
+        ]);
+
+        doc.autoTable({
+            startY: 25,
+            head: [['Produit', 'Quantité', 'Prix Achat', 'Prix Vente', 'Statut']],
+            body: tableBody,
+            headStyles: { fillColor: [59, 130, 246] },
+            didParseCell: function(data) {
+                if (data.section === 'body' && data.column.index === 4) {
+                    if (data.cell.raw === 'BAS') data.cell.styles.textColor = [239, 68, 68];
+                }
+            }
+        });
+    }
+
+    // --- SECTION 4 : PERSONNEL ---
+    const { data: staff } = await _db.from('staff').select('*').eq('user_id', currentUser.id);
+    if (staff && staff.length > 0) {
+        doc.setFontSize(14);
+        doc.text("RESSOURCES HUMAINES", 14, doc.lastAutoTable.finalY + 15);
+        
+        doc.autoTable({
+            startY: doc.lastAutoTable.finalY + 20,
+            head: [['Nom', 'Rôle', 'Salaire']],
+            body: staff.map(s => [s.name, s.role, s.salary]),
+            headStyles: { fillColor: [16, 185, 129] }
+        });
+    }
+
+    // --- BAS DE PAGE ---
+    const pageCount = doc.internal.getNumberOfPages();
+    for(let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Moniteo Umbrella System - Page ${i} / ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    }
+
+    // Téléchargement
+    doc.save(`Rapport_Moniteo_${companyName.replace(/\s+/g, '_')}.pdf`);
+}
 </script>
 </body>
 </html>
