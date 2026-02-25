@@ -437,19 +437,133 @@
 		</div>
 		<script>
     // --- 1. CONFIGURATION SUPABASE ---
-    const _supabase = supabase.createClient('https://oysdycuouodarfkmdtop.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k');
+    const SUPABASE_URL = 'https://oysdycuouodarfkmdtop.supabase.co'; 
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k';
+    const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // --- 2. VARIABLES & DONNÉES ---
     let staffData = []; 
+    let currentUser = null; 
     let currentCurrency = "€";
     let currentIdx = -1;
     let cChart = null;
     let sChart = null;
 
-    // --- 3. LOGIQUE DE SYNCHRONISATION (MONNAIE & THÈME) ---
+    // --- 3. INITIALISATION ---
+    async function init() {
+        const { data: { user }, error } = await _db.auth.getUser();
+        
+        if (error || !user) {
+            console.warn("Utilisateur non connecté, redirection...");
+            window.location.replace("index.html");
+            return;
+        }
+        
+        currentUser = user; 
+        updateConfig();
+        await fetchStaffData(); // Remplace loadStaff() pour la logique Supabase
+    }
+
+    // --- 4. RÉCUPÉRATION DES DONNÉES (FILTRÉES) ---
+    async function fetchStaffData() {
+        if (!currentUser) return;
+        try {
+            const { data, error } = await _db
+                .from('staff')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('name', { ascending: true });
+
+            if (error) throw error;
+            
+            // On enrichit les données pour ton affichage local (contractType, id_employee...)
+            staffData = (data || []).map(emp => ({
+                ...emp,
+                contractType: emp.role?.includes("Stage") ? "Stage" : "CDI", // Exemple de logique
+                status: emp.status || "actif",
+                id_employee: emp.id ? emp.id.substring(0,8).toUpperCase() : "N/A",
+                entryDate: emp.created_at ? emp.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
+            }));
+
+            renderStaff(); 
+        } catch (err) {
+            console.error("Erreur de chargement du personnel:", err.message);
+            // Fallback LocalStorage si erreur réseau
+            staffData = JSON.parse(localStorage.getItem('staffData')) || [];
+            renderStaff();
+        }
+    }
+
+    // --- 5. PERSISTENCE SUPABASE (MODIFICATION) ---
+    async function saveChange(index) {
+        if (!currentUser) return;
+        const item = staffData[index];
+        
+        const toSave = {
+            name: item.name,
+            role: item.role,
+            salary: parseMoney(item.salary),
+            bonus: parseMoney(item.bonus),
+            photo: item.photo,
+            user_id: currentUser.id // On utilise l'ID de l'Auth
+        };
+
+        // Si l'ID existe et est un UUID
+        if (item.id && item.id.length > 20) {
+            const { error } = await _db.from('staff').update(toSave).eq('id', item.id);
+            if (error) console.error("Erreur mise à jour:", error.message);
+        } else {
+            const { data, error } = await _db.from('staff').insert([toSave]).select();
+            if (!error && data) staffData[index].id = data[0].id;
+        }
+        updateKPIs();
+    }
+
+    // --- 6. ACTIONS (CRUD) ---
+    async function addEmployee() {
+        if (!currentUser) return;
+        const newEmp = { 
+            name: "Nouveau Collaborateur", 
+            role: "Poste", 
+            salary: 0, 
+            bonus: 0,
+            user_id: currentUser.id
+        };
+
+        const { data, error } = await _db.from('staff').insert([newEmp]).select();
+        
+        if (!error && data) {
+            staffData.unshift({
+                ...data[0],
+                contractType: "CDI",
+                status: "actif",
+                id_employee: data[0].id.substring(0, 8).toUpperCase(),
+                entryDate: new Date().toISOString().split('T')[0]
+            });
+            renderStaff();
+            openModal(0);
+        } else {
+            console.error("Erreur ajout:", error?.message);
+        }
+    }
+
+    async function removeEmp(i) {
+        if(!confirm("Supprimer ce dossier ?")) return;
+        const targetId = staffData[i].id;
+        
+        const { error } = await _db.from('staff').delete().eq('id', targetId);
+        if(!error) {
+            staffData.splice(i,1);
+            renderStaff();
+        } else {
+            alert("Erreur lors de la suppression");
+        }
+    }
+
+    // --- 7. LOGIQUE DE CONFIGURATION ---
     function updateConfig() {
         const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-        currentCurrency = config.currency || localStorage.getItem('currency') || "€";
+        currentCurrency = config.currency || "€";
 
         if (config.darkMode) document.body.classList.add('dark-mode');
         else document.body.classList.remove('dark-mode');
@@ -466,56 +580,7 @@
         return parseFloat(String(val).replace(/[^\d.-]/g, '')) || 0;
     }
 
-    // --- 4. PERSISTENCE SUPABASE ---
-    async function loadStaff() {
-        try {
-            const { data, error } = await _supabase
-                .from('staff')
-                .select('id, name, role, salary, bonus, photo, created_at')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            
-            staffData = (data || []).map(emp => ({
-                ...emp,
-                contractType: emp.contractType || "CDI",
-                status: emp.status || "actif",
-                id_employee: emp.id_employee || emp.id.substring(0,8),
-                entryDate: emp.entryDate || new Date(emp.created_at).toISOString().split('T')[0],
-                expiryDate: emp.expiryDate || ""
-            }));
-
-            renderStaff();
-        } catch (err) {
-            console.error("Erreur de chargement:", err);
-            staffData = JSON.parse(localStorage.getItem('staffData')) || [];
-            renderStaff();
-        }
-    }
-
-    async function saveChange(index) {
-        const item = staffData[index];
-        const toSave = {
-            id: item.id,
-            name: item.name,
-            role: item.role,
-            salary: parseMoney(item.salary),
-            bonus: parseMoney(item.bonus),
-            photo: item.photo
-        };
-
-        const { error } = await _supabase.from('staff').upsert(toSave);
-        if (error) console.error("Erreur mise à jour Supabase:", error);
-        updateKPIs();
-    }
-
-    // --- 5. INITIALISATION ---
-    document.addEventListener('DOMContentLoaded', () => {
-        updateConfig();
-        loadStaff();
-    });
-
-    // --- 6. RENDU ET AFFICHAGE ---
+    // --- 8. RENDU ET AFFICHAGE ---
     function renderStaff(filter = '') {
         const tbody = document.getElementById('staffTable');
         if(!tbody) return;
@@ -533,12 +598,12 @@
                 tr.innerHTML = `
                     <td>
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <img src="${e.photo || 'https://via.placeholder.com/35'}" style="width:35px; height:35px; border-radius:50%; object-fit:cover;">
-                            <div>
+<img src="${e.photo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(e.name) + '&background=random'}" 
+     style="width:35px; height:35px; border-radius:50%; object-fit:cover;">                            <div>
                                 <div style="font-weight:600; cursor:pointer; color:var(--primary)" onclick="openModal(${i})">
                                     ${isWarning ? '⚠️ ' : ''}${e.name}
                                 </div>
-                                <span class="contract-badge">${e.contractType}</span>
+                                <span class="contract-badge">${e.contractType || 'CDI'}</span>
                             </div>
                         </div>
                     </td>
@@ -570,26 +635,32 @@
                             </button>
                         </div>
                     </td>
-                `;
-                tbody.appendChild(tr);
+                `;                tbody.appendChild(tr);
             }
         });
         updateKPIs(); 
     }
 
-    // --- 7. KPIs ET GRAPHIQUES ---
+    function updateField(i, k, v) {
+        staffData[i][k] = (k === 'salary' || k === 'bonus') ? parseMoney(v) : v.trim();
+        saveChange(i);
+        renderStaff(); // Optionnel : rafraîchit pour le formatage monétaire
+    }
+
+    function toggleStatus(i) {
+        staffData[i].status = (staffData[i].status === 'actif') ? 'inactif' : 'actif';
+        saveChange(i);
+        renderStaff();
+    }
+
+    // --- 9. KPIs ET GRAPHIQUES ---
     function updateKPIs() {
         const total = staffData.length;
         const masse = staffData.reduce((s, e) => s + parseMoney(e.salary), 0);
-        
-        const now = new Date();
-        const limit = new Date(); limit.setDate(now.getDate() + 30);
-        const alerts = staffData.filter(e => e.expiryDate && e.status==='actif' && new Date(e.expiryDate) <= limit).length;
+        const activeAlerts = staffData.filter(e => e.status === 'actif' && e.expiryDate).length;
 
         if(document.getElementById('statTotal')) document.getElementById('statTotal').textContent = total;
         if(document.getElementById('statMasse')) document.getElementById('statMasse').textContent = masse.toLocaleString() + " " + currentCurrency;
-        if(document.getElementById('statAlerts')) document.getElementById('statAlerts').textContent = alerts;
-        if(document.getElementById('statMoyenne')) document.getElementById('statMoyenne').textContent = total ? Math.round(masse/total).toLocaleString() + " " + currentCurrency : "0 " + currentCurrency;
         
         localStorage.setItem('staffData', JSON.stringify(staffData));
         refreshCharts();
@@ -604,15 +675,15 @@
         if (sChart) sChart.destroy();
 
         const counts = {};
-        staffData.forEach(e => counts[e.contractType] = (counts[e.contractType] || 0) + 1);
+        staffData.forEach(e => counts[e.contractType || 'CDI'] = (counts[e.contractType || 'CDI'] || 0) + 1);
 
         cChart = new Chart(ctxC, {
             type: 'doughnut',
             data: {
                 labels: Object.keys(counts),
-                datasets: [{ data: Object.values(counts), backgroundColor: ['#1f3c63', '#3b82f6', '#10b981', '#f59e0b'] }]
+                datasets: [{ data: Object.values(counts), backgroundColor: ['#1f3c63', '#3b82f6', '#10b981'] }]
             },
-            options: { maintainAspectRatio: false, plugins: { title: { display: true, text: 'Contrats' }}}
+            options: { maintainAspectRatio: false }
         });
 
         const top5 = [...staffData].sort((a, b) => parseMoney(b.salary) - parseMoney(a.salary)).slice(0, 5);
@@ -620,79 +691,52 @@
             type: 'bar',
             data: {
                 labels: top5.map(e => e.name),
-                datasets: [{ label: 'Salaire ('+currentCurrency+')', data: top5.map(e => parseMoney(e.salary)), backgroundColor: '#3b82f6' }]
+                datasets: [{ label: 'Salaire', data: top5.map(e => parseMoney(e.salary)), backgroundColor: '#3b82f6' }]
             },
             options: { maintainAspectRatio: false }
         });
     }
 
-    // --- 8. ACTIONS (CRUD) ---
-    function updateField(i, k, v) {
-        staffData[i][k] = (k === 'salary' || k === 'bonus') ? parseMoney(v) : v.trim();
-        saveChange(i);
-    }
+    // --- 10. MODALE DOSSIER ---
+    // --- MODALE DOSSIER ---
+function openModal(i) {
+    currentIdx = i;
+    const e = staffData[i];
+    
+    // Remplissage des champs
+    document.getElementById('editName').value = e.name || '';
+    document.getElementById('editRole').value = e.role || '';
+    document.getElementById('editContract').value = e.contractType || 'CDI';
+    document.getElementById('editID').value = e.id_employee || '';
+    document.getElementById('editEntryDate').value = e.entryDate || '';
+    document.getElementById('editExpiryDate').value = e.expiryDate || '';
+    
+    // Image de secours si placeholder échoue
+    const imgElement = document.getElementById('modalPhoto');
+    imgElement.src = e.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(e.name)}&size=100`;
+    
+    document.getElementById('employeeModal').style.display = 'flex';
+}
 
-    function toggleStatus(i) {
-        staffData[i].status = (staffData[i].status === 'actif') ? 'inactif' : 'actif';
-        saveChange(i);
-        renderStaff();
-    }
+function closeModal() {
+    document.getElementById('employeeModal').style.display = 'none';
+}
 
-    async function removeEmp(i) {
-        if(!confirm("Supprimer ce dossier ?")) return;
-        const { error } = await _supabase.from('staff').delete().eq('id', staffData[i].id);
-        if(!error) {
-            staffData.splice(i,1);
-            renderStaff();
-        }
-    }
-
-    async function addEmployee() {
-        const newEmp = { name: "Nouveau Collaborateur", role: "Poste", salary: 0, bonus: 0 };
-        const { data, error } = await _supabase.from('staff').insert([newEmp]).select();
-        if (!error && data) {
-            staffData.unshift({
-                ...data[0], 
-                contractType: "CDI", 
-                status: "actif", 
-                id_employee: data[0].id.substring(0,8),
-                entryDate: new Date().toISOString().split('T')[0]
-            });
-            renderStaff();
-            openModal(0);
-        }
-    }
-
-    // --- 9. MODALE DOSSIER ---
-    function openModal(i) {
-        currentIdx = i;
-        const e = staffData[i];
-        document.getElementById('editName').value = e.name;
-        document.getElementById('editRole').value = e.role;
-        document.getElementById('editContract').value = e.contractType;
-        document.getElementById('editID').value = e.id_employee;
-        document.getElementById('editEntryDate').value = e.entryDate;
-        document.getElementById('editExpiryDate').value = e.expiryDate || '';
-        document.getElementById('modalPhoto').src = e.photo || 'https://via.placeholder.com/100';
-        document.getElementById('employeeModal').style.display = 'flex';
-    }
-
-    async function saveEmployeeDetails() {
-        const e = staffData[currentIdx];
-        e.name = document.getElementById('editName').value;
-        e.role = document.getElementById('editRole').value;
-        e.contractType = document.getElementById('editContract').value;
-        e.id_employee = document.getElementById('editID').value;
-        e.entryDate = document.getElementById('editEntryDate').value;
-        e.expiryDate = document.getElementById('editExpiryDate').value;
-        
-        await saveChange(currentIdx);
-        closeModal();
-        renderStaff();
-    }
-
-    function closeModal() { document.getElementById('employeeModal').style.display = 'none'; }
-
+async function saveEmployeeDetails() {
+    if (currentIdx === -1) return;
+    
+    const e = staffData[currentIdx];
+    e.name = document.getElementById('editName').value;
+    e.role = document.getElementById('editRole').value;
+    e.contractType = document.getElementById('editContract').value;
+    e.id_employee = document.getElementById('editID').value;
+    e.entryDate = document.getElementById('editEntryDate').value;
+    e.expiryDate = document.getElementById('editExpiryDate').value;
+    
+    await saveChange(currentIdx);
+    closeModal(); // Utilise maintenant la fonction définie plus haut
+    renderStaff();
+}
     function handlePhotoUpload(input) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
@@ -704,219 +748,177 @@
         }
     }
 
-    // --- 10. FICHE DE PAIE & EXPORTS ---
+    // --- 11. EXPORTS ---
+    // --- 11. FONCTIONS D'EXPORT PDF ---
+
+// A. RAPPORT SIMPLE DU PERSONNEL
+async function exportToPDF() {
+    if (!currentUser) return;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    const { data: settings } = await _db.from('settings').select('*').eq('user_id', currentUser.id).maybeSingle();
+
+    doc.setFontSize(18).setTextColor(31, 60, 99).text(settings?.company_name || "MONITEO", 14, 20);
+    doc.setFontSize(10).setTextColor(100).text(`Rapport Personnel - ${new Date().toLocaleDateString()}`, 14, 28);
+
+    const body = staffData.map(e => [
+        e.name, 
+        e.role, 
+        e.status.toUpperCase(), 
+        `${parseMoney(e.salary).toLocaleString()} ${currentCurrency}`
+    ]);
+    
+    doc.autoTable({
+        startY: 35,
+        head: [['Nom', 'Poste', 'Statut', 'Salaire']],
+        body: body,
+        headStyles: { fillColor: [31, 60, 99] },
+        theme: 'striped'
+    });
+
+    doc.save("Rapport_Personnel.pdf");
+}
+
+// B. DASHBOARD COMPLET (SANTÉ DE L'ENTREPRISE)
+async function exportDashboardPDF() {
+    if (!currentUser) return;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    const { data: settings } = await _db.from('settings').select('*').eq('user_id', currentUser.id).maybeSingle();
+    const companyName = settings?.company_name || "MONITEO PRO";
+
+    // En-tête
+    if (settings?.logo_url) {
+        try { doc.addImage(settings.logo_url, 'PNG', 14, 10, 25, 25); } catch(e) {}
+    }
+    doc.setFontSize(18).setTextColor(31, 60, 99).text(companyName.toUpperCase(), settings?.logo_url ? 45 : 14, 20);
+    doc.setFontSize(9).setTextColor(100).text(settings?.address || "Rapport d'activité", settings?.logo_url ? 45 : 14, 26);
+
+    // Section KPI
+    doc.setFontSize(14).text("RÉSUMÉ FINANCIER", 14, 45);
+    const ca = document.getElementById('statTotal')?.textContent || "0"; // Adapté à tes IDs staff
+    const masse = document.getElementById('statMasse')?.textContent || "0";
+
+    doc.autoTable({
+        startY: 50,
+        head: [['Indicateur', 'Valeur']],
+        body: [['Effectif Total', staffData.length], ['Masse Salariale', masse]],
+        headStyles: { fillColor: [31, 60, 99] }
+    });
+
+    // Graphiques
+    let finalY = doc.lastAutoTable.finalY + 15;
+    try {
+        const canvasSalary = document.getElementById('salaryChart');
+        if (canvasSalary) {
+            const img = canvasSalary.toDataURL('image/png', 1.0);
+            doc.addImage(img, 'PNG', 14, finalY, 180, 60);
+        }
+    } catch (e) { console.error("Erreur graphiques", e); }
+
+    doc.save(`Dashboard_${companyName.replace(/\s+/g, '_')}.pdf`);
+}
+
+// C. BULLETIN DE PAIE (FICHE DE PAIE INDIVIDUELLE)
+async function downloadPayslipPDF() {
+    if (!currentUser) return;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // 1. Infos entreprise (depuis Supabase)
+    const { data: settings } = await _db.from('settings').select('*').eq('user_id', currentUser.id).maybeSingle();
+    
+    // 2. Infos employé (depuis la modale ouverte)
+    const name = document.getElementById('psName').innerText;
+    const role = document.getElementById('psRole').innerText;
+    const idSimplifie = document.getElementById('psID').innerText;
+    const period = document.getElementById('psDate').innerText;
+    const salaryTxt = document.getElementById('psSalary').innerText;
+    const bonusTxt = document.getElementById('psBonus').innerText;
+    const totalTxt = document.getElementById('psTotal').innerText;
+
+    // Mise en page Bulletin
+    if (settings?.logo_url) {
+        try { doc.addImage(settings.logo_url, 'PNG', 14, 10, 22, 22); } catch (e) {}
+    }
+
+    // En-tête entreprise
+    doc.setFont("helvetica", "bold").setFontSize(16).setTextColor(31, 60, 99);
+    doc.text(settings?.company_name || "MONITEO", 40, 18);
+    doc.setFontSize(8).setFont("helvetica", "normal").setTextColor(100);
+    doc.text(settings?.address || "", 40, 23);
+    doc.text(`Tél: ${settings?.phone || ""}`, 40, 27);
+
+    // Titre
+    doc.setFontSize(14).setTextColor(0).text("BULLETIN DE PAIE", 105, 45, { align: 'center' });
+    doc.setDrawColor(31, 60, 99).line(14, 48, 196, 48);
+
+    // Infos Employé
+    doc.setFontSize(10).text(`NOM : ${name}`, 14, 58);
+    doc.text(`POSTE : ${role}`, 14, 64);
+    doc.text(`PÉRIODE : ${period}`, 14, 70);
+    doc.text(`MATRICULE : ${idSimplifie}`, 130, 58);
+
+    // Tableau des montants
+    doc.autoTable({
+        startY: 80,
+        head: [['DÉSIGNATION', 'MONTANT']],
+        body: [
+            ['Salaire de Base', salaryTxt],
+            ['Primes et Bonus', bonusTxt],
+            [{ content: 'TOTAL NET À PAYER', styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }, 
+             { content: totalTxt, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }]
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [31, 60, 99] },
+        columnStyles: { 1: { halign: 'right' } }
+    });
+
+    // Signatures
+    const finalY = doc.lastAutoTable.finalY + 30;
+    doc.setFontSize(9).text("Signature Employeur", 14, finalY);
+    doc.text("Signature Collaborateur", 140, finalY);
+    doc.setDrawColor(200).line(14, finalY + 15, 60, finalY + 15);
+    doc.line(140, finalY + 15, 186, finalY + 15);
+
+    doc.save(`Fiche_Paie_${name.replace(/\s+/g, '_')}.pdf`);
+}
+    function exportToExcel() {
+        const worksheet = XLSX.utils.json_to_sheet(staffData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Staff");
+        XLSX.writeFile(workbook, "Export_Staff.xlsx");
+    }
+
+    // --- 12. PAYS LIP (FICHE DE PAIE) ---
     function showPayslip(i) {
         const e = staffData[i];
-        if(!e) return;
-
-        // On recharge la config pour être sûr d'avoir le logo et le nom à jour
         const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-        
         const sal = parseMoney(e.salary);
         const bon = parseMoney(e.bonus);
-        const total = sal + bon;
 
         document.getElementById('psCompany').innerText = config.name || "MONITEO";
+        document.getElementById('psName').innerText = e.name;
+        document.getElementById('psRole').innerText = e.role;
+        document.getElementById('psID').innerText = e.id_employee;
+        document.getElementById('psSalary').innerText = sal.toLocaleString() + " " + currentCurrency;
+        document.getElementById('psBonus').innerText = bon.toLocaleString() + " " + currentCurrency;
+        document.getElementById('psTotal').innerText = (sal + bon).toLocaleString() + " " + currentCurrency;
         document.getElementById('psDate').innerText = new Date().toLocaleDateString('fr-FR', {month: 'long', year: 'numeric'});
-        
-        const setTxt = (id, val) => { if(document.getElementById(id)) document.getElementById(id).innerText = val; };
-        
-        setTxt('psName', e.name);
-        setTxt('psRole', e.role);
-        setTxt('psID', e.id);
-        setTxt('psContract', e.contractType);
-        
-        // Utilisation de la monnaie globale mise à jour
-        setTxt('psSalary', sal.toLocaleString() + " " + currentCurrency);
-        setTxt('psBonus', bon.toLocaleString() + " " + currentCurrency);
-        setTxt('psTotal', total.toLocaleString() + " " + currentCurrency);
 
         document.getElementById('payslipModal').style.display = 'flex';
     }
 
     function closePayslip() { document.getElementById('payslipModal').style.display = 'none'; }
+    function downloadPayslipPDF() { /* Ta fonction jsPDF existante pour le bulletin */ window.print(); }
 
-    function filterStaff() { renderStaff(document.getElementById('searchInput').value); }
-
-    function addEmployee() {
-        const newEmp = { 
-            name: "Nouveau Collaborateur", 
-            role: "Poste", 
-            contractType: "CDI", 
-            id: "ID-" + Math.floor(Math.random() * 1000), 
-            entryDate: new Date().toISOString().split('T')[0], 
-            status: "actif", 
-            salary: 0, 
-            bonus: 0,
-            photo: "" 
-        };
-        staffData.unshift(newEmp);
-        renderStaff();
-        openModal(0);
-    }
-// --- 9. FONCTIONS D'EXPORT ---
-
-// Export vers EXCEL
-function exportToExcel() {
-    if (staffData.length === 0) {
-        alert("Aucune donnée à exporter.");
-        return;
-    }
-
-    // Préparation des données pour Excel
-    const dataToExport = staffData.map(e => ({
-        "Nom complet": e.name,
-        "Poste": e.role,
-        "ID": e.id,
-        "Type de Contrat": e.contractType,
-        "Date d'entrée": e.entryDate,
-        "Date de fin": e.expiryDate || 'N/A',
-        "Statut": e.status,
-        [`Salaire (${currentCurrency})`]: parseMoney(e.salary),
-        [`Prime (${currentCurrency})`]: parseMoney(e.bonus),
-        [`Total (${currentCurrency})`]: parseMoney(e.salary) + parseMoney(e.bonus)
-    }));
-
-    // Création du classeur Excel
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Staff");
-
-    // Téléchargement du fichier
-    XLSX.writeFile(workbook, `Export_Staff_Moniteo_${new Date().toLocaleDateString()}.xlsx`);
-}
-
-// Export vers PDF (Liste complète)
-function exportToPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-
-    // En-tête du PDF
-    doc.setFontSize(18);
-    doc.setTextColor(31, 60, 99); // Couleur --primary
-    doc.text(config.name || "MONITEO UMBRELLA", 14, 20);
-    
-    doc.setFontSize(12);
-    doc.setTextColor(100);
-    doc.text("Liste du Personnel - Rapport généré le " + new Date().toLocaleDateString(), 14, 30);
-
-    // Préparation du tableau PDF
-    const rows = staffData.map(e => [
-        e.name,
-        e.role,
-        e.contractType,
-        e.status,
-        parseMoney(e.salary).toLocaleString() + " " + currentCurrency
-    ]);
-
-    // Génération du tableau automatique
-    doc.autoTable({
-        startY: 40,
-        head: [['Nom', 'Poste', 'Contrat', 'Statut', 'Salaire']],
-        body: rows,
-        theme: 'striped',
-        headStyles: { fillColor: [31, 60, 99] } // --primary
-    });
-
-    doc.save(`Rapport_Staff_${new Date().toLocaleDateString()}.pdf`);
-}
-
-// Fonction pour imprimer ou enregistrer UNE fiche de paie précise en PDF
-// Remplacez votre fonction downloadPayslipPDF actuelle par celle-ci :
-function downloadPayslipPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    // 1. Charger la config depuis les paramètres
-    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-    const rate = parseFloat(config.rate) || 1;
-    const currency = config.currency || "FC";
-
-    // 2. Récupérer les infos de l'employé sélectionné
-    const name = document.getElementById('psName').innerText;
-    const role = document.getElementById('psRole').innerText;
-    
-    // MATRICULE SIMPLIFIÉ (On prend les 8 premiers caractères de l'ID Supabase)
-    let rawId = document.getElementById('psID').innerText;
-    const idSimplifie = rawId.length > 8 ? rawId.substring(0, 8).toUpperCase() : rawId.toUpperCase();
-
-    const period = document.getElementById('psDate').innerText;
-    const contract = document.getElementById('psContract').innerText;
-
-    // Montants
-    const salVal = parseFloat(document.getElementById('psSalary').innerText.replace(/[^0-9.-]+/g,"")) || 0;
-    const bonVal = parseFloat(document.getElementById('psBonus').innerText.replace(/[^0-9.-]+/g,"")) || 0;
-    const totalNet = salVal + bonVal;
-
-    // 3. EN-TÊTE (Logo + Infos Entreprise)
-    if (config.logo) {
-        try { doc.addImage(config.logo, 'PNG', 14, 10, 25, 25); } catch (e) {}
-    }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(31, 60, 99); 
-    doc.text(config.name || "MONITEO UMBRELLA", 45, 18);
-    
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    doc.setFont("helvetica", "normal");
-    doc.text(config.address || "Adresse non définie", 45, 24);
-    doc.text(`Tél: ${config.phone || "N/A"}`, 45, 28);
-
-    // 4. TITRE DU BULLETIN
-    doc.setFontSize(14);
-    doc.setTextColor(0);
-    doc.text("BULLETIN DE PAIE", 105, 45, { align: 'center' });
-    doc.setDrawColor(31, 60, 99);
-    doc.line(14, 48, 196, 48);
-
-    // 5. INFOS EMPLOYÉ (Bloc Gauche et Droite)
-    doc.setFontSize(10);
-    doc.text(`NOM : ${name}`, 14, 58);
-    doc.text(`POSTE : ${role}`, 14, 64);
-    doc.text(`PÉRIODE : ${period}`, 14, 70);
-
-    doc.text(`MATRICULE : ${idSimplifie}`, 130, 58); // MATRICULE COURT
-    doc.text(`CONTRAT : ${contract}`, 130, 64);
-
-    // 6. TABLEAU DES PAIEMENTS
-    const rows = [
-        ['Salaire de Base', `${salVal.toLocaleString()} ${currency}`],
-        ['Primes et Bonus', `${bonVal.toLocaleString()} ${currency}`],
-        [{ content: 'TOTAL NET À PAYER', styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }, 
-         { content: `${totalNet.toLocaleString()} ${currency}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }]
-    ];
-
-    // Ajouter la conversion en FC si la monnaie de base est le Dollar et qu'un taux existe
-    if (currency !== "FC" && rate > 1) {
-        const totalFC = totalNet * rate;
-        rows.push([
-            { content: 'CONTREVALEUR EN FRANCS (Taux: ' + rate + ')', styles: { fontSize: 8, textColor: [100] } },
-            { content: `${totalFC.toLocaleString()} FC`, styles: { fontSize: 9, fontStyle: 'italic' } }
-        ]);
-    }
-
-    doc.autoTable({
-        startY: 80,
-        head: [['DÉSIGNATION', 'MONTANT']],
-        body: rows,
-        theme: 'grid',
-        headStyles: { fillColor: [31, 60, 99], halign: 'center' },
-        columnStyles: { 1: { halign: 'right' } }
-    });
-
-    // 7. BAS DE PAGE (Signatures)
-    const finalY = doc.lastAutoTable.finalY + 30;
-    doc.setFontSize(9);
-    doc.text("Signature de l'Employeur", 14, finalY);
-    doc.text("Signature du Collaborateur", 140, finalY);
-    doc.line(14, finalY + 15, 60, finalY + 15);
-    doc.line(140, finalY + 15, 186, finalY + 15);
-
-    // 8. Sauvegarde
-    doc.save(`Bulletin_${idSimplifie}_${name.split(' ')[0]}.pdf`);
+    // Démarrage
+    document.addEventListener('DOMContentLoaded', init);
+    function closeModal() {
+    document.getElementById('employeeModal').style.display = 'none';
 }
 </script>
 	</body>
