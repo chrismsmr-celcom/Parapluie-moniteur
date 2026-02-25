@@ -265,14 +265,6 @@
             </div>
             <div id="otpMsg"></div>
         </div>
-
-        <div id="adminSection">
-            <div class="flex-row">
-                <input type="password" id="adminID" placeholder="ID Admin">
-                <button id="verifyAdmin">Entrer</button>
-            </div>
-            <div id="adminMsg"></div>
-        </div>
     </div>
 </div>
 
@@ -297,152 +289,123 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // --- 1. CONFIGURATION ET VARIABLES GLOBALES ---
-    (function() {
-        emailjs.init('aXnSd5I8CQ596HHFa');
-    })();
+    // --- 1. CONFIGURATION ---
+    const SUPABASE_URL = 'https://oysdycuouodarfkmdtop.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k';
+    const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const baseSecret = "MONI"; 
+    emailjs.init('aXnSd5I8CQ596HHFa');
+
     const COOLDOWN_TIME = 60;
     let generatedOTP = '';
     let cooldown = false;
-    let vantaEffect;
 
-    // Fonction de génération de clé temporelle
-    function getTimedCode() {
-        const now = new Date();
-        const day = String(now.getDate()).padStart(2, '0');
-        const period = Math.floor(now.getHours() / 4); 
-        return baseSecret + day + "P" + period;
-    }
-
-    // --- 2. INITIALISATION AU CHARGEMENT (DOM) ---
+    // --- 2. INITIALISATION ---
     window.addEventListener('DOMContentLoaded', () => {
-        
-        // A. Lancement du fond animé VANTA
-        vantaEffect = VANTA.WAVES({
+        VANTA.WAVES({
             el: "body",
             mouseControls: true,
             touchControls: true,
-            gyroControls: false,
-            minHeight: 200.00,
-            minWidth: 200.00,
-            scale: 1.00,
-            scaleMobile: 1.00,
-            color: 0x0f172a,      // Bleu Nuit
-            shininess: 56.00,
+            color: 0x0f172a,
             waveHeight: 29.50,
             waveSpeed: 0.80,
             zoom: 0.85
         });
-
-        // B. Gestion du Toast (Clé de session)
-        const toast = document.getElementById('dailyToast');
-        const toastCode = document.getElementById('toastCode');
-        if(toastCode) toastCode.textContent = getTimedCode();
-        if(toast) {
-            toast.style.display = 'block';
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => { toast.style.display = 'none'; }, 500);
-            }, 6000);
-        }
-
-        // C. Titre dynamique (Nom de l'entreprise)
-        const settings = JSON.parse(localStorage.getItem('appSettings')) || { name: "Votre Business" };
-        const titleEl = document.getElementById('dynamicTitle');
-        if(titleEl && settings.name) titleEl.textContent = `Pilotez ${settings.name} en temps réel`;
     });
 
-    // --- 3. LOGIQUE D'AUTHENTIFICATION (EmailJS) ---
-
-    // Envoi de l'OTP
-    document.getElementById('sendOTP').addEventListener('click', function() {
+    // --- 3. ETAPE 1 : ENVOI DU CODE OTP VIA EMAILJS ---
+    document.getElementById('sendOTP').addEventListener('click', async function() {
         if(cooldown) return;
-
-        const emailEl = document.getElementById('loginEmail');
+        const email = document.getElementById('loginEmail').value.trim();
         const msgEl = document.getElementById('msg');
-        const email = emailEl.value.trim();
-        const btn = this;
 
-        if(!email || !email.includes('@')) { 
-            msgEl.textContent = "Email invalide"; 
-            msgEl.style.color = "#ef4444"; 
-            return; 
+        if(!email.includes('@')) {
+            msgEl.textContent = "Email invalide";
+            msgEl.style.color = "#ef4444";
+            return;
         }
 
-        btn.disabled = true;
-        btn.textContent = "Envoi en cours...";
-        msgEl.textContent = "";
-
+        this.disabled = true;
+        this.textContent = "Envoi...";
         generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
 
-        emailjs.send('service_nhnfos8', 'template_6gn4r8h', { 
-            email: email, 
-            passcode: generatedOTP, 
-            time: new Date().toLocaleTimeString() 
-        })
-        .then(() => { 
-            msgEl.textContent = "Code envoyé !"; 
+        try {
+            await emailjs.send('service_nhnfos8', 'template_6gn4r8h', {
+                email: email,
+                passcode: generatedOTP,
+                time: new Date().toLocaleTimeString()
+            });
+            msgEl.textContent = "Code envoyé ! Vérifiez vos mails.";
             msgEl.style.color = "#10b981";
             document.getElementById('otpSection').style.display = 'block';
-            startCooldown(btn);
-        })
-        .catch((err) => {
-            console.error("Erreur EmailJS:", err);
+            startCooldown(this);
+        } catch (err) {
+            console.error(err);
             msgEl.textContent = "Erreur d'envoi.";
             msgEl.style.color = "#ef4444";
-            btn.disabled = false;
-            btn.textContent = "Réessayer";
-        });
+            this.disabled = false;
+        }
     });
 
-    // Gestion du compte à rebours
     function startCooldown(btn) {
-        cooldown = true; 
+        cooldown = true;
         let remaining = COOLDOWN_TIME;
-        const interval = setInterval(() => {
+        const timer = setInterval(() => {
             btn.textContent = `Renvoyer (${remaining}s)`;
             remaining--;
-            if(remaining < 0) { 
-                clearInterval(interval); 
-                btn.disabled = false; 
-                btn.textContent = "Renvoyer le code OTP"; 
-                cooldown = false; 
+            if(remaining < 0) {
+                clearInterval(timer);
+                btn.disabled = false;
+                btn.textContent = "Renvoyer OTP";
+                cooldown = false;
             }
         }, 1000);
     }
 
-    // Vérification de l'OTP
-    document.getElementById('verifyOTP').addEventListener('click', () => {
+    // --- 4. ETAPE 2 : VERIFICATION OTP ET CONNEXION SUPABASE ---
+    document.getElementById('verifyOTP').addEventListener('click', async () => {
         const otpInput = document.getElementById('otpInput').value.trim();
         const otpMsg = document.getElementById('otpMsg');
+        const email = document.getElementById('loginEmail').value.trim();
 
         if(otpInput === generatedOTP && generatedOTP !== '') {
-            otpMsg.textContent = "OTP validé ✅";
+            otpMsg.textContent = "OTP Validé ✅ Connexion...";
             otpMsg.style.color = "#10b981";
-            document.getElementById('adminSection').style.display = 'block';
+
+            // Mot de passe "système" fixe pour cet utilisateur (basé sur son mail)
+            // Cela permet de le reconnecter à chaque fois sans demander de mot de passe
+            const systemPass = "MoniSafe#" + email.split('@')[0] + "2026";
+
+            // Tentative de connexion
+            const { data, error } = await _db.auth.signInWithPassword({ email, password: systemPass });
+
+            if (error) {
+                // Si l'utilisateur n'existe pas, on l'inscrit
+                if (error.message.includes("Invalid login credentials") || error.status === 400) {
+                    const { error: signUpErr } = await _db.auth.signUp({ email, password: systemPass });
+                    
+                    if (signUpErr) {
+                        otpMsg.textContent = "Erreur : " + signUpErr.message;
+                        otpMsg.style.color = "#ef4444";
+                    } else {
+                        otpMsg.textContent = "Compte créé ! Redirection...";
+                        setTimeout(() => window.location.replace("dashboard.html"), 1500);
+                    }
+                } else {
+                    otpMsg.textContent = "Erreur : " + error.message;
+                    otpMsg.style.color = "#ef4444";
+                }
+            } else {
+                // Succès de connexion
+                window.location.replace("dashboard.html");
+            }
         } else {
-            otpMsg.textContent = "Code incorrect";
+            otpMsg.textContent = "Code incorrect ❌";
             otpMsg.style.color = "#ef4444";
-        }
-    });
-
-    // Vérification de la Clé Admin Finale
-    document.getElementById('verifyAdmin').addEventListener('click', () => {
-        const adminInput = document.getElementById('adminID').value.trim();
-        const adminMsg = document.getElementById('adminMsg');
-
-        if(adminInput === getTimedCode()) {
-            sessionStorage.setItem('isLogged', 'true'); 
-            window.location.href = "dashboard.html";
-        } else {
-            adminMsg.textContent = "Clé expirée ou incorrecte";
-            adminMsg.style.color = "#ef4444";
         }
     });
 </script>
