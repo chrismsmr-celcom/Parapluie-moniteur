@@ -4,280 +4,75 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Moniteo Umbrella - Gestion Staff</title>
-		<script>
-			if (sessionStorage.getItem('isLogged') !== 'true') {
-			    window.location.href = "index.html";
-			}
-		</script>
 		<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+	      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-		<style>
-			/* --- VARIABLES ET THÈMES --- */
-			:root {
-			--primary:#1f3c63; --secondary:#3b82f6; --success:#10b981; --danger:#ef4444; --warning:#f59e0b;
-			--text-main:#1e293b; --text-light:#64748b; --bg-body:#f1f5f9; --bg-card:#ffffff;
-			--border-soft:#e2e8f0; --sidebar-w:260px;
-			}
-			/* Surcharge Mode Sombre */
-			body.dark-mode {
-			--bg-body: #0f172a; --bg-card: #1e293b;
-			--text-main: #f1f5f9; --text-light: #94a3b8;
-			--border-soft: #334155;
-			}
-			/* --- RESET ET BASE --- */
-			* { margin:0; padding:0; box-sizing:border-box; font-family:'Inter', sans-serif; }
-			body { display:flex; height: 100vh; overflow: hidden; background:var(--bg-body); color:var(--text-main); transition: 0.3s; }
-			.icon { width: 20px; height: 20px; min-width: 20px; stroke: currentColor; stroke-width: 2; fill: none; }
-			/* --- SIDEBAR --- */
-			.sidebar {
-			position: relative; width: var(--sidebar-w); height: 100vh; background: var(--primary);
-			color: #fff; padding: 1rem; display: flex; flex-direction: column; flex-shrink: 0;
-			transition: width 0.3s ease; z-index: 1000;
-			}
-			.sidebar.collapsed { --sidebar-w: 80px; }
-			.sidebar.collapsed span, .sidebar.collapsed .logo-full { display: none; }
-			.sidebar.collapsed .logo-short { display: block; }
-			.logo-box { padding: 1.5rem 0; text-align: center; border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 1.5rem; }
-			.logo-full { width: 140px; height: auto; }
-			.logo-short { display: none; width: 40px; margin: 0 auto; }
-			.nav-links { list-style:none; flex:1; overflow-y: auto; }
-			.nav-links a {
-			display:flex; align-items:center; gap:12px; padding:12px 15px; border-radius:10px;
-			text-decoration:none; color:rgba(255,255,255,.7); font-size:.9rem; transition:.2s;
-			border-left: 3px solid transparent; margin-bottom: 4px;
-			}
-			.nav-links a:hover, .nav-links a.active { background:rgba(255,255,255,0.15); color:#fff; border-left: 3px solid var(--secondary); }
-			/* --- CONTENU PRINCIPAL --- */
-			.main-content { flex-grow: 1; height: 100vh; overflow-y: auto; padding: 2rem; transition: padding 0.3s; }
-			.header-flex { 
-			display:flex; justify-content:space-between; align-items:center; 
-			background:var(--bg-card); padding:1rem 1.5rem; border-radius:12px; 
-			box-shadow:0 1px 3px rgba(0,0,0,.1); margin-bottom:2rem; 
-			}
-			.summary-banner {
-			display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
-			gap: 1.5rem; background: var(--primary); color: white;
-			padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;
-			}
-			.summary-banner small { color: rgba(255,255,255,0.7); text-transform: uppercase; font-size: 0.7rem; font-weight: 600; }
-			.summary-banner p { font-size: 1.4rem; font-weight: 700; margin-top: 5px; }
-			.card { background:var(--bg-card); padding:1.5rem; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border-soft); margin-bottom: 1.5rem; }
-			/* --- TABLES --- */
-			.table-wrapper { overflow-x: auto; margin-top: 1rem; border-radius: 8px; border: 1px solid var(--border-soft); }
-			table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 850px; }
-			th { background: rgba(0,0,0,0.02); color: var(--text-light); padding: 12px; text-align: left; border-bottom: 2px solid var(--border-soft); }
-			td { padding: 12px 10px; border-bottom: 1px solid var(--border-soft); vertical-align: middle; }
-			/* --- BADGES & UI --- */
-			.status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
-			.active-bg { background: #dcfce7; color: #166534; }
-			.inactive-bg { background: #fee2e2; color: #991b1b; }
-			.contract-badge { background: var(--bg-body); color: var(--text-light); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; border: 1px solid var(--border-soft); }
-			/* Alertes */
-			.expiry-warning { border-left: 4px solid var(--danger) !important; background: rgba(239, 68, 68, 0.02) !important; }
-			.pulse-alert { display: inline-block; width: 8px; height: 8px; background: var(--danger); border-radius: 50%; margin-right: 8px; animation: pulse 2s infinite; }
-			@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
-			/* --- ACTIONS --- */
-			button { padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: 0.2s; white-space: nowrap; }
-			.btn-main { background: var(--primary); color: white; }
-			.btn-main:hover { opacity: 0.9; transform: translateY(-1px); }
-			.btn-outline { background: transparent; color: var(--text-main); border: 1px solid var(--border-soft); }
-			.btn-outline:hover { background: var(--border-soft); }
-			/* --- MODALES --- */
-			.modal { 
-			display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
-			background:rgba(15,23,42,0.8); justify-content:center; align-items:center; 
-			z-index:9999; backdrop-filter: blur(4px); 
-			}
-			.modal-content { 
-			background:var(--bg-card); padding:2rem; border-radius:16px; 
-			width:95%; max-width:600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); 
-			}
-			.modal-photo { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin: 0 auto 1rem; display: block; border: 3px solid var(--secondary); background: #eee; }
-			.modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
-			.modal-grid label { font-size: 0.7rem; color: var(--text-light); font-weight: 700; text-transform: uppercase; margin-bottom: 4px; display: block; }
-			.modal-grid input, .modal-grid select { 
-			width: 100%; padding: 10px; border: 1px solid var(--border-soft); 
-			border-radius: 8px; background: var(--bg-body); color: var(--text-main);
-			}
-			/* ============================================================
-   1. TABLETTES (Largeur max 1024px)
-   ============================================================ */
-@media (max-width: 1024px) {
-    :root { --sidebar-w: 80px; }
-    .sidebar span, .logo-full { display: none; }
-    .sidebar .logo-short { display: block; }
-    .nav-links a { justify-content: center; padding: 15px; }
-}
 
-/* ============================================================
-   2. MOBILES (Largeur max 768px) 
-   ============================================================ */
-@media (max-width: 768px) {
-    body { flex-direction: column; height: auto; overflow-y: auto; }
-    
-    /* Barre de navigation mobile */
-    .sidebar {
-        width: 100%; height: auto; position: sticky; top: 0;
-        flex-direction: row; padding: 0.5rem; justify-content: space-between;
-        align-items: center; z-index: 1001;
+           <script src="js/auth-check.js"></script>
+
+<script>
+    // 1. On protège la page
+    protectPage((user) => {
+        console.log("Accès autorisé pour :", user.id);
+        // APPEL DE LA VRAIE FONCTION
+        fetchStaffData(); 
+    });
+
+    // 2. TA VRAIE FONCTION (Celle qui contient toute ta logique de rendu)
+    async function fetchStaffData() {
+        try {
+            // CHANGE "ma_table" PAR "staff" ICI 👇
+            const { data, error } = await _db
+                .from('staff') 
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('name', { ascending: true });
+
+            if (error) throw error;
+
+            if (data) {
+                console.log("Données reçues :", data);
+                // Ici tu appelles ta fonction qui dessine le tableau (ex: renderStaff(data))
+                staffData = data; // Si tu utilises une variable globale
+                renderStaff();    // Ta fonction qui crée les lignes <tr>
+            }
+        } catch (err) {
+            console.error("Erreur critique :", err.message);
+        }
     }
-    .logo-box { border: none; margin: 0; padding: 0 1rem; }
-    .nav-links { display: flex; flex-direction: row; overflow-x: auto; }
-    .nav-links a span { display: none; }
+</script>
+		<link rel="stylesheet" href="UI/style.css">
+		    <script src="js/common.js"></script>
 
-    /* Contenu principal */
-    .main-content { padding: 1rem; height: auto; overflow: visible; }
-    .header-flex { flex-direction: column; align-items: flex-start; gap: 15px; }
-    .summary-banner { grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 1rem; }
-    
-    /* Tableaux */
-    .table-wrapper { margin: 0 -1rem; border-radius: 0; border-left: none; border-right: none; }
-
-    /* Modales & Fiche de paie */
-    .modal-content { width: 95%; padding: 1rem; margin: 10px; }
-    .modal-grid { grid-template-columns: 1fr; }
-    
-    #payslipContent { padding: 20px !important; }
-    /* Force les infos collaborateur sur 1 colonne */
-    #payslipContent > div[style*="grid"] { grid-template-columns: 1fr !important; gap: 15px !important; }
-}
-
-/* ============================================================
-   3. TRÈS PETITS MOBILES (Largeur max 480px)
-   ============================================================ */
-@media (max-width: 480px) {
-    .summary-banner { grid-template-columns: 1fr; }
-    .header-flex h2 { font-size: 1.1rem; }
-    button { padding: 8px 12px; font-size: 0.8rem; }
-}
-
-/* ============================================================
-   4. OPTIMISATION UNIQUE POUR L'IMPRESSION
-   ============================================================ */
-@media print {
-    /* On cache tout sauf la fiche de paie */
-    body * { visibility: hidden !important; }
-    #payslipModal, #payslipModal * { visibility: visible !important; }
-    
-    /* On plaque la fiche en haut de la page */
-    #payslipModal {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
-        display: block !important;
-        background: white !important;
-    }
-    
-    #payslipContent { 
-        padding: 0 !important; 
-        margin: 0 !important; 
-        color: black !important; /* Force le texte noir même si dark-mode */
-    }
-
-    /* On cache les éléments inutiles à l'impression */
-    .no-print, .payslip-actions, button, .sidebar { 
-        display: none !important; 
-    }
-    
-    /* On retire les ombres de la modale pour le papier */
-    div[style*="box-shadow"] { box-shadow: none !important; border: none !important; }
-}
-		</style>
 	</head>
 	<body>
 		<nav class="sidebar" id="sidebar">
-			<div class="logo-box">
-				<img src="https://i.postimg.cc/bJjy56Lq/Moniteo_1_removebg_preview.png" class="logo-full" alt="Logo">
-				<img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
-			</div>
-			<ul class="nav-links">
-				<li>
-					<a href="dashboard.html">
-						<svg class="icon" viewBox="0 0 24 24">
-							<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-						</svg>
-						<span>Accueil</span>
-					</a>
-				</li>
-				<li>
-					<a href="sales.html">
-						<svg class="icon" viewBox="0 0 24 24">
-							<circle cx="9" cy="21" r="1"></circle>
-							<circle cx="20" cy="21" r="1"></circle>
-							<path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-						</svg>
-						<span>Ventes</span>
-					</a>
-				</li>
-				<li>
-					<a href="inventory.html">
-						<svg class="icon" viewBox="0 0 24 24">
-							<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-						</svg>
-						<span>Inventaire</span>
-					</a>
-				</li>
-				<li>
-					<a href="expenses.html">
-						<svg class="icon" viewBox="0 0 24 24">
-							<line x1="12" y1="1" x2="12" y2="23"></line>
-							<path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-						</svg>
-						<span>Dépenses</span>
-					</a>
-				</li>
-				<li>
-					<a href="staff.html" class="active">
-						<svg class="icon" viewBox="0 0 24 24">
-							<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-							<circle cx="9" cy="7" r="4"></circle>
-						</svg>
-						<span>Staff</span>
-					</a>
-				</li>
-				<li>
-					<a href="reporting.html">
-						<svg class="icon" viewBox="0 0 24 24">
-							<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-						</svg>
-						<span>Reporting</span>
-					</a>
-				</li>
-				<li>
-				<li>
-					<a href="history.html">
-						<svg class="icon" viewBox="0 0 24 24">
-							<circle cx="12" cy="12" r="10"></circle>
-							<polyline points="12 6 12 12 16 14"></polyline>
-						</svg>
-						<span>Historique</span>
-					</a>
-				</li>
-				<a href="setting.html">
-					<svg class="icon" viewBox="0 0 24 24">
-						<circle cx="12" cy="12" r="3"></circle>
-						<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-					</svg>
-					<span>Paramètres</span>
-				</a>
-				</li>
-			</ul>
-			<div style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
-				<a href="#" onclick="logout(); return false;" style="color:#ff6b6b; text-decoration:none; font-size:0.9rem; font-weight:600; display:flex; align-items:center; gap:10px; padding:12px 15px;">
-					<svg class="icon" viewBox="0 0 24 24">
-						<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-						<polyline points="16 17 21 12 16 7"></polyline>
-						<line x1="21" y1="12" x2="9" y2="12"></line>
-					</svg>
-					<span>Déconnexion</span>
-				</a>
-			</div>
-		</nav>
+    <div class="logo-box">
+        <img src="https://i.postimg.cc/bJjy56Lq/Moniteo-1-removebg-preview.png" class="logo-full" alt="Moniteo">
+        <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
+    </div>   
+    <ul class="nav-links">
+        <li><a href="dashboard.html" ><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> <span>Accueil</span></a></li>
+        <li><a href="sales.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
+        <li><a href="inventory.html"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> <span>Inventaire</span></a></li>
+        <li><a href="expenses.html"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> <span>Dépenses</span></a></li>
+        <li><a href="staff.html" class="active"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> <span>Staff</span></a></li>
+        <li><a href="reporting.html"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> <span>Reporting</span></a></li>
+        <li><a href="history.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>Historique</span></a></li>
+        <li><a href="setting.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> <span>Paramètres</span></a></li>
+    </ul>
+    <div class="logout-box">
+        <a href="#" onclick="logout(); return false;" class="logout-btn">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span>Déconnexion</span>
+        </a>
+    </div>
+</nav>
+
 		<main class="main-content">
 			<header class="header-flex" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
 				<div>
@@ -296,7 +91,7 @@
 				</div>
 				<div>
 					<small>Masse Salariale</small>
-					<p id="statMasse">0 $</p>
+					<p id="statMasse">0</p>
 				</div>
 				<div>
 					<small>Fin de Contrats</small>
@@ -304,7 +99,7 @@
 				</div>
 				<div>
 					<small>Salaire Moyen</small>
-					<p id="statMoyenne">0 $</p>
+					<p id="statMoyenne">0</p>
 				</div>
 			</div>
 			<div class="action-bar">
@@ -436,15 +231,8 @@
 			</div>
 		</div>
 		<script>
-    // --- 1. CONFIGURATION SUPABASE ---
-    const SUPABASE_URL = 'https://oysdycuouodarfkmdtop.supabase.co'; 
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k';
-    const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
     // --- 2. VARIABLES & DONNÉES ---
     let staffData = []; 
-    let currentUser = null; 
-    let currentCurrency = "€";
     let currentIdx = -1;
     let cChart = null;
     let sChart = null;
@@ -563,7 +351,7 @@
     // --- 7. LOGIQUE DE CONFIGURATION ---
     function updateConfig() {
         const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-        currentCurrency = config.currency || "€";
+        currentCurrency = config.currency || "";
 
         if (config.darkMode) document.body.classList.add('dark-mode');
         else document.body.classList.remove('dark-mode');
