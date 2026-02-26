@@ -3,10 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moniteo Umbrella - Historique Pro</title>
+    <title>Moniteo Umbrella - Paramètres Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+   <script src="js/supabase-config.js"></script> 
+<script src="js/common.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script src="js/auth-check.js"></script>
     <script>
     // On utilise protectPage qui vient de auth-check.js
@@ -44,24 +48,24 @@
     }
 </script>
     <link rel="stylesheet" href="UI/style.css">
-    <script src="js/common.js"></script>
+     <script src="js/common.js"></script>
     </head>
 <body>
 
-   <nav class="sidebar" id="sidebar">
+    <nav class="sidebar" id="sidebar">
     <div class="logo-box">
         <img src="https://i.postimg.cc/bJjy56Lq/Moniteo-1-removebg-preview.png" class="logo-full" alt="Moniteo">
         <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
     </div>   
     <ul class="nav-links">
         <li><a href="dashboard.html"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> <span>Accueil</span></a></li>
-        <li><a href="sales.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
+        <li><a href="sales.html"  ><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
         <li><a href="inventory.html"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> <span>Inventaire</span></a></li>
         <li><a href="expenses.html"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> <span>Dépenses</span></a></li>
         <li><a href="staff.html"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> <span>Staff</span></a></li>
         <li><a href="reporting.html"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> <span>Reporting</span></a></li>
-        <li><a href="history.html" class="active"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>Historique</span></a></li>
-        <li><a href="setting.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> <span>Paramètres</span></a></li>
+        <li><a href="history.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>Historique</span></a></li>
+        <li><a href="setting.html"class="active"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> <span>Paramètres</span></a></li>
     </ul>
     <div class="logout-box">
         <a href="#" onclick="logout(); return false;" class="logout-btn">
@@ -72,239 +76,249 @@
 </nav>
 
     <main class="main-content">
-        <header class="header-flex">
-            <h2>Journal Historique</h2>
-            <button class="btn-success" onclick="exportExcel()">Exporter Excel</button>
-        </header>
-
-        <div class="summary-banner">
-            <div><small>Chiffre d'Affaire</small><p id="caTotal">0 $</p></div>
-            <div><small>Bénéfice Net</small><p id="profitTotal">0 $</p></div>
-            <div><small>Volume Articles</small><p id="qtyTotal">0</p></div>
-            <div><small>Transactions</small><p id="transCount">0</p></div>
+    <header class="header-flex">
+        <div>
+            <h2>Paramètres & Profil</h2>
+            <p id="userEmailDisplay" style="font-size: 0.85rem; color: var(--secondary); font-weight: 600;">Chargement du compte...</p>
         </div>
+        <button class="btn-save" onclick="saveAllData()" style="margin:0; width:auto; padding:10px 25px;">Enregistrer Tout</button>
+    </header>
 
-        <div class="action-bar">
-            <input type="text" id="searchProd" class="filter-input" placeholder="Rechercher un produit..." oninput="applyFilters()" style="flex:1;">
-            
-            <div class="date-range">
-                <small style="color:var(--text-light)">Du</small>
-                <input type="date" id="dateStart" class="filter-input" style="border:none" onchange="applyFilters()">
-                <small style="color:var(--text-light)">Au</small>
-                <input type="date" id="dateEnd" class="filter-input" style="border:none" onchange="applyFilters()">
+    <div class="settings-grid">
+        <div class="card">
+            <h3><svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Identité Admin</h3>
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="position: relative; display: inline-block;">
+                    <img id="avatarPreview" src="https://ui-avatars.com/api/?name=Admin&background=1f3c63&color=fff" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border-soft);">
+                    <input type="file" id="avatarInput" hidden accept="image/*" onchange="previewAvatar()">
+                    <button onclick="document.getElementById('avatarInput').click()" style="position: absolute; bottom: 0; right: 0; background: var(--secondary); border: none; border-radius: 50%; width: 25px; height: 25px; color: white; cursor: pointer;">+</button>
+                </div>
             </div>
-
-            <select id="marketFilter" class="filter-input" onchange="applyFilters()">
-                <option value="all">Tous Marchés</option>
-                <option value="local">Local</option>
-                <option value="export">Export</option>
-            </select>
-            
-            <button class="btn-danger" onclick="resetFilters()">Réinitialiser</button>
+            <div class="form-group">
+                <label>Nom Complet</label>
+                <input type="text" id="adminFullName" placeholder="Ex: Jean Dupont">
+            </div>
+            <div class="form-group">
+                <label>Rôle / Titre</label>
+                <input type="text" id="adminRole" value="Administrateur Principal" readonly style="background: var(--bg-body); opacity: 0.7;">
+            </div>
         </div>
 
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Produit</th>
-                        <th>Marché</th>
-                        <th>Qté</th>
-                        <th>P.U ($)</th>
-                        <th>Total ($)</th>
-                        <th>Bénéfice ($)</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="historyBody"></tbody>
-            </table>
+        <div class="card">
+            <h3><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg> Entreprise</h3>
+            <div class="form-group">
+                <label>Nom du Business</label>
+                <input type="text" id="bizName" placeholder="Ex: Moniteo Umbrella Ltd">
+            </div>
+            <div class="form-group">
+                <label>Adresse physique</label>
+                <textarea id="bizAddress" rows="2" placeholder="Kinshasa, Gombe..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Logo du Business</label>
+                <input type="file" id="bizLogoInput" accept="image/*" onchange="previewLogo()">
+                <div style="margin-top:10px; text-align:center;">
+                    <img id="logoPreview" src="" style="max-height: 40px; display:none; margin: 0 auto;">
+                </div>
+            </div>
         </div>
-    </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+        <div class="card">
+            <h3><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle></svg> Préférences Système</h3>
+            <div class="form-group">
+                <label>Devise de base</label>
+                <select id="baseCurrency">
+                    <option value="$">Dollar ($)</option>
+                    <option value="FC">Franc Congolais (FC)</option>
+                    <option value="€">Euro (€)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Taux de change (1$ = ? FC)</label>
+                <input type="number" id="exchangeRate" placeholder="Ex: 2850">
+            </div>
+            <div class="toggle-item">
+                <span>Mode Sombre</span>
+                <label class="switch">
+                    <input type="checkbox" id="darkToggle" onchange="toggleDarkModeUI()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="card danger-zone">
+            <h3 style="color: var(--danger);">Zone de Danger</h3>
+            <button class="btn-danger-soft" onclick="resetApp()" style="margin-bottom: 10px;">Réinitialiser les données</button>
+            <button class="btn-outline" onclick="logout()" style="width: 100%; justify-content: center; color: var(--danger);">Déconnexion</button>
+        </div>
+    </div>
+</main>
+
 
 <script>
-    let salesHistory = [];
-    // --- 2. INITIALISATION ---
-    document.addEventListener('DOMContentLoaded', async () => {
-        applyGlobalSettings();
-        handleResponsiveSidebar();
-        await fetchSalesHistory(); // Charger depuis Supabase
+    // --- VARIABLES GLOBALES ---
+    let base64Logo = "";
+    let base64Avatar = "";
+    let currentUser = null;
+
+    // --- INITIALISATION ---
+    window.addEventListener('DOMContentLoaded', async () => {
+        // Attendre un court instant pour s'assurer que _db est prêt
+        setTimeout(async () => {
+            try {
+                // 1. Récupérer l'utilisateur connecté
+                const { data: { user } } = await _db.auth.getUser();
+                if (!user) { 
+                    window.location.href = "index.html"; 
+                    return; 
+                }
+                currentUser = user;
+                document.getElementById('userEmailDisplay').textContent = "Connecté : " + user.email;
+
+                // 2. Charger les données du Profil et des Settings
+                await loadAllData();
+            } catch (err) {
+                console.error("Erreur d'initialisation:", err.message);
+            }
+        }, 100);
     });
 
-    function applyGlobalSettings() {
-        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-        if (config.darkMode) document.body.classList.add('dark-mode');
-
-        currentCurrency = config.currency || "FC";
-
-        const brandName = document.querySelector('.header-flex h2');
-        if (brandName && config.name) {
-            brandName.innerHTML = `Historique <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
-        }
-    }
-
-    // --- 3. RÉCUPÉRATION SUPABASE ---
-    async function fetchSalesHistory() {
-        const { data, error } = await _db
-            .from('sales')
-            .select('*')
-            .order('date', { ascending: false });
-
-        if (error) {
-            console.error("Erreur chargement historique:", error.message);
-        } else {
-            salesHistory = data || [];
-            applyFilters(); // Affiche les données avec les filtres actuels
-        }
-    }
-
-    // --- 4. FILTRAGE ---
-    function applyFilters() {
-        const query = document.getElementById('searchProd').value.toLowerCase();
-        const market = document.getElementById('marketFilter')?.value || 'all';
-        const start = document.getElementById('dateStart').value;
-        const end = document.getElementById('dateEnd').value;
-
-        const filtered = salesHistory.filter(item => {
-            const matchName = item.product.toLowerCase().includes(query);
-            const matchMarket = (market === 'all' || item.market === market);
-            const matchStart = !start || item.date >= start;
-            const matchEnd = !end || item.date <= end;
-            return matchName && matchMarket && matchStart && matchEnd;
-        });
-
-        renderHistory(filtered);
-    }
-
-    function resetFilters() {
-        document.getElementById('searchProd').value = '';
-        if(document.getElementById('marketFilter')) document.getElementById('marketFilter').value = 'all';
-        document.getElementById('dateStart').value = '';
-        document.getElementById('dateEnd').value = '';
-        renderHistory(salesHistory);
-    }
-
-    // --- 5. RENDU DU TABLEAU ---
-    function renderHistory(data) {
-        const tbody = document.getElementById('historyBody');
-        if(!tbody) return;
-        tbody.innerHTML = '';
-        
-        let ca = 0, profit = 0, qtyCount = 0;
-
-        data.forEach((item) => {
-            const sPrice = parseFloat(item.sell_price) || 0;
-            const bPrice = parseFloat(item.buy_price) || 0;
-            const sQty = parseInt(item.qty) || 0;
-
-            const itemTotal = sPrice * sQty;
-            const itemProfit = (sPrice - bPrice) * sQty;
-
-            ca += itemTotal;
-            profit += itemProfit;
-            qtyCount += sQty;
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="font-weight:500">${formatDate(item.date)}</td>
-                <td style="font-weight:600; color:var(--primary)">${item.product}</td>
-                <td><span class="badge-market ${item.market || 'local'}">${item.market || 'local'}</span></td>
-                <td>${sQty}</td>
-                <td>${sPrice.toLocaleString()}</td>
-                <td style="font-weight:700">${itemTotal.toLocaleString()}</td>
-                <td style="color:var(--success); font-weight:600">+${itemProfit.toLocaleString()}</td>
-                <td>
-                    <button class="btn-danger" style="padding:5px 10px; cursor:pointer; border:none; border-radius:4px; background:var(--danger); color:white;" 
-                        onclick="deleteEntry('${item.id}')">🗑</button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-
-        // Mise à jour des KPI
-        document.getElementById('caTotal').textContent = ca.toLocaleString() + " " + currentCurrency;
-        document.getElementById('profitTotal').textContent = profit.toLocaleString() + " " + currentCurrency;
-        document.getElementById('qtyTotal').textContent = qtyCount;
-        document.getElementById('transCount').textContent = data.length;
-    }
-
-    // --- 6. ACTIONS & UTILITAIRES ---
-    async function deleteEntry(id) {
-        if(confirm("Supprimer définitivement cette transaction ?")) {
-            const { error } = await _db.from('sales').delete().eq('id', id);
-            
-            if (error) {
-                alert("Erreur lors de la suppression: " + error.message);
-            } else {
-                fetchSalesHistory(); // Recharger la liste
+    async function loadAllData() {
+        try {
+            // A. Charger les données du Profil (Table: profiles)
+            const { data: profile } = await _db.from('profiles').select('*').eq('id', currentUser.id).single();
+            if (profile) {
+                document.getElementById('adminFullName').value = profile.full_name || "";
+                if (profile.avatar_url) {
+                    document.getElementById('avatarPreview').src = profile.avatar_url;
+                    base64Avatar = profile.avatar_url;
+                }
             }
+
+            // B. Charger les Settings (Table: settings)
+            const { data: settings } = await _db.from('settings').select('*').eq('user_id', currentUser.id).maybeSingle();
+            if (settings) {
+                document.getElementById('bizName').value = settings.company_name || "";
+                document.getElementById('bizAddress').value = settings.address || "";
+                document.getElementById('baseCurrency').value = settings.currency || "$";
+                document.getElementById('exchangeRate').value = settings.rate || "";
+                document.getElementById('darkToggle').checked = settings.dark_mode;
+                
+                if (settings.logo_url) {
+                    const preview = document.getElementById('logoPreview');
+                    preview.src = settings.logo_url;
+                    preview.style.display = 'block';
+                    base64Logo = settings.logo_url;
+                }
+                
+                // Appliquer le mode sombre visuellement
+                if (settings.dark_mode) document.body.classList.add('dark-mode');
+            }
+        } catch (err) {
+            console.error("Erreur lors du chargement des données:", err.message);
         }
     }
 
-    function formatDate(d) {
-        if(!d) return "-";
-        const parts = d.split('-');
-        return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+    // --- GESTION DES IMAGES (PREVIEWS) ---
+    function previewAvatar() {
+        const file = document.getElementById('avatarInput').files[0];
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            base64Avatar = reader.result;
+            document.getElementById('avatarPreview').src = base64Avatar;
+        };
+        if (file) reader.readAsDataURL(file);
     }
 
-    function handleResponsiveSidebar() {
-        const width = window.innerWidth;
-        const sb = document.getElementById('sidebar');
-        if (sb) {
-            if (width <= 1024) sb.classList.add('collapsed');
-            else sb.classList.remove('collapsed');
+    function previewLogo() {
+        const file = document.getElementById('bizLogoInput').files[0];
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            base64Logo = reader.result;
+            const preview = document.getElementById('logoPreview');
+            preview.src = base64Logo;
+            preview.style.display = 'block';
+        };
+        if (file) reader.readAsDataURL(file);
+    }
+
+    // --- SAUVEGARDE GLOBALE ---
+    async function saveAllData() {
+        const saveBtn = document.querySelector('.btn-save');
+        const originalText = saveBtn.textContent;
+        
+        saveBtn.textContent = "⏳ Enregistrement...";
+        saveBtn.disabled = true;
+
+        try {
+            // 1. Sauvegarde Profil (Table: profiles)
+            const { error: pErr } = await _db.from('profiles').upsert({
+                id: currentUser.id,
+                full_name: document.getElementById('adminFullName').value,
+                avatar_url: base64Avatar,
+                updated_at: new Date()
+            });
+
+            // 2. Sauvegarde Settings (Table: settings)
+            const { error: sErr } = await _db.from('settings').upsert({
+                user_id: currentUser.id,
+                company_name: document.getElementById('bizName').value,
+                address: document.getElementById('bizAddress').value,
+                currency: document.getElementById('baseCurrency').value,
+                rate: parseFloat(document.getElementById('exchangeRate').value) || 0,
+                dark_mode: document.getElementById('darkToggle').checked,
+                logo_url: base64Logo,
+                updated_at: new Date()
+            }, { onConflict: 'user_id' });
+
+            if (pErr || sErr) throw new Error("Erreur de synchronisation Supabase.");
+
+            alert("✅ Configuration mise à jour avec succès !");
+            location.reload(); // Recharge pour appliquer les changements partout
+            
+        } catch (err) {
+            alert("Erreur lors de la sauvegarde: " + err.message);
+            saveBtn.textContent = originalText;
+            saveBtn.disabled = false;
         }
     }
 
-    function exportExcel() {
-        if (salesHistory.length === 0) {
-            alert("Aucune donnée à exporter.");
-            return;
-        }
-
-        const dataToExport = salesHistory.map(item => ({
-            "Date": item.date || "",
-            "Produit": item.product || "Sans nom",
-            "Marché": item.market || "Local",
-            "Quantité": parseInt(item.qty) || 0,
-            "Prix Vente": parseFloat(item.sell_price) || 0,
-            "Total Vente": (parseFloat(item.sell_price) * parseInt(item.qty)),
-            "Profit": ((parseFloat(item.sell_price) - parseFloat(item.buy_price)) * parseInt(item.qty))
-        }));
-
-        const ws = XLSX.utils.json_to_sheet(dataToExport);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Historique");
-        XLSX.writeFile(wb, `Historique_Ventes_${new Date().toISOString().split('T')[0]}.xlsx`);
+    // --- INTERFACE & SIDEBAR ---
+    function toggleDarkModeUI() {
+        const isChecked = document.getElementById('darkToggle').checked;
+        document.body.classList.toggle('dark-mode', isChecked);
     }
 
-    function logout() {
-        if(confirm("Se déconnecter ?")) { sessionStorage.clear(); window.location.href = "index.html"; }
-    }
-
-    window.addEventListener('resize', handleResponsiveSidebar);
     function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const mainContent = document.getElementById('mainContent');
-    
-    sidebar.classList.toggle('collapsed');
-    
-    // Optionnel : Sauvegarder l'état dans le navigateur
-    const isCollapsed = sidebar.classList.contains('collapsed');
-    localStorage.setItem('sidebarStatus', isCollapsed ? 'collapsed' : 'expanded');
-}
-
-// Au chargement de la page, appliquer l'état sauvegardé
-window.addEventListener('DOMContentLoaded', () => {
-    const status = localStorage.getItem('sidebarStatus');
-    const sidebar = document.getElementById('sidebar');
-    if (status === 'collapsed') {
-        sidebar.classList.add('collapsed');
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.toggle('collapsed');
+        localStorage.setItem('sidebarStatus', sidebar.classList.contains('collapsed') ? 'collapsed' : 'expanded');
     }
-});
+
+    // Appliquer l'état de la sidebar au chargement
+    (function() {
+        const status = localStorage.getItem('sidebarStatus');
+        if (status === 'collapsed') {
+            document.getElementById('sidebar')?.classList.add('collapsed');
+        }
+    })();
+
+    // --- DECONNEXION ---
+    async function logout() {
+        if (confirm("Voulez-vous vous déconnecter ?")) {
+            await _db.auth.signOut();
+            sessionStorage.clear();
+            window.location.href = "index.html";
+        }
+    }
+
+    // --- ZONE DE DANGER ---
+    function resetApp() {
+        if (confirm("⚠️ ATTENTION : Cela va effacer vos préférences locales. Les données Supabase resteront intactes. Continuer ?")) {
+            localStorage.clear();
+            location.reload();
+        }
+    }
 </script>
 </body>
 </html>
