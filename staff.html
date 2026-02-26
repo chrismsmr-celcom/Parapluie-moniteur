@@ -1,69 +1,66 @@
-
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moniteo Umbrella - Ventes Pro</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Moniteo Umbrella - Gestion Staff</title>
+		<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+	      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
-<script src="js/auth-check.js"></script>
+           <script src="js/auth-check.js"></script>
 
 <script>
-    // On utilise protectPage qui vient de auth-check.js
+    // 1. On protège la page
     protectPage((user) => {
-        console.log("Accès autorisé pour :", user.email);
+        console.log("Accès autorisé pour :", user.id);
+        // APPEL DE LA VRAIE FONCTION
         fetchStaffData(); 
     });
 
+    // 2. TA VRAIE FONCTION (Celle qui contient toute ta logique de rendu)
     async function fetchStaffData() {
         try {
-            // Utilisation de _db (défini dans auth-check.js)
+            // CHANGE "ma_table" PAR "staff" ICI 👇
             const { data, error } = await _db
-                .from('sales') // Ou 'staff' selon ce que tu veux afficher ici
+                .from('staff') 
                 .select('*')
                 .eq('user_id', currentUser.id)
-                .order('date', { ascending: false });
+                .order('name', { ascending: true });
 
             if (error) throw error;
 
             if (data) {
                 console.log("Données reçues :", data);
-                // Si tu as une variable globale pour stocker les données
-                if (typeof salesData !== 'undefined') salesData = data;
-                
-                // Appelle ta fonction de rendu du tableau
-                if (typeof renderTable === 'function') {
-                    renderTable();
-                } else if (typeof renderStaff === 'function') {
-                    renderStaff();
-                }
+                // Ici tu appelles ta fonction qui dessine le tableau (ex: renderStaff(data))
+                staffData = data; // Si tu utilises une variable globale
+                renderStaff();    // Ta fonction qui crée les lignes <tr>
             }
         } catch (err) {
-            console.error("Erreur critique lors du chargement :", err.message);
+            console.error("Erreur critique :", err.message);
         }
     }
 </script>
-   <link rel="stylesheet" href="UI/style.css">
-   <script src="js/common.js"></script>
-   </head>
-<body>
+		<link rel="stylesheet" href="UI/style.css">
+		    <script src="js/common.js"></script>
 
-  <nav class="sidebar" id="sidebar">
+	</head>
+	<body>
+		<nav class="sidebar" id="sidebar">
     <div class="logo-box">
         <img src="https://i.postimg.cc/bJjy56Lq/Moniteo-1-removebg-preview.png" class="logo-full" alt="Moniteo">
         <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
     </div>   
     <ul class="nav-links">
-        <li><a href="dashboard.html"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> <span>Accueil</span></a></li>
-        <li><a href="sales.html"  class="active"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
+        <li><a href="dashboard.html" ><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> <span>Accueil</span></a></li>
+        <li><a href="sales.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
         <li><a href="inventory.html"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> <span>Inventaire</span></a></li>
         <li><a href="expenses.html"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> <span>Dépenses</span></a></li>
-        <li><a href="staff.html"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> <span>Staff</span></a></li>
+        <li><a href="staff.html" class="active"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> <span>Staff</span></a></li>
         <li><a href="reporting.html"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> <span>Reporting</span></a></li>
         <li><a href="history.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>Historique</span></a></li>
         <li><a href="setting.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> <span>Paramètres</span></a></li>
@@ -76,591 +73,641 @@
     </div>
 </nav>
 
+		<main class="main-content">
+			<header class="header-flex" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+				<div>
+					<h2 style="margin: 0;">Gestion du Personnel</h2>
+					<p style="font-size: 0.8rem; color: var(--text-light); margin: 0;">Registre RH & Masse Salariale</p>
+				</div>
+				<div style="display: flex; gap: 15px; align-items: center;">
+						
+					<input type="text" id="searchInput" placeholder="Chercher un nom..." oninput="filterStaff()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-soft); outline: none;">
+				</div>
+			</header>
+			<div class="summary-banner">
+				<div>
+					<small>Effectif Total</small>
+					<p id="statTotal">0</p>
+				</div>
+				<div>
+					<small>Masse Salariale</small>
+					<p id="statMasse">0</p>
+				</div>
+				<div>
+					<small>Fin de Contrats</small>
+					<p id="statAlerts" style="color:#ff6b6b">0</p>
+				</div>
+				<div>
+					<small>Salaire Moyen</small>
+					<p id="statMoyenne">0</p>
+				</div>
+			</div>
+			<div class="action-bar">
+				<button class="btn-main" onclick="addEmployee()">+ Nouveau Collaborateur</button>
+<button onclick="exportToExcel()" class="btn-save" style="width:auto; padding:10px; background:#10b981;">Excel</button>
+<button onclick="exportToPDF()" class="btn-save" style="width:auto; padding:10px; background:#ef4444;">PDF Rapport</button>
+				<input type="file" id="importExcel" hidden accept=".xlsx, .xls" onchange="importStaffExcel(event)">
+				<button class="btn-outline" onclick="document.getElementById('importExcel').click()">Importer</button>
+				<button class="btn-danger" onclick="clearStaff()" style="margin-left: auto;">Nettoyer Liste</button>
+			</div>
+			<div class="card">
+				<div class="table-wrapper">
+					<table>
+						<thead>
+							<tr>
+								<th>Collaborateur</th>
+								<th>Poste</th>
+								<th>ID Paie</th>
+								<th>Dates</th>
+								<th>Statut</th>
+								<th>Salaire ($)</th>
+								<th>Bonus ($)</th>
+								<th>Actions</th>
+							</tr>
+						</thead>
+						<tbody id="staffTable"></tbody>
+					</table>
+				</div>
+			</div>
+			<div class="card">
+				<h3>Répartition & Analyse</h3>
+				<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin-top: 1rem;">
+					<div style="height: 250px;">
+						<canvas id="contractChart"></canvas>
+					</div>
+					<div style="height: 250px;">
+						<canvas id="salaryChart"></canvas>
+					</div>
+				</div>
+			</div>
+		</main>
+		<div id="employeeModal" class="modal">
+			<div class="modal-content">
+				<div style="text-align: center; margin-bottom: 15px;">
+					<img id="modalPhoto" class="modal-photo" src="https://via.placeholder.com/100" 
+						onclick="document.getElementById('uploadPhoto').click()" 
+						style="cursor:pointer; width:100px; height:100px; border-radius:50%; object-fit:cover; border: 2px solid var(--secondary);">
+					<input type="file" id="uploadPhoto" hidden accept="image/*" onchange="handlePhotoUpload(this)">
+					<p style="font-size: 0.7rem; color: var(--secondary); margin-top: 5px;">Cliquer pour changer la photo</p>
+				</div>
+				<h3 id="modalNameHeader" style="text-align:center; margin-bottom:20px;">Dossier Collaborateur</h3>
+				<div class="modal-grid">
+					<div><label>Nom complet</label><input type="text" id="editName"></div>
+					<div><label>Poste / Fonction</label><input type="text" id="editRole"></div>
+					<div>
+						<label>Contrat</label>
+						<select id="editContract">
+							<option value="CDI">CDI</option>
+							<option value="CDD">CDD</option>
+							<option value="Stage">Stage</option>
+							<option value="Freelance">Freelance</option>
+						</select>
+					</div>
+					<div><label>ID Paie</label><input type="text" id="editID"></div>
+					<div><label>Date Entrée</label><input type="date" id="editEntryDate"></div>
+					<div><label>Date Fin (si CDD)</label><input type="date" id="editExpiryDate"></div>
+					<div style="grid-column: span 2;"><label>Email Professionnel</label><input type="email" id="editEmail"></div>
+				</div>
+				<div style="margin-top:25px; display:flex; gap:10px;">
+					<button class="btn-main" onclick="saveEmployeeDetails()" style="flex:1">Mettre à jour le dossier</button>
+					<button class="btn-outline" onclick="closeModal()" style="flex:1">Fermer</button>
+				</div>
+			</div>
+		</div>
+		<div id="payslipModal" class="modal">
+			<div style="background: white; width: 95%; max-width: 700px; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+				<div id="payslipContent" style="padding: 40px; color: #1f2937; background: white;">
+					<div style="display: flex; justify-content: space-between; border-bottom: 2px solid #1f3c63; padding-bottom: 15px;">
+						<div>
+							<h2 id="psCompany" style="margin: 0; color: #1f3c63;">MONITEO</h2>
+							<small style="color: #64748b;">Bulletin de Paie Officiel</small>
+						</div>
+						<div style="text-align: right;">
+							<h4 style="margin: 0; color: #1f3c63;">PÉRIODE</h4>
+							<span id="psDate" style="color: #1e293b; font-weight: 600;"></span>
+						</div>
+					</div>
+					<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0; background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
+						<div>
+							<small style="color: #64748b; font-weight: bold; text-transform: uppercase; font-size: 0.7rem;">Collaborateur</small>
+							<div id="psName" style="font-size: 1.1rem; font-weight: 800; color: #1e293b;"></div>
+							<div id="psRole" style="color: #475569;"></div>
+						</div>
+						<div>
+							<small style="color: #64748b; font-weight: bold; text-transform: uppercase; font-size: 0.7rem;">Détails Administratifs</small>
+							<div style="color: #1e293b;">ID: <span id="psID" style="font-weight: bold;"></span></div>
+							<div style="color: #1e293b;">Contrat: <span id="psContract" style="font-weight: bold;"></span></div>
+						</div>
+					</div>
+					<table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+						<thead>
+							<tr style="border-bottom: 2px solid #e2e8f0; text-align: left; color: #64748b; font-size: 0.8rem;">
+								<th style="padding: 10px;">DÉSIGNATION</th>
+								<th style="padding: 10px; text-align: right;">MONTANT</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr style="border-bottom: 1px solid #f1f5f9;">
+								<td style="padding: 15px 10px; color: #1e293b;">Salaire de base mensuel</td>
+								<td id="psSalary" style="padding: 15px 10px; text-align: right; font-weight: 600; color: #1e293b;"></td>
+							</tr>
+							<tr style="border-bottom: 1px solid #f1f5f9;">
+								<td style="padding: 15px 10px; color: #1e293b;">Primes et Bonus</td>
+								<td id="psBonus" style="padding: 15px 10px; text-align: right; font-weight: 600; color: #10b981;"></td>
+							</tr>
+							<tr style="font-weight: bold; font-size: 1.3rem; color: #1f3c63; background: #f1f5f9;">
+								<td style="padding: 20px 10px;">NET À PAYER</td>
+								<td id="psTotal" style="padding: 20px 10px; text-align: right;"></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<div class="no-print" style="background: #f8fafc; padding: 20px; text-align: center; display: flex; gap: 10px; justify-content: center; border-top: 1px solid #e2e8f0;">
+					<button onclick="downloadPayslipPDF()" class="btn-save">Télécharger en PDF</button>
+					<button onclick="closePayslip()" style="background: #e2e8f0; color: #475569; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+					Fermer
+					</button>
+				</div>
+			</div>
+		</div>
+		<script>
+    // --- 2. VARIABLES & DONNÉES ---
+    let staffData = []; 
+    let currentIdx = -1;
+    let cChart = null;
+    let sChart = null;
 
-    <main class="main-content">
-        <header class="header-flex">
-            <h2 id="pageTitle">Gestion des Ventes</h2>
-            <div id="dynamicLogoContainer"></div>
-        </header>
-
-        <div class="summary-banner">
-            <div><small>Chiffre d'Affaires</small><p id="totalSales">0</p></div>
-            <div><small>Bénéfice Brut</small><p id="totalProfit">0</p></div>
-            <div><small>Articles Vendus</small><p id="totalQuantity">0</p></div>
-        </div>
-
-        <div class="action-bar">
-            <button class="btn-main" onclick="addRow()">+ Nouvelle Vente</button>
-            <button class="btn-outline" onclick="undo()">Annuler</button>
-            <button onclick="exportSalesPDF()" class="btn-export">PDF</button>            <button class="btn-outline" onclick="exportExcel()">Excel</button>
-            <button class="btn-danger" onclick="deleteSelectedRow()">Supprimer</button>
-            <button class="btn-main" style="background:#10b981" onclick="closeDay()">Clôturer Journée</button>
-            <button class="btn-outline" onclick="document.getElementById('excelFileInput').click()">Importer Excel</button>
-<input type="file" id="excelFileInput" style="display:none" accept=".xlsx, .xls, .csv" onchange="importExcel(event)">
-        </div>
-
-        <div class="card">
-    <input type="text" id="filterProduct" oninput="renderTable(this.value)" placeholder="Rechercher une vente..." style="width:100%; padding: 12px; border: 1px solid var(--border-soft); border-radius: 10px; margin-bottom: 1rem; background: var(--bg-body); color: var(--text-main);">
-    
-    <div style="overflow-x: auto;">
-        <table>
-            <thead>
-                <tr>
-                    <th><input type="checkbox" onclick="toggleSelectAll(this)"></th>
-                    <th>Produit</th>
-                    <th>Date</th>
-                    <th>Achat</th>
-                    <th>Vente</th>
-                    <th>Qté</th>
-                    <th>Bénéfice</th>
-                </tr>
-            </thead>
-            <tbody id="salesTable">
-                </tbody>
-        </table>
-    </div>
-</div>
-
-<div class="charts-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
-    <div class="card chart-wrapper">
-        <h4 style="margin-bottom: 10px; opacity: 0.8;">Répartition des Ventes</h4>
-        <canvas id="salesChart"></canvas>
-    </div>
-    <div class="card chart-wrapper">
-        <h4 style="margin-bottom: 10px; opacity: 0.8;">Évolution du Profit</h4>
-        <canvas id="profitChart"></canvas>
-    </div>
-</div>
-
-<div id="modalHorsStock" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
-    <div class="card" style="width:95%; max-width:400px; padding:25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-        <h3 style="margin-bottom: 15px;">Produit Hors Stock</h3>
-        <p style="font-size: 0.9em; opacity: 0.7; margin-bottom: 15px;">Ce produit ne sera pas déduit de votre inventaire Supabase.</p>
-        
-        <input type="hidden" id="modalRowIndex">
-        
-        <label style="display:block; margin-bottom:5px; font-weight:600;">Nom du produit</label>
-        <input type="text" id="hsName" placeholder="Ex: Frais de port, Service..." style="width:100%; margin-bottom:15px; padding:10px; border-radius:8px; border:1px solid var(--border-soft); background: var(--bg-body); color: var(--text-main);">
-        
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
-            <div>
-                <label style="display:block; margin-bottom:5px; font-weight:600;">Prix Achat</label>
-                <input type="number" id="hsBuy" value="0" step="0.01" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-soft); background: var(--bg-body); color: var(--text-main);">
-            </div>
-            <div>
-                <label style="display:block; margin-bottom:5px; font-weight:600;">Prix Vente</label>
-                <input type="number" id="hsSell" value="0" step="0.01" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-soft); background: var(--bg-body); color: var(--text-main);">
-            </div>
-        </div>
-
-        <div style="display:flex; gap:10px;">
-            <button class="btn-main" onclick="saveHorsStock()" style="flex:2; padding: 12px; border-radius: 8px; cursor: pointer; background: #3b82f6; color: white; border: none; font-weight: bold;">Enregistrer</button>
-            <button class="btn-outline" onclick="closeModal()" style="flex:1; padding: 12px; border-radius: 8px; cursor: pointer; background: transparent; border: 1px solid var(--border-soft); color: var(--text-main);">Annuler</button>
-        </div>
-    </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script src="js/auth-check.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    // 1. Variables globales (on garde celles-ci)
-    let salesData = [];
-    let inventoryData = []; 
-    let salesChart, profitChart;
-
-    // 2. LE DÉMARRAGE SÉCURISÉ
-    protectPage((user) => {
-        // Cette fonction s'exécute seulement si l'utilisateur est connecté
-        console.log("Vérification terminée, lancement de la page Sales.");
-        init(); 
-    });
-
+    // --- 3. INITIALISATION ---
     async function init() {
-        // On initialise directement le chargement des données
-        // currentUser est déjà rempli par auth-check.js
-        await fetchData(); 
-    }
-    async function fetchData() {
-        if (!currentUser) return;
-        try {
-            const [salesRes, invRes] = await Promise.all([
-                _db.from('sales')
-                   .select('*')
-                   .eq('user_id', currentUser.id) // Filtre obligatoire
-                   .order('date', { ascending: false }), // Tri par date plutôt que created_at
-                _db.from('inventory')
-                   .select('*')
-                   .eq('user_id', currentUser.id)
-                   .order('product', { ascending: true })
-            ]);
-            
-            if (salesRes.error) throw salesRes.error;
-
-            salesData = salesRes.data || [];
-            inventoryData = invRes.data || [];
-            renderTable();
-        } catch (err) { 
-            console.error("Erreur chargement sales:", err.message); 
-        }
-    }
-    // --- AJOUT D'UNE LIGNE ---
-    async function addRow() {
-        if (!currentUser) {
-            alert("Session expirée");
+        const { data: { user }, error } = await _db.auth.getUser();
+        
+        if (error || !user) {
+            console.warn("Utilisateur non connecté, redirection...");
+            window.location.replace("index.html");
             return;
         }
-
-        // On inclut obligatoirement le user_id pour passer la sécurité RLS
-        const { data, error } = await _db.from('sales').insert([{ 
-            user_id: currentUser.id, // CRUCIAL : lie la vente à l'utilisateur
-            date: new Date().toISOString().split('T')[0],
-            product: '',
-            qty: 0,
-            buy_price: 0,
-            sell_price: 0,
-            is_hors_stock: false
-        }]).select();
-
-        if (error) {
-            console.error("Erreur insertion sales:", error.message);
-            alert("Erreur : " + error.message);
-        } else {
-            await fetchData(); // Recharge le tableau
-        }
-    }
-        // --- 2. LOGIQUE DE STOCK (MERGE) ---
-    async function adjustInventoryStock(productName, quantityChange) {
-        if (!productName) return;
         
-        const item = inventoryData.find(i => i.product === productName);
-        if (!item) return; // Si c'est un produit "Hors Stock", on ignore
-
-        const newQty = (parseInt(item.qty) || 0) + quantityChange;
-        
-        const { error } = await _db.from('inventory')
-            .update({ qty: newQty })
-            .eq('product', productName);
-
-        if (!error) {
-            // Notifier l'onglet Inventaire s'il est ouvert
-            localStorage.setItem('inventory_trigger', Date.now());
-        }
+        currentUser = user; 
+        updateConfig();
+        await fetchStaffData(); // Remplace loadStaff() pour la logique Supabase
     }
 
-    // --- 3. RENDU DU TABLEAU ---
-    function renderTable(filter = '') {
-    const tbody = document.getElementById('salesTable');
-    tbody.innerHTML = '';
-    let totalS = 0, totalP = 0, totalQ = 0;
+    // --- 4. RÉCUPÉRATION DES DONNÉES (FILTRÉES) ---
+    async function fetchStaffData() {
+        if (!currentUser) return;
+        try {
+            const { data, error } = await _db
+                .from('staff')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('name', { ascending: true });
 
-    salesData.forEach((s, index) => {
-        if (s.product.toLowerCase().includes(filter.toLowerCase())) {
-            const buyPrice = parseFloat(s.buy_price || 0);
-            const sellPrice = parseFloat(s.sell_price || 0);
-            const qty = parseInt(s.qty || 0);
-            const profit = (sellPrice - buyPrice) * qty;
+            if (error) throw error;
             
-            totalS += (sellPrice * qty);
-            totalP += profit;
-            totalQ += qty;
+            // On enrichit les données pour ton affichage local (contractType, id_employee...)
+            staffData = (data || []).map(emp => ({
+                ...emp,
+                contractType: emp.role?.includes("Stage") ? "Stage" : "CDI", // Exemple de logique
+                status: emp.status || "actif",
+                id_employee: emp.id ? emp.id.substring(0,8).toUpperCase() : "N/A",
+                entryDate: emp.created_at ? emp.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
+            }));
 
-            const options = inventoryData.map(item => {
-                const isOutOfStock = (parseInt(item.qty) <= 0);
-                return `<option value="${item.product}" 
-                    ${item.product === s.product ? 'selected' : ''} 
-                    ${isOutOfStock && item.product !== s.product ? 'disabled' : ''}>
-                    ${item.product} ${isOutOfStock ? '(RUPTURE)' : `(Stock: ${item.qty})`}
-                </option>`;
-            }).join('');
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><input type="checkbox" class="row-check" data-id="${s.id}"></td>
-                <td>
-                    <select onchange="handleSelectProduct(${index}, this)" style="width:100%; background:transparent; color:inherit; border:none; font-weight:600;">
-                        <option value="">-- Choisir --</option>
-                        <optgroup label="Inventaire">${options}</optgroup>
-                        <option value="HORS_STOCK" ${s.is_hors_stock ? 'selected' : ''}>
-                            ${s.is_hors_stock ? s.product + ' (Hors Stock)' : '+ Hors Stock'}
-                        </option>
-                    </select>
-                </td>
-                <td contenteditable="true" onblur="updateField(${index}, 'date', this)">${s.date || ''}</td>
-                <td style="opacity:0.7;">${buyPrice}</td>
-                <td contenteditable="true" onblur="updateField(${index}, 'sell_price', this)">${sellPrice}</td>
-                <td contenteditable="true" onfocus="this.oldValue = this.innerText" onblur="handleQtyChange(${index}, this)">${qty}</td>
-                <td style="font-weight:bold; color:${profit >= 0 ? '#10b981' : '#ff4d4d'}">
-                    ${profit.toFixed(2)} ${currentCurrency}
-                </td>
-            `;
-            tbody.appendChild(tr);
+            renderStaff(); 
+        } catch (err) {
+            console.error("Erreur de chargement du personnel:", err.message);
+            // Fallback LocalStorage si erreur réseau
+            staffData = JSON.parse(localStorage.getItem('staffData')) || [];
+            renderStaff();
         }
+    }
+
+    // --- 5. PERSISTENCE SUPABASE (MODIFICATION) ---
+    async function saveChange(index) {
+        if (!currentUser) return;
+        const item = staffData[index];
+        
+        const toSave = {
+            name: item.name,
+            role: item.role,
+            salary: parseMoney(item.salary),
+            bonus: parseMoney(item.bonus),
+            photo: item.photo,
+            user_id: currentUser.id // On utilise l'ID de l'Auth
+        };
+
+        // Si l'ID existe et est un UUID
+        if (item.id && item.id.length > 20) {
+            const { error } = await _db.from('staff').update(toSave).eq('id', item.id);
+            if (error) console.error("Erreur mise à jour:", error.message);
+        } else {
+            const { data, error } = await _db.from('staff').insert([toSave]).select();
+            if (!error && data) staffData[index].id = data[0].id;
+        }
+        updateKPIs();
+    }
+
+    // --- 6. ACTIONS (CRUD) ---
+    async function addEmployee() {
+        if (!currentUser) return;
+        const newEmp = { 
+            name: "Nouveau Collaborateur", 
+            role: "Poste", 
+            salary: 0, 
+            bonus: 0,
+            user_id: currentUser.id
+        };
+
+        const { data, error } = await _db.from('staff').insert([newEmp]).select();
+        
+        if (!error && data) {
+            staffData.unshift({
+                ...data[0],
+                contractType: "CDI",
+                status: "actif",
+                id_employee: data[0].id.substring(0, 8).toUpperCase(),
+                entryDate: new Date().toISOString().split('T')[0]
+            });
+            renderStaff();
+            openModal(0);
+        } else {
+            console.error("Erreur ajout:", error?.message);
+        }
+    }
+
+    async function removeEmp(i) {
+        if(!confirm("Supprimer ce dossier ?")) return;
+        const targetId = staffData[i].id;
+        
+        const { error } = await _db.from('staff').delete().eq('id', targetId);
+        if(!error) {
+            staffData.splice(i,1);
+            renderStaff();
+        } else {
+            alert("Erreur lors de la suppression");
+        }
+    }
+
+    // --- 7. LOGIQUE DE CONFIGURATION ---
+    function updateConfig() {
+        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+        currentCurrency = config.currency || "";
+
+        if (config.darkMode) document.body.classList.add('dark-mode');
+        else document.body.classList.remove('dark-mode');
+
+        const brandName = document.querySelector('.header-flex h2');
+        if (brandName && config.name) {
+            brandName.innerHTML = `Gestion du Personnel <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
+        }
+    }
+
+    function parseMoney(val) {
+        if (val === null || val === undefined) return 0;
+        if (typeof val === 'number') return val;
+        return parseFloat(String(val).replace(/[^\d.-]/g, '')) || 0;
+    }
+
+    // --- 8. RENDU ET AFFICHAGE ---
+    function renderStaff(filter = '') {
+        const tbody = document.getElementById('staffTable');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        
+        const limit = new Date(); limit.setDate(limit.getDate() + 30);
+
+        staffData.forEach((e, i) => {
+            if(e.name.toLowerCase().includes(filter.toLowerCase())) {
+                let isWarning = (e.expiryDate && e.status === 'actif' && new Date(e.expiryDate) <= limit);
+
+                const tr = document.createElement('tr');
+                if(isWarning) tr.classList.add('expiry-warning');
+
+                tr.innerHTML = `
+                    <td>
+                        <div style="display:flex; align-items:center; gap:10px;">
+<img src="${e.photo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(e.name) + '&background=random'}" 
+     style="width:35px; height:35px; border-radius:50%; object-fit:cover;">                            <div>
+                                <div style="font-weight:600; cursor:pointer; color:var(--primary)" onclick="openModal(${i})">
+                                    ${isWarning ? '⚠️ ' : ''}${e.name}
+                                </div>
+                                <span class="contract-badge">${e.contractType || 'CDI'}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td contenteditable="true" onblur="updateField(${i},'role',this.textContent)">${e.role}</td>
+                    <td>${e.id_employee}</td>
+                    <td style="font-size:0.75rem">In: ${e.entryDate}<br><span style="color:var(--danger)">${e.expiryDate ? 'Out: '+e.expiryDate : ''}</span></td>
+                    <td><span class="status-badge ${e.status==='actif'?'active-bg':'inactive-bg'}" onclick="toggleStatus(${i})">${e.status}</span></td>
+                    <td contenteditable="true" onblur="updateField(${i},'salary',this.textContent)" style="font-weight:600">
+                        ${parseMoney(e.salary).toLocaleString()} ${currentCurrency}
+                    </td>
+                    <td contenteditable="true" onblur="updateField(${i},'bonus',this.textContent)" style="color:var(--success)">
+                        ${parseMoney(e.bonus).toLocaleString()} ${currentCurrency}
+                    </td>
+                    <td>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <button class="btn-icon" onclick="showPayslip(${i})" title="Fiche de paie">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--secondary);">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                </svg>
+                            </button>
+                            <button class="btn-icon" onclick="removeEmp(${i})" title="Supprimer">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--danger);">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                `;                tbody.appendChild(tr);
+            }
+        });
+        updateKPIs(); 
+    }
+
+    function updateField(i, k, v) {
+        staffData[i][k] = (k === 'salary' || k === 'bonus') ? parseMoney(v) : v.trim();
+        saveChange(i);
+        renderStaff(); // Optionnel : rafraîchit pour le formatage monétaire
+    }
+
+    function toggleStatus(i) {
+        staffData[i].status = (staffData[i].status === 'actif') ? 'inactif' : 'actif';
+        saveChange(i);
+        renderStaff();
+    }
+
+    // --- 9. KPIs ET GRAPHIQUES ---
+    function updateKPIs() {
+        const total = staffData.length;
+        const masse = staffData.reduce((s, e) => s + parseMoney(e.salary), 0);
+        const activeAlerts = staffData.filter(e => e.status === 'actif' && e.expiryDate).length;
+
+        if(document.getElementById('statTotal')) document.getElementById('statTotal').textContent = total;
+        if(document.getElementById('statMasse')) document.getElementById('statMasse').textContent = masse.toLocaleString() + " " + currentCurrency;
+        
+        localStorage.setItem('staffData', JSON.stringify(staffData));
+        refreshCharts();
+    }
+
+    function refreshCharts() {
+        const ctxC = document.getElementById('contractChart');
+        const ctxS = document.getElementById('salaryChart');
+        if (!ctxC || !ctxS || typeof Chart === 'undefined') return;
+
+        if (cChart) cChart.destroy();
+        if (sChart) sChart.destroy();
+
+        const counts = {};
+        staffData.forEach(e => counts[e.contractType || 'CDI'] = (counts[e.contractType || 'CDI'] || 0) + 1);
+
+        cChart = new Chart(ctxC, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(counts),
+                datasets: [{ data: Object.values(counts), backgroundColor: ['#1f3c63', '#3b82f6', '#10b981'] }]
+            },
+            options: { maintainAspectRatio: false }
+        });
+
+        const top5 = [...staffData].sort((a, b) => parseMoney(b.salary) - parseMoney(a.salary)).slice(0, 5);
+        sChart = new Chart(ctxS, {
+            type: 'bar',
+            data: {
+                labels: top5.map(e => e.name),
+                datasets: [{ label: 'Salaire', data: top5.map(e => parseMoney(e.salary)), backgroundColor: '#3b82f6' }]
+            },
+            options: { maintainAspectRatio: false }
+        });
+    }
+
+    // --- 10. MODALE DOSSIER ---
+    // --- MODALE DOSSIER ---
+function openModal(i) {
+    currentIdx = i;
+    const e = staffData[i];
+    
+    // Remplissage des champs
+    document.getElementById('editName').value = e.name || '';
+    document.getElementById('editRole').value = e.role || '';
+    document.getElementById('editContract').value = e.contractType || 'CDI';
+    document.getElementById('editID').value = e.id_employee || '';
+    document.getElementById('editEntryDate').value = e.entryDate || '';
+    document.getElementById('editExpiryDate').value = e.expiryDate || '';
+    
+    // Image de secours si placeholder échoue
+    const imgElement = document.getElementById('modalPhoto');
+    imgElement.src = e.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(e.name)}&size=100`;
+    
+    document.getElementById('employeeModal').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('employeeModal').style.display = 'none';
+}
+
+async function saveEmployeeDetails() {
+    if (currentIdx === -1) return;
+    
+    const e = staffData[currentIdx];
+    e.name = document.getElementById('editName').value;
+    e.role = document.getElementById('editRole').value;
+    e.contractType = document.getElementById('editContract').value;
+    e.id_employee = document.getElementById('editID').value;
+    e.entryDate = document.getElementById('editEntryDate').value;
+    e.expiryDate = document.getElementById('editExpiryDate').value;
+    
+    await saveChange(currentIdx);
+    closeModal(); // Utilise maintenant la fonction définie plus haut
+    renderStaff();
+}
+    function handlePhotoUpload(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('modalPhoto').src = e.target.result;
+                staffData[currentIdx].photo = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // --- 11. EXPORTS ---
+    // --- 11. FONCTIONS D'EXPORT PDF ---
+
+// A. RAPPORT SIMPLE DU PERSONNEL
+async function exportToPDF() {
+    if (!currentUser) return;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    const { data: settings } = await _db.from('settings').select('*').eq('user_id', currentUser.id).maybeSingle();
+
+    doc.setFontSize(18).setTextColor(31, 60, 99).text(settings?.company_name || "MONITEO", 14, 20);
+    doc.setFontSize(10).setTextColor(100).text(`Rapport Personnel - ${new Date().toLocaleDateString()}`, 14, 28);
+
+    const body = staffData.map(e => [
+        e.name, 
+        e.role, 
+        e.status.toUpperCase(), 
+        `${parseMoney(e.salary).toLocaleString()} ${currentCurrency}`
+    ]);
+    
+    doc.autoTable({
+        startY: 35,
+        head: [['Nom', 'Poste', 'Statut', 'Salaire']],
+        body: body,
+        headStyles: { fillColor: [31, 60, 99] },
+        theme: 'striped'
     });
 
-    document.getElementById('totalSales').textContent = totalS.toLocaleString() + " " + currentCurrency;
-    document.getElementById('totalProfit').textContent = totalP.toLocaleString() + " " + currentCurrency;
-    document.getElementById('totalQuantity').textContent = totalQ;
-    updateCharts();
-}
-    // --- 4. GESTION DES ACTIONS (MERGE) ---
-    async function handleSelectProduct(index, select) {
-    const val = select.value;
-    const oldProduct = salesData[index].product;
-    const oldQty = parseInt(salesData[index].qty) || 0;
-
-    if (oldProduct && !salesData[index].is_hors_stock) {
-        await adjustInventoryStock(oldProduct, oldQty);
-    }
-
-    if (val === "HORS_STOCK") {
-        document.getElementById('modalRowIndex').value = index;
-        document.getElementById('modalHorsStock').style.display = 'flex';
-    } else {
-        const item = inventoryData.find(i => i.product === val);
-        if (item) {
-            await adjustInventoryStock(item.product, -1);
-            
-            const updates = { 
-                product: item.product, 
-                buy_price: parseFloat(item.buy_price) || 0, // On injecte le prix d'achat ici
-                sell_price: parseFloat(item.sell_price) || 0, 
-                qty: 1,
-                is_hors_stock: false 
-            };
-
-            const { error } = await _db.from('sales').update(updates).eq('id', salesData[index].id);
-            
-            if (error) {
-                console.error("Erreur:", error.message);
-            } else {
-                await fetchData(); // Force la recharge pour mettre à jour salesData localement
-            }
-        }
-    }
+    doc.save("Rapport_Personnel.pdf");
 }
 
-    async function handleQtyChange(index, el) {
-        const newQty = parseInt(el.innerText) || 0;
-        const oldQty = parseInt(el.oldValue) || 0;
-        const diff = oldQty - newQty; // Si on augmente la vente (ex: 1 vers 3), diff = -2 (on retire 2 du stock)
-
-        if (diff !== 0) {
-            // Mettre à jour la base de données
-            await updateSupabaseRow(salesData[index].id, { qty: newQty });
-            
-            // Ajuster le stock si ce n'est pas du hors stock
-            if (!salesData[index].is_hors_stock) {
-                await adjustInventoryStock(salesData[index].product, diff);
-            }
-            await fetchData();
-        }
-    }
-
-    async function saveHorsStock() {
-    const index = document.getElementById('modalRowIndex').value;
-    const productName = document.getElementById('hsName').value; // Ex: "Pain"
-    
-    const updates = {
-        product: productName,
-        buy_price: parseFloat(document.getElementById('hsBuy').value) || 0,
-        sell_price: parseFloat(document.getElementById('hsSell').value) || 0,
-        qty: 1,
-        is_hors_stock: true
-    };
-
-    const { error } = await _db.from('sales').update(updates).eq('id', salesData[index].id);
-    
-    if (error) {
-        console.error("Erreur Hors Stock:", error.message);
-    } else {
-        document.getElementById('modalHorsStock').style.display = 'none';
-        await fetchData(); // Recharge tout pour mettre à jour l'affichage
-    }
-}
-
-    // --- 5. FONCTIONS SUPABASE ---
-    async function updateField(index, field, el) {
-    let val = el.innerText.trim();
-    const rowId = salesData[index].id;
-
-    // Conversion numérique si nécessaire
-    if (field === 'sell_price' || field === 'buy_price') {
-        val = parseFloat(val.replace(',', '.')) || 0;
-    }
-    if (field === 'qty') {
-        val = parseInt(val) || 0;
-    }
-
-    const { error } = await _db.from('sales')
-        .update({ [field]: val })
-        .eq('id', rowId);
-
-    if (error) {
-        console.error("Erreur de mise à jour:", error.message);
-        el.style.color = "red"; // Indicateur visuel d'erreur
-    } else {
-        el.style.color = "inherit";
-        // Mettre à jour la donnée locale pour les calculs de profit
-        salesData[index][field] = val;
-        renderTable(); 
-    }
-}
-    async function updateSupabaseRow(id, updates) {
-        const { error } = await _db.from('sales').update(updates).eq('id', id);
-        if (error) console.error("Update error:", error);
-    }
-
-    async function addRow() {
-    // On insère le minimum requis pour créer la ligne
-    // Supabase générera l'ID automatiquement
-    const { data, error } = await _db.from('sales').insert([{ 
-        date: new Date().toISOString().split('T')[0],
-        product: '',
-        qty: 0,
-        buy_price: 0,
-        sell_price: 0,
-        is_hors_stock: false
-    }]).select();
-
-    if (error) {
-        console.error("Erreur insertion sales:", error.message);
-        alert("Erreur lors de la création de la vente : " + error.message);
-    } else {
-        // Recharger les données pour afficher la nouvelle ligne avec son ID
-        await fetchData();
-    }
-}
-    async function deleteSelectedRow() {
-        const checks = document.querySelectorAll('.row-check:checked');
-        if (checks.length === 0 || !confirm("Supprimer ? Le stock sera rendu.")) return;
-
-        for (let check of checks) {
-            const id = check.getAttribute('data-id');
-            const sale = salesData.find(s => s.id == id);
-            
-            // Rendre le stock avant suppression
-            if (sale && sale.product && !sale.is_hors_stock) {
-                await adjustInventoryStock(sale.product, parseInt(sale.qty));
-            }
-            await _db.from('sales').delete().eq('id', id);
-        }
-        await fetchData();
-    }
-
-    // --- 6. GRAPHIQUES ---
-    function updateCharts() {
-        const ctxS = document.getElementById('salesChart')?.getContext('2d');
-        const ctxP = document.getElementById('profitChart')?.getContext('2d');
-        if(!ctxS || !ctxP) return;
-
-        if(salesChart) salesChart.destroy();
-        if(profitChart) profitChart.destroy();
-
-        const lastFive = salesData.slice(0, 5).reverse();
-        const labels = lastFive.map(s => s.product || "...");
-        const dataVentes = lastFive.map(s => (s.sell_price || 0) * (s.qty || 0));
-        const dataProfit = lastFive.map(s => ((s.sell_price || 0) - (s.buy_price || 0)) * (s.qty || 0));
-
-        salesChart = new Chart(ctxS, { type: 'bar', data: { labels, datasets: [{ label: 'Ventes', data: dataVentes, backgroundColor: '#3b82f6' }] }, options: { responsive: true } });
-        profitChart = new Chart(ctxP, { type: 'line', data: { labels, datasets: [{ label: 'Profit', data: dataProfit, borderColor: '#10b981', fill: true, backgroundColor: 'rgba(16, 185, 129, 0.1)' }] }, options: { responsive: true } });
-    }
-
-    document.addEventListener('DOMContentLoaded', init);
-    // Ajoute ces petites fonctions utilitaires si elles ne sont pas déjà dans ton JS principal
-    function closeModal() {
-        document.getElementById('modalHorsStock').style.display = 'none';
-        // Reset des champs
-        document.getElementById('hsName').value = '';
-        document.getElementById('hsBuy').value = '0';
-        document.getElementById('hsSell').value = '0';
-    }
-
-    function toggleSelectAll(master) {
-        const checkboxes = document.querySelectorAll('.row-check');
-        checkboxes.forEach(cb => cb.checked = master.checked);
-    }
-    async function exportSalesPDF() {
-    if (!currentUser) {
-        alert("Erreur : Utilisateur non identifié.");
-        return;
-    }
-
+// B. DASHBOARD COMPLET (SANTÉ DE L'ENTREPRISE)
+async function exportDashboardPDF() {
+    if (!currentUser) return;
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // 1. Récupération des infos complètes de l'entreprise
-    const { data: settings } = await _db
-        .from('settings')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .maybeSingle();
+    const { data: settings } = await _db.from('settings').select('*').eq('user_id', currentUser.id).maybeSingle();
+    const companyName = settings?.company_name || "MONITEO PRO";
 
-    const bizName = settings?.company_name || "MONITEO PRO";
-    const bizAddress = settings?.address || "Rapport détaillé des ventes";
-    const bizLogo = settings?.logo_url || null;
-
-    // --- EN-TÊTE (Design Dashboard) ---
-    if (bizLogo) {
-        try {
-            doc.addImage(bizLogo, 'PNG', 14, 10, 25, 25);
-        } catch (e) { console.error("Erreur logo PDF", e); }
+    // En-tête
+    if (settings?.logo_url) {
+        try { doc.addImage(settings.logo_url, 'PNG', 14, 10, 25, 25); } catch(e) {}
     }
+    doc.setFontSize(18).setTextColor(31, 60, 99).text(companyName.toUpperCase(), settings?.logo_url ? 45 : 14, 20);
+    doc.setFontSize(9).setTextColor(100).text(settings?.address || "Rapport d'activité", settings?.logo_url ? 45 : 14, 26);
 
-    doc.setFontSize(18);
-    doc.setTextColor(31, 60, 99); // Bleu primaire
-    doc.text(bizName.toUpperCase(), bizLogo ? 45 : 14, 20);
-    
-    doc.setFontSize(9);
-    doc.setTextColor(100);
-    doc.text(bizAddress, bizLogo ? 45 : 14, 26);
-    doc.text(`Rapport généré le : ${new Date().toLocaleString('fr-FR')}`, bizLogo ? 45 : 14, 31);
-
-    // --- SECTION 1 : RÉSUMÉ DES VENTES (KPIs) ---
-    doc.setFontSize(14);
-    doc.setTextColor(31, 60, 99);
-    doc.text("RÉSUMÉ DE LA PÉRIODE", 14, 45);
-
-    const totalVentes = document.getElementById('totalSales')?.textContent || "0";
-    const totalProfit = document.getElementById('totalProfit')?.textContent || "0";
-    const totalQty = document.getElementById('totalQuantity')?.textContent || "0";
+    // Section KPI
+    doc.setFontSize(14).text("RÉSUMÉ FINANCIER", 14, 45);
+    const ca = document.getElementById('statTotal')?.textContent || "0"; // Adapté à tes IDs staff
+    const masse = document.getElementById('statMasse')?.textContent || "0";
 
     doc.autoTable({
         startY: 50,
         head: [['Indicateur', 'Valeur']],
+        body: [['Effectif Total', staffData.length], ['Masse Salariale', masse]],
+        headStyles: { fillColor: [31, 60, 99] }
+    });
+
+    // Graphiques
+    let finalY = doc.lastAutoTable.finalY + 15;
+    try {
+        const canvasSalary = document.getElementById('salaryChart');
+        if (canvasSalary) {
+            const img = canvasSalary.toDataURL('image/png', 1.0);
+            doc.addImage(img, 'PNG', 14, finalY, 180, 60);
+        }
+    } catch (e) { console.error("Erreur graphiques", e); }
+
+    doc.save(`Dashboard_${companyName.replace(/\s+/g, '_')}.pdf`);
+}
+
+// C. BULLETIN DE PAIE (FICHE DE PAIE INDIVIDUELLE)
+async function downloadPayslipPDF() {
+    if (!currentUser) return;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // 1. Infos entreprise (depuis Supabase)
+    const { data: settings } = await _db.from('settings').select('*').eq('user_id', currentUser.id).maybeSingle();
+    
+    // 2. Infos employé (depuis la modale ouverte)
+    const name = document.getElementById('psName').innerText;
+    const role = document.getElementById('psRole').innerText;
+    const idSimplifie = document.getElementById('psID').innerText;
+    const period = document.getElementById('psDate').innerText;
+    const salaryTxt = document.getElementById('psSalary').innerText;
+    const bonusTxt = document.getElementById('psBonus').innerText;
+    const totalTxt = document.getElementById('psTotal').innerText;
+
+    // Mise en page Bulletin
+    if (settings?.logo_url) {
+        try { doc.addImage(settings.logo_url, 'PNG', 14, 10, 22, 22); } catch (e) {}
+    }
+
+    // En-tête entreprise
+    doc.setFont("helvetica", "bold").setFontSize(16).setTextColor(31, 60, 99);
+    doc.text(settings?.company_name || "MONITEO", 40, 18);
+    doc.setFontSize(8).setFont("helvetica", "normal").setTextColor(100);
+    doc.text(settings?.address || "", 40, 23);
+    doc.text(`Tél: ${settings?.phone || ""}`, 40, 27);
+
+    // Titre
+    doc.setFontSize(14).setTextColor(0).text("BULLETIN DE PAIE", 105, 45, { align: 'center' });
+    doc.setDrawColor(31, 60, 99).line(14, 48, 196, 48);
+
+    // Infos Employé
+    doc.setFontSize(10).text(`NOM : ${name}`, 14, 58);
+    doc.text(`POSTE : ${role}`, 14, 64);
+    doc.text(`PÉRIODE : ${period}`, 14, 70);
+    doc.text(`MATRICULE : ${idSimplifie}`, 130, 58);
+
+    // Tableau des montants
+    doc.autoTable({
+        startY: 80,
+        head: [['DÉSIGNATION', 'MONTANT']],
         body: [
-            ['Chiffre d\'Affaires (CA)', totalVentes],
-            ['Marge Bénéficiaire Totale', totalProfit],
-            ['Volume de produits vendus', totalQty]
+            ['Salaire de Base', salaryTxt],
+            ['Primes et Bonus', bonusTxt],
+            [{ content: 'TOTAL NET À PAYER', styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }, 
+             { content: totalTxt, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }]
         ],
         theme: 'grid',
         headStyles: { fillColor: [31, 60, 99] },
-        styles: { fontSize: 10 }
+        columnStyles: { 1: { halign: 'right' } }
     });
 
-    // --- SECTION 2 : GRAPHIQUES ---
-    let finalY = doc.lastAutoTable.finalY + 15;
-    doc.setFontSize(14);
-    doc.text("ANALYSES GRAPHIQUES", 14, finalY);
+    // Signatures
+    const finalY = doc.lastAutoTable.finalY + 30;
+    doc.setFontSize(9).text("Signature Employeur", 14, finalY);
+    doc.text("Signature Collaborateur", 140, finalY);
+    doc.setDrawColor(200).line(14, finalY + 15, 60, finalY + 15);
+    doc.line(140, finalY + 15, 186, finalY + 15);
 
-    try {
-        // Graphique des Ventes (Barres)
-        const canvasSales = document.getElementById('salesChart');
-        if (canvasSales) {
-            const imgSales = canvasSales.toDataURL('image/png', 1.0);
-            doc.addImage(imgSales, 'PNG', 14, finalY + 5, 90, 50);
-        }
-
-        // Graphique du Profit (Ligne)
-        const canvasProfit = document.getElementById('profitChart');
-        if (canvasProfit) {
-            const imgProfit = canvasProfit.toDataURL('image/png', 1.0);
-            doc.addImage(imgProfit, 'PNG', 110, finalY + 5, 80, 50);
-        }
-    } catch (e) {
-        console.warn("Graphiques indisponibles");
-    }
-
-    // --- SECTION 3 : TABLEAU DÉTAILLÉ ---
-    // On passe à une nouvelle page si le tableau est long
-    doc.addPage();
-    doc.setFontSize(14);
-    doc.setTextColor(31, 60, 99);
-    doc.text("LISTE DÉTAILLÉE DES TRANSACTIONS", 14, 20);
-
-    const tableBody = salesData.map(s => {
-        const buy = parseFloat(s.buy_price || 0);
-        const sell = parseFloat(s.sell_price || 0);
-        const qty = parseInt(s.qty || 0);
-        const prof = (sell - buy) * qty;
-        return [
-            s.date || '-',
-            s.product || 'Inconnu',
-            qty,
-            `${sell.toLocaleString()} ${currentCurrency}`,
-            `${prof.toLocaleString()} ${currentCurrency}`
-        ];
-    });
-
-    doc.autoTable({
-        startY: 25,
-        head: [['Date', 'Produit', 'Qté', 'Prix Vente', 'Profit']],
-        body: tableBody,
-        headStyles: { fillColor: [59, 130, 246] }, // Bleu secondaire
-        foot: [[ '', 'TOTAUX', totalQty, totalVentes, totalProfit ]],
-        footStyles: { fillColor: [240, 240, 240], textColor: [0,0,0], fontStyle: 'bold' }
-    });
-
-    // --- PIED DE PAGE ---
-    const pageCount = doc.internal.getNumberOfPages();
-    for(let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(150);
-        doc.text(`Moniteo Umbrella - Page ${i} / ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
-    }
-
-    doc.save(`Rapport_Ventes_${bizName.replace(/\s+/g, '_')}.pdf`);
+    doc.save(`Fiche_Paie_${name.replace(/\s+/g, '_')}.pdf`);
 }
-function exportExcel() {
-    if (salesData.length === 0) {
-        alert("Aucune donnée à exporter.");
-        return;
+    function exportToExcel() {
+        const worksheet = XLSX.utils.json_to_sheet(staffData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Staff");
+        XLSX.writeFile(workbook, "Export_Staff.xlsx");
     }
 
-    // Préparation des données pour Excel
-    const dataToExport = salesData.map(s => ({
-        Date: s.date,
-        Produit: s.product,
-        Quantité: s.qty,
-        "Prix Achat": s.buy_price,
-        "Prix Vente": s.sell_price,
-        Total: s.qty * s.sell_price,
-        Profit: (s.sell_price - s.buy_price) * s.qty
-    }));
+    // --- 12. PAYS LIP (FICHE DE PAIE) ---
+    function showPayslip(i) {
+        const e = staffData[i];
+        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+        const sal = parseMoney(e.salary);
+        const bon = parseMoney(e.bonus);
 
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Ventes");
+        document.getElementById('psCompany').innerText = config.name || "MONITEO";
+        document.getElementById('psName').innerText = e.name;
+        document.getElementById('psRole').innerText = e.role;
+        document.getElementById('psID').innerText = e.id_employee;
+        document.getElementById('psSalary').innerText = sal.toLocaleString() + " " + currentCurrency;
+        document.getElementById('psBonus').innerText = bon.toLocaleString() + " " + currentCurrency;
+        document.getElementById('psTotal').innerText = (sal + bon).toLocaleString() + " " + currentCurrency;
+        document.getElementById('psDate').innerText = new Date().toLocaleDateString('fr-FR', {month: 'long', year: 'numeric'});
 
-    // Téléchargement
-    XLSX.writeFile(workbook, `Ventes_Moniteo_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
-async function undo() {
-    if (confirm("Annuler les modifications non enregistrées et rafraîchir la liste ?")) {
-        await fetchData(); // Recharge simplement les données depuis Supabase
+        document.getElementById('payslipModal').style.display = 'flex';
     }
-}
-async function closeDay() {
-    const totalVentes = document.getElementById('totalSales').textContent;
-    const totalProfit = document.getElementById('totalProfit').textContent;
-    
-    if (confirm(`--- CLÔTURE DU JOUR ---\nTotal Ventes : ${totalVentes}\nProfit : ${totalProfit}\n\nVoulez-vous clôturer et générer le rapport PDF ?`)) {
-        await exportSalesPDF(); // Appelle ta fonction PDF déjà créée
-        alert("Journée clôturée avec succès !");
-    }
-}
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const mainContent = document.getElementById('mainContent');
-    
-    sidebar.classList.toggle('collapsed');
-    
-    // Optionnel : Sauvegarder l'état dans le navigateur
-    const isCollapsed = sidebar.classList.contains('collapsed');
-    localStorage.setItem('sidebarStatus', isCollapsed ? 'collapsed' : 'expanded');
-}
 
-// Au chargement de la page, appliquer l'état sauvegardé
-window.addEventListener('DOMContentLoaded', () => {
-    const status = localStorage.getItem('sidebarStatus');
-    const sidebar = document.getElementById('sidebar');
-    if (status === 'collapsed') {
-        sidebar.classList.add('collapsed');
-    }
-});
+    function closePayslip() { document.getElementById('payslipModal').style.display = 'none'; }
+    function downloadPayslipPDF() { /* Ta fonction jsPDF existante pour le bulletin */ window.print(); }
+
+    // Démarrage
+    document.addEventListener('DOMContentLoaded', init);
+    function closeModal() {
+    document.getElementById('employeeModal').style.display = 'none';
+}
 </script>
-</body>
+	</body>
 </html>
