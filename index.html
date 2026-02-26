@@ -3,411 +3,421 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moniteo Umbrella - Login</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>Moniteo Umbrella | Portail SaaS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js"></script>
-    <style>
-    /* ===== CONFIGURATION DES VARIABLES ===== */
-    :root {
-        --primary: #3b82f6;
-        --primary-hover: #2563eb;
-        --text-main: #ffffff;
-        --text-dim: #94a3b8;
-        --glass-bg: rgba(255, 255, 255, 0.07); /* Plus léger pour voir les vagues */
-        --glass-border: rgba(255, 255, 255, 0.15);
-    }
-
-    /* ===== GLOBAL - OPTIMISÉ POUR VANTA ===== */
-    body {
-        margin: 0; 
-        font-family: "Inter", sans-serif; 
-        min-height: 100vh; 
-        display: flex; 
-        flex-direction: column;
-        color: var(--text-main); 
-        position: relative;
-        overflow-x: hidden;
-        background-color: #0f172a; /* Couleur de secours pendant le chargement */
-    }
-
-    /* On désactive l'ancien background radial et le ::before pour laisser place à Vanta */
-    body::before {
-        display: none !important;
-    }
-
-    /* ===== MISE EN PAGE ===== */
-    .container { 
-        display: flex; 
-        flex: 1; 
-        z-index: 10; /* Augmenté pour être au-dessus du canvas Vanta */
-        width: 100%; 
-        max-width: 1200px; 
-        margin: 0 auto;
-        justify-content: space-around; 
-        align-items: center; 
-        padding: 2rem; 
-        box-sizing: border-box;
-    }
-
-    /* ===== SECTION MARKETING ===== */
-    .marketing { flex: 1; padding: 2rem; }
-    .marketing h1 { 
-        font-size: 3.2rem; 
-        margin-bottom: 1.5rem; 
-        font-weight: 800; 
-        line-height: 1.1;
-        letter-spacing: -1px;
-        background: linear-gradient(to bottom right, #fff, #94a3b8);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-    .marketing p { font-size: 1.25rem; line-height: 1.7; max-width: 480px; color: var(--text-dim); }
-
-    /* ===== CARTE DE CONNEXION (GLASSMORPHISM) ===== */
-    .login-container {
-    background: var(--glass-bg); 
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    padding: 3rem; 
-    border-radius: 30px;
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.4); 
-    width: 100%; 
-    max-width: 420px; 
-    text-align: center;
-    box-sizing: border-box;
-    z-index: 20;
-}
-
-/* --- LOGO AGRANDI --- */
-.login-container img { 
-    width: 160px; /* Taille augmentée de 90px à 160px */
-    height: auto; 
-    margin-top: -1rem; /* On le remonte légèrement pour équilibrer */
-    margin-bottom: 2rem; /* Plus d'espace sous le logo */
-    filter: drop-shadow(0 12px 20px rgba(0,0,0,0.4));
-    transition: transform 0.3s ease; /* Petit effet au survol */
-}
-
-.login-container img:hover {
-    transform: scale(1.05); /* Le logo s'anime légèrement quand on passe dessus */
-}
-
-.login-container h2 { 
-    margin-top: 0; 
-    font-size: 1.8rem; 
-    font-weight: 700; 
-    color: #fff; 
-}
-
-    /* ===== FORMULAIRE ===== */
-    input {
-        width: 100%; 
-        padding: 1.1rem; 
-        margin-bottom: 1.2rem; 
-        border-radius: 16px;
-        background: rgba(0, 0, 0, 0.3); /* Plus sombre pour la lisibilité sur les vagues */
-        border: 1px solid var(--glass-border); 
-        color: #fff;
-        font-size: 1rem; 
-        box-sizing: border-box; 
-        outline: none; 
-        transition: all 0.3s ease;
-    }
-    input:focus { 
-        border-color: var(--primary); 
-        background: rgba(0, 0, 0, 0.5);
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2); 
-    }
-
-    button {
-        width: 100%; 
-        padding: 1.1rem; 
-        margin-bottom: 1rem; 
-        border: none; 
-        border-radius: 16px;
-        background: var(--primary); 
-        color: #fff; 
-        font-weight: 700; 
-        font-size: 1rem;
-        cursor: pointer; 
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Effet ressort */
-        box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
-    }
-    button:hover { 
-        background: var(--primary-hover); 
-        transform: translateY(-3px); 
-        box-shadow: 0 15px 30px rgba(59, 130, 246, 0.4);
-    }
-
-    /* SECTIONS DÉROULANTES */
-    #otpSection, #adminSection { 
-        display: none; 
-        border-top: 1px solid var(--glass-border); 
-        padding-top: 1.5rem; 
-        margin-top: 1rem; 
-    }
     
-    .flex-row { display: flex; gap: 12px; }
-    .flex-row input { flex: 2; margin-bottom: 0; }
-    .flex-row button { flex: 1; margin-bottom: 0; font-size: 0.9rem; background: rgba(255,255,255,0.1); }
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-    /* FOOTER & TOAST */
-    footer { z-index: 10; padding: 40px 10px; text-align: center; font-size: 0.85rem; color: var(--text-dim); }
-    footer a { color: #fff; text-decoration: none; margin: 0 10px; opacity: 0.6; }
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-body: #f1f5f9;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 12px;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
 
-    #dailyToast {
-        display:none; position: fixed; bottom: 30px; right: 30px; 
-        background: rgba(15, 23, 42, 0.9); color: #fff; padding: 16px 24px; 
-        border-radius: 20px; border: 1px solid var(--glass-border);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); 
-        z-index: 10000; backdrop-filter: blur(10px);
-    }
-/* ===== FOOTER MIS À JOUR ===== */
-.main-footer {
-    z-index: 10;
-    padding: 40px 20px;
-    margin-top: auto; /* Pousse le footer vers le bas */
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    background: rgba(15, 23, 42, 0.3);
-    backdrop-filter: blur(5px);
+        * { box-sizing: border-box; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif; background: var(--bg-body); color: var(--text-main); }
+
+        .saas-wrapper { display: flex; height: 100vh; width: 100vw; }
+
+        /* --- CÔTÉ GAUCHE (BRANDING) --- */
+        .vanta-side {
+            flex: 1.4;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            padding: 4rem;
+        }
+
+        .vanta-content { z-index: 2; max-width: 520px; }
+        .vanta-content h1 { font-size: 3.5rem; font-weight: 800; margin-bottom: 1.5rem; line-height: 1; letter-spacing: -0.02em; }
+        .vanta-content p { font-size: 1.25rem; opacity: 0.85; line-height: 1.6; font-weight: 300; }
+
+        /* --- CÔTÉ DROIT (FORMULAIRE) --- */
+        .form-side {
+            flex: 1;
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .login-box { 
+            width: 100%; 
+            max-width: 420px; 
+            padding: 2.5rem;
+            border-radius: var(--radius);
+            /* Suppression de l'ombre ici si tu veux un look puriste, ou ajout pour relief */
+        }
+
+        .logo-saas { width: 160px; margin-bottom: 2rem; display: block; }
+
+        h2 { font-size: 1.85rem; font-weight: 700; margin: 0 0 0.5rem 0; letter-spacing: -0.01em; }
+        .subtitle { color: var(--text-muted); margin-bottom: 2rem; font-size: 1rem; }
+
+        /* Chaps de saisie style Facebook/Modern */
+        .input-group { margin-bottom: 1.5rem; position: relative; }
+        .input-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        
+        label { font-size: 0.875rem; font-weight: 600; color: var(--text-main); }
+        
+        input {
+            width: 100%; 
+            padding: 0.9rem 1rem; 
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius); 
+            font-size: 1rem; 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #ffffff;
+            color: var(--text-main);
+        }
+
+        input:focus { 
+            outline: none; 
+            border-color: var(--primary); 
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+            background: #fff;
+        }
+
+        /* Wrapper pour l'œil du password */
+        .password-wrapper { position: relative; }
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            padding: 5px;
+            color: var(--text-muted);
+            transition: color 0.2s;
+        }
+        .toggle-password:hover { color: var(--primary); }
+
+        .btn-primary {
+            width: 100%; 
+            padding: 1rem; 
+            background: var(--primary); 
+            color: white;
+            border: none; 
+            border-radius: var(--radius); 
+            font-weight: 700; 
+            font-size: 1.05rem;
+            cursor: pointer; 
+            transition: all 0.2s; 
+            margin-top: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3); }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-primary:disabled { background: var(--text-muted); cursor: not-allowed; transform: none; }
+
+        .forgot-link { font-size: 0.85rem; color: var(--primary); cursor: pointer; font-weight: 600; text-decoration: none; }
+        .forgot-link:hover { text-decoration: underline; }
+
+        .divider { margin: 1.5rem 0; border-bottom: 1px solid var(--border); }
+
+        .footer-note { text-align: center; margin-top: 1.5rem; font-size: 0.95rem; color: var(--text-muted); }
+        .footer-note span { color: var(--primary); cursor: pointer; font-weight: 700; }
+
+        @media (max-width: 1024px) { 
+            .vanta-side { display: none; } 
+            .form-side { flex: 1; background: var(--bg-body); }
+            .login-box { background: white; box-shadow: var(--shadow); }
+        }
+        @keyframes nameEntry {
+    0% { opacity: 0; transform: translateY(5px); filter: blur(2px); }
+    100% { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 
-.footer-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
+.name-animate {
+    display: inline-block;
+    animation: nameEntry 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 }
-
-.copyright {
-    font-size: 0.85rem;
-    color: var(--text-dim);
-    letter-spacing: 0.5px;
-}
-
-.copyright strong {
-    color: #fff;
-    font-weight: 600;
-}
-
-.footer-links {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-.footer-link {
-    color: var(--text-dim);
-    text-decoration: none;
-    font-size: 0.85rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    border-bottom: 1px solid transparent;
-}
-
-.footer-link:hover {
-    color: #fff;
-
-}
-
-.separator {
-    color: rgba(255, 255, 255, 0.1);
-    font-size: 0.8rem;
-}
-
-/* Ajustement mobile */
-@media (max-width: 480px) {
-    .footer-links {
-        flex-direction: column;
-        gap: 10px;
-    }
-    .separator {
-        display: none;
-    }
-}
-    /* ===== RESPONSIVE ===== */
-    @media (max-width: 992px) {
-        .container { flex-direction: column; padding: 5rem 1.5rem; text-align: center; }
-        .marketing { margin-bottom: 3rem; }
-        .marketing p { margin: 0 auto; }
-    }
-</style>
+    </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="marketing">
-        <h1 id="dynamicTitle">Suivez en temps réel votre business</h1>
-        <p>Moniteo by Umbrella vous permet de piloter vos ventes, votre inventaire et vos KPI de manière sécurisée et fluide.</p>
+<div class="saas-wrapper">
+    <div class="vanta-side" id="vanta-bg">
+        <div class="vanta-content">
+            <h1>Pilotez votre croissance.</h1>
+            <p>Une interface sécurisée pour maîtriser vos KPI, vos ventes et votre inventaire en temps réel avec Moniteo.</p>
+        </div>
     </div>
 
-    <div class="login-container">
-        <img src="https://oysdycuouodarfkmdtop.supabase.co/storage/v1/object/public/LOGO/Moniteo-1-removebg-preview.png" alt="Logo">
-        <h2>Connexion</h2>
-        <p>Dashboard sécurisé</p>
+    <div class="form-side">
+        <div class="login-box">
+            <img src="https://oysdycuouodarfkmdtop.supabase.co/storage/v1/object/public/LOGO/Moniteo-20260115-205657-0000-removebg-preview.png" class="logo-saas" alt="Moniteo Logo">
+            
+            <div id="auth-container">
+                <div id="login-view">
+                    <h2>Bon retour !</h2>
+             <p class="subtitle">Accédez à votre espace <b id="dynamic-company">votre entreprise</b>.</p>                    
+                    <div class="input-group">
+                        <label>Adresse Email</label>
+                        <input type="email" id="loginEmail" placeholder="nom@entreprise.com" onblur="AppAuth.detectCompanyByEmail(this.value)">
+                    </div>
+                    
+                    <div class="input-group">
+                        <div class="input-header">
+                            <label>Mot de passe</label>
+                            <span class="forgot-link" onclick="AppAuth.handleForgotPassword()">Oublié ?</span>
+                        </div>
+                        <div class="password-wrapper">
+                            <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+                            <i data-lucide="eye" class="toggle-password" onclick="AppAuth.togglePassword('loginPass', this)"></i>
+                        </div>
+                    </div>
 
-        <input type="email" id="loginEmail" placeholder="Votre email" required>
-        <button id="sendOTP">Recevoir le code par email</button>
-        <div id="msg"></div>
+                    <button class="btn-primary" id="btnLogin" onclick="AppAuth.handleLogin()">Se connecter</button>
+                    
+                    <p class="footer-note">Nouveau ici ? <span onclick="AppAuth.toggleView(true)">Créer un compte</span></p>
+                </div>
 
-        <div id="otpSection">
-            <div class="flex-row">
-                <input type="text" id="otpInput" placeholder="Code OTP">
-                <button id="verifyOTP">Vérifier</button>
+                <div id="register-view" style="display:none;">
+                    <h2>Démarrer Moniteo</h2>
+                    <p class="subtitle">Créez votre instance SaaS en 1 minute.</p>
+                    
+                    <div class="input-group">
+                        <label>Email Professionnel</label>
+                        <input type="email" id="regEmail" placeholder="nom@expert.com">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Mot de passe</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="regPass" placeholder="Minimum 6 caractères">
+                            <i data-lucide="eye" class="toggle-password" onclick="AppAuth.togglePassword('regPass', this)"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Nom de l'Entreprise</label>
+                        <input type="text" id="compName" placeholder="Ex: MakMus SARL">
+                    </div>
+                    
+                    <button class="btn-primary" id="btnReg" onclick="AppAuth.handleRegister()">Créer mon accès</button>
+                    <p class="footer-note">Déjà inscrit ? <span onclick="AppAuth.toggleView(false)">Se connecter</span></p>
+                </div>
             </div>
-            <div id="otpMsg"></div>
         </div>
     </div>
 </div>
 
-<div id="dailyToast">
-    <span style="opacity: 0.8;">Clé session (4h) :</span> 
-    <b id="toastCode" style="margin-left: 8px; color: #60a5fa; letter-spacing: 1px;"></b>
-</div>
-
-<footer class="main-footer">
-    <div class="footer-content">
-        <span class="copyright">&copy; 2026 <strong>Moniteo</strong> by Umbrella</span>
-        <div class="footer-links">
-            <a href="mentions.html" class="footer-link">Mentions légales & CGU</a>
-            <span class="separator">|</span>
-            <a href="confidentialite.html" class="footer-link">Confidentialité</a>
-            <span class="separator">|</span>
-            <a href="aide.html" class="footer-link">Centre d'aide</a>
-            <span class="separator">|</span>
-            <a href="mailto:support@umbrella-moniteo.com" class="footer-link">Support technique</a>
-        </div>
-    </div>
-</footer>
-
-<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // --- 1. CONFIGURATION ---
-    const SUPABASE_URL = 'https://oysdycuouodarfkmdtop.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k';
-    const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const AppAuth = {
+    config: {
+        url: 'https://oysdycuouodarfkmdtop.supabase.co',
+        key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k',
+        target: 'dashboard.html',
+        login: 'index.html'
+    },
 
-    emailjs.init('aXnSd5I8CQ596HHFa');
+    async init() {
+        if (!this.db) {
+            this.db = supabase.createClient(this.config.url, this.config.key);
+        }
+        this.runVanta();
+        this.initIcons();
 
-    const COOLDOWN_TIME = 60;
-    let generatedOTP = '';
-    let cooldown = false;
+        try {
+            const { data: { session }, error } = await this.db.auth.getSession();
+            if (error) await this.db.auth.signOut();
+        } catch (e) { console.error(e); }
 
-    // --- 2. INITIALISATION ---
-    window.addEventListener('DOMContentLoaded', () => {
-        VANTA.WAVES({
-            el: "body",
-            mouseControls: true,
-            touchControls: true,
-            color: 0x0f172a,
-            waveHeight: 29.50,
-            waveSpeed: 0.80,
-            zoom: 0.85
+        // Récupération du nom stocké au démarrage
+        const savedName = localStorage.getItem('moniteo_comp_name');
+        if (savedName) {
+            this.updateDynamicName(savedName);
+        }
+        
+        // Ajout de l'écouteur en temps réel pour le champ d'inscription
+        this.setupLiveRegistrationBranding();
+        
+        this.setupAuthObserver();
+    },
+
+    initIcons() { lucide.createIcons(); },
+
+    setupAuthObserver() {
+        this.db.auth.onAuthStateChange((event, session) => {
+            if (session && (window.location.pathname.includes(this.config.login) || window.location.pathname.endsWith('/'))) {
+                window.location.replace(this.config.target);
+            }
         });
-    });
+    },
 
-    // --- 3. ETAPE 1 : ENVOI DU CODE OTP VIA EMAILJS ---
-    document.getElementById('sendOTP').addEventListener('click', async function() {
-        if(cooldown) return;
+    // --- DETECTION LIVE PENDANT L'INSCRIPTION ---
+    setupLiveRegistrationBranding() {
+        const compInput = document.getElementById('compName');
+        if (compInput) {
+            compInput.addEventListener('input', (e) => {
+                const val = e.target.value.trim();
+                if (val.length > 0) {
+                    this.updateDynamicName(val);
+                } else {
+                    this.updateDynamicName("votre entreprise");
+                }
+            });
+        }
+    },
+
+    // --- DETECTION PAR EMAIL (CONNEXION) ---
+    async detectCompanyByEmail(email) {
+        if (!email.includes('@') || email.length < 5) return;
+        try {
+            // Note: settings_public doit être une vue ou table autorisée en lecture publique
+            const { data, error } = await this.db
+                .from('settings_public') 
+                .select('company_name')
+                .eq('user_email', email)
+                .single();
+
+            if (data && data.company_name) {
+                this.updateDynamicName(data.company_name);
+                localStorage.setItem('moniteo_comp_name', data.company_name);
+            }
+        } catch (e) { /* Silencieux si non trouvé */ }
+    },
+
+    togglePassword(id, iconEl) {
+        const input = document.getElementById(id);
+        const isPassword = input.type === "password";
+        input.type = isPassword ? "text" : "password";
+        iconEl.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
+        lucide.createIcons();
+    },
+
+    toggleView(isReg) {
+        document.getElementById('login-view').style.display = isReg ? 'none' : 'block';
+        document.getElementById('register-view').style.display = isReg ? 'block' : 'none';
+    },
+
+    async handleLogin() {
         const email = document.getElementById('loginEmail').value.trim();
-        const msgEl = document.getElementById('msg');
+        const pass = document.getElementById('loginPass').value;
+        const btn = document.getElementById('btnLogin');
 
-        if(!email.includes('@')) {
-            msgEl.textContent = "Email invalide";
-            msgEl.style.color = "#ef4444";
+        if (!email || !pass) return alert("Champs requis.");
+        btn.disabled = true;
+        btn.innerHTML = "Vérification...";
+
+        const { data, error } = await this.db.auth.signInWithPassword({ email, password: pass });
+        
+        if (error) {
+            alert("Erreur : " + error.message);
+            btn.disabled = false;
+            btn.innerHTML = "Se connecter";
             return;
         }
 
-        this.disabled = true;
-        this.textContent = "Envoi...";
-        generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+        if (data.user) {
+            const { data: settings } = await this.db
+                .from('settings')
+                .select('company_name')
+                .eq('user_id', data.user.id)
+                .single();
+
+            if (settings && settings.company_name) {
+                localStorage.setItem('moniteo_comp_name', settings.company_name);
+                this.updateDynamicName(settings.company_name);
+            }
+        }
+    },
+
+    async handleRegister() {
+        const email = document.getElementById('regEmail').value.trim();
+        const pass = document.getElementById('regPass').value;
+        const company = document.getElementById('compName').value.trim();
+        const btn = document.getElementById('btnReg');
+
+        if (!email || !pass || !company) return alert("Complétez tous les champs.");
+        btn.disabled = true;
+        btn.innerHTML = "Initialisation SaaS...";
 
         try {
-            await emailjs.send('service_nhnfos8', 'template_6gn4r8h', {
-                email: email,
-                passcode: generatedOTP,
-                time: new Date().toLocaleTimeString()
-            });
-            msgEl.textContent = "Code envoyé ! Vérifiez vos mails.";
-            msgEl.style.color = "#10b981";
-            document.getElementById('otpSection').style.display = 'block';
-            startCooldown(this);
-        } catch (err) {
-            console.error(err);
-            msgEl.textContent = "Erreur d'envoi.";
-            msgEl.style.color = "#ef4444";
-            this.disabled = false;
+            const { data, error: authErr } = await this.db.auth.signUp({ email, password: pass });
+            if (authErr) throw authErr;
+            const user = data.user;
+            if (!user) throw new Error("Vérifiez votre boîte mail.");
+
+            const matricule = `${user.id.substring(0, 4).toUpperCase()}-${email.split('@')[0].toUpperCase()}`;
+
+            const { error: dbErr } = await this.db.from('settings').insert([{
+                user_id: user.id,
+                company_name: company,
+                custom_id: matricule
+            }]);
+
+            if (dbErr) throw dbErr;
+
+            localStorage.setItem('moniteo_comp_name', company);
+            this.updateDynamicName(company);
+            alert(`✅ Bienvenue chez Moniteo !\nCompte : ${company}\nMatricule : ${matricule}`);
+            
+        } catch (e) {
+            alert("Erreur : " + e.message);
+            btn.disabled = false;
+            btn.innerHTML = "Créer mon accès";
         }
-    });
+    },
 
-    function startCooldown(btn) {
-        cooldown = true;
-        let remaining = COOLDOWN_TIME;
-        const timer = setInterval(() => {
-            btn.textContent = `Renvoyer (${remaining}s)`;
-            remaining--;
-            if(remaining < 0) {
-                clearInterval(timer);
-                btn.disabled = false;
-                btn.textContent = "Renvoyer OTP";
-                cooldown = false;
-            }
-        }, 1000);
-    }
+    updateDynamicName(name) {
+        const el = document.getElementById('dynamic-company');
+        if (el && name) {
+            el.classList.remove('name-animate');
+            void el.offsetWidth; // Force le redémarrage de l'animation
+            el.innerText = name;
+            el.classList.add('name-animate');
+            document.title = `Moniteo | ${name}`;
+        }
+    },
 
-    // --- 4. ETAPE 2 : VERIFICATION OTP ET CONNEXION SUPABASE ---
-    document.getElementById('verifyOTP').addEventListener('click', async () => {
-        const otpInput = document.getElementById('otpInput').value.trim();
-        const otpMsg = document.getElementById('otpMsg');
+    async handleForgotPassword() {
         const email = document.getElementById('loginEmail').value.trim();
+        if (!email) return alert("Entrez votre email.");
+        const { error } = await this.db.auth.resetPasswordForEmail(email);
+        alert(error ? error.message : "Email de récupération envoyé !");
+    },
 
-        if(otpInput === generatedOTP && generatedOTP !== '') {
-            otpMsg.textContent = "OTP Validé ✅ Connexion...";
-            otpMsg.style.color = "#10b981";
+    runVanta() {
+    if (typeof VANTA !== 'undefined') {
+        try {
+            VANTA.WAVES({
+                el: "#vanta-bg",
+                mouseControls: true,  // RÉACTIVÉ
+                touchControls: true,  // RÉACTIVÉ
+                gyroControls: false,
+                minHeight: 200.00,
+                minWidth: 200.00,
+                scale: 1.00,
+                scaleMobile: 1.00,
+                color: 0x0f172a,
+                waveHeight: 12,
+                waveSpeed: 0.6,
+                zoom: 0.9
+            });
+        } catch (e) { console.error("Vanta failed:", e); }
+    }
+}
+};
 
-            // Mot de passe "système" fixe pour cet utilisateur (basé sur son mail)
-            // Cela permet de le reconnecter à chaque fois sans demander de mot de passe
-            const systemPass = "MoniSafe#" + email.split('@')[0] + "2026";
-
-            // Tentative de connexion
-            const { data, error } = await _db.auth.signInWithPassword({ email, password: systemPass });
-
-            if (error) {
-                // Si l'utilisateur n'existe pas, on l'inscrit
-                if (error.message.includes("Invalid login credentials") || error.status === 400) {
-                    const { error: signUpErr } = await _db.auth.signUp({ email, password: systemPass });
-                    
-                    if (signUpErr) {
-                        otpMsg.textContent = "Erreur : " + signUpErr.message;
-                        otpMsg.style.color = "#ef4444";
-                    } else {
-                        otpMsg.textContent = "Compte créé ! Redirection...";
-                        setTimeout(() => window.location.replace("dashboard.html"), 1500);
-                    }
-                } else {
-                    otpMsg.textContent = "Erreur : " + error.message;
-                    otpMsg.style.color = "#ef4444";
-                }
-            } else {
-                // Succès de connexion
-                window.location.replace("dashboard.html");
-            }
-        } else {
-            otpMsg.textContent = "Code incorrect ❌";
-            otpMsg.style.color = "#ef4444";
-        }
-    });
+AppAuth.init();
 </script>
 </body>
 </html>
