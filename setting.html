@@ -3,408 +3,308 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moniteo Umbrella - Paramètres Pro</title>
-
-    <script>
-        if (sessionStorage.getItem('isLogged') !== 'true') {
-            window.location.href = "index.html";
-        }
-    </script>
-
+    <title>Moniteo Umbrella - Historique Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-    
-    <style>
-        /* --- VARIABLES --- */
-        :root {
-            --primary:#1f3c63; --secondary:#3b82f6; --success:#10b981; --danger:#ef4444;
-            --text-main:#1e293b; --text-light:#64748b; --bg-body:#f1f5f9; --bg-card:#ffffff;
-            --border-soft:#e2e8f0; --sidebar-w:260px;
-        }
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/auth-check.js"></script>
+    <script>
+    // On utilise protectPage qui vient de auth-check.js
+    protectPage((user) => {
+        console.log("Accès autorisé pour :", user.email);
+        fetchStaffData(); 
+    });
 
-        body.dark-mode {
-            --bg-body:#0f172a; --bg-card:#1e293b; --text-main:#f1f5f9; --text-light:#94a3b8; --border-soft:#334155;
-        }
+    async function fetchStaffData() {
+        try {
+            // Utilisation de _db (défini dans auth-check.js)
+            const { data, error } = await _db
+                .from('sales') // Ou 'staff' selon ce que tu veux afficher ici
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('date', { ascending: false });
 
-        * { margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', sans-serif; }
-        
-        body { 
-            display:flex; height: 100vh; overflow: hidden; 
-            background:var(--bg-body); color:var(--text-main); transition: 0.3s; 
-        }
+            if (error) throw error;
 
-        .icon { width: 20px; height: 20px; min-width: 20px; stroke: currentColor; stroke-width: 2; fill: none; }
-
-        /* --- SIDEBAR RÉTACTABLE (Harmonisée) --- */
-        .sidebar {
-            width: var(--sidebar-w); height: 100vh; 
-            background: var(--primary); color: #fff; padding: 1rem; 
-            display: flex; flex-direction: column; flex-shrink: 0; transition: all 0.3s ease;
-            z-index: 1000;
-        }
-        .sidebar.collapsed { width: 80px; }
-        .sidebar.collapsed span, .sidebar.collapsed .logo-full { display: none; }
-        .sidebar.collapsed .logo-short { display: block; }
-
-        .logo-box { padding: 1rem 0; text-align: center; border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 1.5rem; }
-        .logo-full { width: 140px; }
-        .logo-short { display: none; width: 70px; margin: 0 auto; }
-
-        .nav-links { list-style:none; flex:1; overflow-y: auto; }
-        .nav-links a {
-            display:flex; align-items:center; gap:12px; padding:12px 15px; border-radius:10px;
-            text-decoration:none; color:rgba(255,255,255,.7); font-size:.9rem; transition:.2s;
-            border-left: 3px solid transparent;
-        }
-        .nav-links a:hover, .nav-links a.active { 
-            background:rgba(255,255,255,0.15); color:#fff; 
-            border-left: 3px solid var(--secondary);
-        }
-
-        /* --- CONTENU --- */
-        .main-content { flex-grow: 1; height: 100vh; overflow-y: auto; padding: 2rem; transition: 0.3s; }
-        .header-flex { 
-            display:flex; justify-content:space-between; align-items:center; 
-            background:var(--bg-card); padding:1rem 1.5rem; border-radius:12px; 
-            box-shadow:0 1px 3px rgba(0,0,0,.1); margin-bottom:2rem; 
-        }
-
-        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
-        .card { background:var(--bg-card); padding:1.5rem; border-radius:12px; border: 1px solid var(--border-soft); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-        .card h3 { margin-bottom: 1.2rem; font-size: 1.1rem; color: var(--secondary); display: flex; align-items: center; gap: 8px; }
-
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-light); margin-bottom: 5px; text-transform: uppercase; }
-        input, select, textarea {
-            width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-soft);
-            background: var(--bg-body); color: var(--text-main); font-size: 0.9rem;
-        }
-
-        /* --- TOGGLES --- */
-        .toggle-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-soft); }
-        .switch { position: relative; width: 44px; height: 22px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--secondary); }
-        input:checked + .slider:before { transform: translateX(22px); }
-
-        .btn-save {
-            background: var(--primary); color: white; width: 100%; padding: 15px; border-radius: 10px; 
-            font-weight: 700; border: none; cursor: pointer; margin-top: 2rem; transition: 0.3s;
-        }
-        .btn-save:hover { background: var(--secondary); transform: translateY(-2px); }
-
-        .btn-outline {
-            padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border-soft);
-            background: transparent; color: var(--text-main); font-size: 0.85rem; font-weight: 500;
-            cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px;
-        }
-        .btn-outline:hover { background: var(--bg-body); border-color: var(--secondary); color: var(--secondary); }
-
-        .danger-zone { border: 1px solid #fee2e2; background: rgba(239, 68, 68, 0.05); }
-        .btn-danger-soft { background: #fee2e2; color: var(--danger); width: 100%; padding: 10px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; }
-
-        /* --- RESPONSIVE MOBILE --- */
-        @media (max-width: 1024px) { 
-            :root { --sidebar-w: 80px; } 
-            .sidebar span, .logo-full { display: none; }
-            .sidebar .logo-short { display: block; }
-        }
-
-        @media (max-width: 768px) {
-            body { flex-direction: column; overflow-y: auto; height: auto; }
-            .sidebar { 
-                width: 100%; height: auto; position: sticky; top: 0; 
-                flex-direction: row; align-items: center; padding: 0.5rem;
+            if (data) {
+                console.log("Données reçues :", data);
+                // Si tu as une variable globale pour stocker les données
+                if (typeof salesData !== 'undefined') salesData = data;
+                
+                // Appelle ta fonction de rendu du tableau
+                if (typeof renderTable === 'function') {
+                    renderTable();
+                } else if (typeof renderStaff === 'function') {
+                    renderStaff();
+                }
             }
-            .logo-box, .sidebar div:last-child { display: none; }
-            .nav-links { display: flex; flex-direction: row; overflow-x: auto; scrollbar-width: none; }
-            .nav-links::-webkit-scrollbar { display: none; }
-            .nav-links a { padding: 8px 12px; white-space: nowrap; border-left: none; }
-            .nav-links span { display: none; }
-            .main-content { padding: 1rem; height: auto; }
-            .header-flex { flex-direction: column; text-align: center; gap: 10px; }
+        } catch (err) {
+            console.error("Erreur critique lors du chargement :", err.message);
         }
-        /* --- MODIFICATION POUR GARDER LE TEXTE SUR MOBILE --- */
-@media (max-width: 768px) {
-    .nav-links span { 
-        display: inline !important; /* Force l'affichage du texte */
-        font-size: 0.75rem;          /* Réduit un peu la taille pour que ça loge */
     }
-
-    .nav-links a { 
-        flex-direction: column;    /* Aligne l'icône au-dessus du texte */
-        gap: 4px;                  /* Espace réduit entre l'icône et le texte */
-        padding: 5px 10px;         /* Ajuste l'espacement */
-        min-width: 80px;           /* Assure une zone de clic confortable */
-        justify-content: center;
-    }
-
-    .icon {
-        width: 18px;               /* Icônes légèrement plus petites */
-        height: 18px;
-    }
-}
-@media (max-width: 768px) {
-    .sidebar {
-        /* ... tes règles actuelles ... */
-        z-index: 1000; /* Assure que la barre passe devant le contenu */
-    }
-    
-    .nav-links a.active {
-        background: rgba(255,255,255,0.2);
-        border-bottom: 3px solid var(--secondary); /* Barre en bas au lieu d'à gauche sur mobile */
-        border-left: none;
-    }
-}
-    </style>
-</head>
+</script>
+    <link rel="stylesheet" href="UI/style.css">
+    <script src="js/common.js"></script>
+    </head>
 <body>
 
-    <nav class="sidebar" id="sidebar">
-        <div class="logo-box">
-            <img src="https://i.postimg.cc/bJjy56Lq/Moniteo_1_removebg_preview.png" class="logo-full" alt="Logo">
-            <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
-        </div>
-        <ul class="nav-links">
-            <li><a href="dashboard.html"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><span>Accueil</span></a></li>
-            <li><a href="sales.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg><span>Ventes</span></a></li>
-            <li><a href="inventory.html"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg><span>Inventaire</span></a></li>
-            <li><a href="expenses.html"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg><span>Dépenses</span></a></li>
-            <li><a href="staff.html"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg><span>Staff</span></a></li>
-            <li><a href="reporting.html"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg><span>Reporting</span></a></li>
-            <li><a href="history.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Historique</span></a></li>
-            <li>
-    <a href="setting.html" class="active">
-        <svg class="icon" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-        </svg> 
-        <span>Paramètres</span>
-    </a>
-</li>        </ul>
-        <div style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <a href="#" onclick="logout(); return false;" style="color:#ff6b6b; text-decoration:none; font-size:0.9rem; font-weight:600; display:flex; align-items:center; gap:10px; padding:12px 15px;">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                <span>Déconnexion</span>
-            </a>
-        </div>
-    </nav>
+   <nav class="sidebar" id="sidebar">
+    <div class="logo-box">
+        <img src="https://i.postimg.cc/bJjy56Lq/Moniteo-1-removebg-preview.png" class="logo-full" alt="Moniteo">
+        <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
+    </div>   
+    <ul class="nav-links">
+        <li><a href="dashboard.html"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> <span>Accueil</span></a></li>
+        <li><a href="sales.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
+        <li><a href="inventory.html"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> <span>Inventaire</span></a></li>
+        <li><a href="expenses.html"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> <span>Dépenses</span></a></li>
+        <li><a href="staff.html"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> <span>Staff</span></a></li>
+        <li><a href="reporting.html"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> <span>Reporting</span></a></li>
+        <li><a href="history.html" class="active"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>Historique</span></a></li>
+        <li><a href="setting.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> <span>Paramètres</span></a></li>
+    </ul>
+    <div class="logout-box">
+        <a href="#" onclick="logout(); return false;" class="logout-btn">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span>Déconnexion</span>
+        </a>
+    </div>
+</nav>
 
     <main class="main-content">
-    <header class="header-flex">
-        <div>
-            <h2>Paramètres & Profil</h2>
-            <p id="userEmailDisplay" style="font-size: 0.85rem; color: var(--secondary); font-weight: 600;">Chargement du compte...</p>
-        </div>
-        <button class="btn-save" onclick="saveAllData()" style="margin:0; width:auto; padding:10px 25px;">Enregistrer Tout</button>
-    </header>
+        <header class="header-flex">
+            <h2>Journal Historique</h2>
+            <button class="btn-success" onclick="exportExcel()">Exporter Excel</button>
+        </header>
 
-    <div class="settings-grid">
-        <div class="card">
-            <h3><svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Identité Admin</h3>
-            <div style="text-align: center; margin-bottom: 1.5rem;">
-                <div style="position: relative; display: inline-block;">
-                    <img id="avatarPreview" src="https://ui-avatars.com/api/?name=Admin&background=1f3c63&color=fff" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border-soft);">
-                    <input type="file" id="avatarInput" hidden accept="image/*" onchange="previewAvatar()">
-                    <button onclick="document.getElementById('avatarInput').click()" style="position: absolute; bottom: 0; right: 0; background: var(--secondary); border: none; border-radius: 50%; width: 25px; height: 25px; color: white; cursor: pointer;">+</button>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Nom Complet</label>
-                <input type="text" id="adminFullName" placeholder="Ex: Jean Dupont">
-            </div>
-            <div class="form-group">
-                <label>Rôle / Titre</label>
-                <input type="text" id="adminRole" value="Administrateur Principal" readonly style="background: var(--bg-body); opacity: 0.7;">
-            </div>
+        <div class="summary-banner">
+            <div><small>Chiffre d'Affaire</small><p id="caTotal">0 $</p></div>
+            <div><small>Bénéfice Net</small><p id="profitTotal">0 $</p></div>
+            <div><small>Volume Articles</small><p id="qtyTotal">0</p></div>
+            <div><small>Transactions</small><p id="transCount">0</p></div>
         </div>
 
-        <div class="card">
-            <h3><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg> Entreprise</h3>
-            <div class="form-group">
-                <label>Nom du Business</label>
-                <input type="text" id="bizName" placeholder="Ex: Moniteo Umbrella Ltd">
+        <div class="action-bar">
+            <input type="text" id="searchProd" class="filter-input" placeholder="Rechercher un produit..." oninput="applyFilters()" style="flex:1;">
+            
+            <div class="date-range">
+                <small style="color:var(--text-light)">Du</small>
+                <input type="date" id="dateStart" class="filter-input" style="border:none" onchange="applyFilters()">
+                <small style="color:var(--text-light)">Au</small>
+                <input type="date" id="dateEnd" class="filter-input" style="border:none" onchange="applyFilters()">
             </div>
-            <div class="form-group">
-                <label>Adresse physique</label>
-                <textarea id="bizAddress" rows="2" placeholder="Kinshasa, Gombe..."></textarea>
-            </div>
-            <div class="form-group">
-                <label>Logo du Business</label>
-                <input type="file" id="bizLogoInput" accept="image/*" onchange="previewLogo()">
-                <div style="margin-top:10px; text-align:center;">
-                    <img id="logoPreview" src="" style="max-height: 40px; display:none; margin: 0 auto;">
-                </div>
-            </div>
+
+            <select id="marketFilter" class="filter-input" onchange="applyFilters()">
+                <option value="all">Tous Marchés</option>
+                <option value="local">Local</option>
+                <option value="export">Export</option>
+            </select>
+            
+            <button class="btn-danger" onclick="resetFilters()">Réinitialiser</button>
         </div>
 
-        <div class="card">
-            <h3><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle></svg> Préférences Système</h3>
-            <div class="form-group">
-                <label>Devise de base</label>
-                <select id="baseCurrency">
-                    <option value="$">Dollar ($)</option>
-                    <option value="FC">Franc Congolais (FC)</option>
-                    <option value="€">Euro (€)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Taux de change (1$ = ? FC)</label>
-                <input type="number" id="exchangeRate" placeholder="Ex: 2850">
-            </div>
-            <div class="toggle-item">
-                <span>Mode Sombre</span>
-                <label class="switch">
-                    <input type="checkbox" id="darkToggle" onchange="toggleDarkModeUI()">
-                    <span class="slider"></span>
-                </label>
-            </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Produit</th>
+                        <th>Marché</th>
+                        <th>Qté</th>
+                        <th>P.U ($)</th>
+                        <th>Total ($)</th>
+                        <th>Bénéfice ($)</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody"></tbody>
+            </table>
         </div>
+    </main>
 
-        <div class="card danger-zone">
-            <h3 style="color: var(--danger);">Zone de Danger</h3>
-            <button class="btn-danger-soft" onclick="resetApp()" style="margin-bottom: 10px;">Réinitialiser les données</button>
-            <button class="btn-outline" onclick="logout()" style="width: 100%; justify-content: center; color: var(--danger);">Déconnexion</button>
-        </div>
-    </div>
-</main>
-
-   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
-    // --- CONFIGURATION SUPABASE ---
-    const SUPABASE_URL = 'https://oysdycuouodarfkmdtop.supabase.co'; 
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k';
-    const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    let currentUser = null;
-    let base64Logo = "";
-    let base64Avatar = "";
-
-    window.addEventListener('DOMContentLoaded', async () => {
-        // 1. Récupérer l'utilisateur connecté
-        const { data: { user } } = await _db.auth.getUser();
-        if (!user) { window.location.href = "index.html"; return; }
-        currentUser = user;
-        document.getElementById('userEmailDisplay').textContent = "Connecté : " + user.email;
-
-        // 2. Charger les données du Profil
-        loadProfileData();
-
-        // 3. Charger les données Settings
-        loadSettingsData();
+    let salesHistory = [];
+    // --- 2. INITIALISATION ---
+    document.addEventListener('DOMContentLoaded', async () => {
+        applyGlobalSettings();
+        handleResponsiveSidebar();
+        await fetchSalesHistory(); // Charger depuis Supabase
     });
 
-    async function loadProfileData() {
-        const { data, error } = await _db.from('profiles').select('*').eq('id', currentUser.id).single();
-        if (data) {
-            document.getElementById('adminFullName').value = data.full_name || "";
-            if (data.avatar_url) {
-                document.getElementById('avatarPreview').src = data.avatar_url;
-                base64Avatar = data.avatar_url;
-            }
+    function applyGlobalSettings() {
+        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+        if (config.darkMode) document.body.classList.add('dark-mode');
+
+        currentCurrency = config.currency || "FC";
+
+        const brandName = document.querySelector('.header-flex h2');
+        if (brandName && config.name) {
+            brandName.innerHTML = `Historique <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
         }
     }
 
-    async function loadSettingsData() {
-        // On cherche les settings liés à l'ID de l'utilisateur connecté
-        const { data, error } = await _db.from('settings')
+    // --- 3. RÉCUPÉRATION SUPABASE ---
+    async function fetchSalesHistory() {
+        const { data, error } = await _db
+            .from('sales')
             .select('*')
-            .eq('user_id', currentUser.id)
-            .maybeSingle(); // maybeSingle évite l'erreur si la ligne n'existe pas encore
+            .order('date', { ascending: false });
 
-        if (data) {
-            document.getElementById('bizName').value = data.company_name || "";
-            document.getElementById('bizAddress').value = data.address || "";
-            document.getElementById('baseCurrency').value = data.currency || "$";
-            document.getElementById('exchangeRate').value = data.rate || "";
-            document.getElementById('darkToggle').checked = data.dark_mode;
+        if (error) {
+            console.error("Erreur chargement historique:", error.message);
+        } else {
+            salesHistory = data || [];
+            applyFilters(); // Affiche les données avec les filtres actuels
+        }
+    }
+
+    // --- 4. FILTRAGE ---
+    function applyFilters() {
+        const query = document.getElementById('searchProd').value.toLowerCase();
+        const market = document.getElementById('marketFilter')?.value || 'all';
+        const start = document.getElementById('dateStart').value;
+        const end = document.getElementById('dateEnd').value;
+
+        const filtered = salesHistory.filter(item => {
+            const matchName = item.product.toLowerCase().includes(query);
+            const matchMarket = (market === 'all' || item.market === market);
+            const matchStart = !start || item.date >= start;
+            const matchEnd = !end || item.date <= end;
+            return matchName && matchMarket && matchStart && matchEnd;
+        });
+
+        renderHistory(filtered);
+    }
+
+    function resetFilters() {
+        document.getElementById('searchProd').value = '';
+        if(document.getElementById('marketFilter')) document.getElementById('marketFilter').value = 'all';
+        document.getElementById('dateStart').value = '';
+        document.getElementById('dateEnd').value = '';
+        renderHistory(salesHistory);
+    }
+
+    // --- 5. RENDU DU TABLEAU ---
+    function renderHistory(data) {
+        const tbody = document.getElementById('historyBody');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        
+        let ca = 0, profit = 0, qtyCount = 0;
+
+        data.forEach((item) => {
+            const sPrice = parseFloat(item.sell_price) || 0;
+            const bPrice = parseFloat(item.buy_price) || 0;
+            const sQty = parseInt(item.qty) || 0;
+
+            const itemTotal = sPrice * sQty;
+            const itemProfit = (sPrice - bPrice) * sQty;
+
+            ca += itemTotal;
+            profit += itemProfit;
+            qtyCount += sQty;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-weight:500">${formatDate(item.date)}</td>
+                <td style="font-weight:600; color:var(--primary)">${item.product}</td>
+                <td><span class="badge-market ${item.market || 'local'}">${item.market || 'local'}</span></td>
+                <td>${sQty}</td>
+                <td>${sPrice.toLocaleString()}</td>
+                <td style="font-weight:700">${itemTotal.toLocaleString()}</td>
+                <td style="color:var(--success); font-weight:600">+${itemProfit.toLocaleString()}</td>
+                <td>
+                    <button class="btn-danger" style="padding:5px 10px; cursor:pointer; border:none; border-radius:4px; background:var(--danger); color:white;" 
+                        onclick="deleteEntry('${item.id}')">🗑</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Mise à jour des KPI
+        document.getElementById('caTotal').textContent = ca.toLocaleString() + " " + currentCurrency;
+        document.getElementById('profitTotal').textContent = profit.toLocaleString() + " " + currentCurrency;
+        document.getElementById('qtyTotal').textContent = qtyCount;
+        document.getElementById('transCount').textContent = data.length;
+    }
+
+    // --- 6. ACTIONS & UTILITAIRES ---
+    async function deleteEntry(id) {
+        if(confirm("Supprimer définitivement cette transaction ?")) {
+            const { error } = await _db.from('sales').delete().eq('id', id);
             
-            if (data.logo_url) {
-                const preview = document.getElementById('logoPreview');
-                preview.src = data.logo_url;
-                preview.style.display = 'block';
-                base64Logo = data.logo_url;
+            if (error) {
+                alert("Erreur lors de la suppression: " + error.message);
+            } else {
+                fetchSalesHistory(); // Recharger la liste
             }
-            // Appliquer le mode sombre au chargement
-            if(data.dark_mode) document.body.classList.add('dark-mode');
-        }
-    }
-    // --- PREVIEWS ---
-    function previewAvatar() {
-        const file = document.getElementById('avatarInput').files[0];
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            base64Avatar = reader.result;
-            document.getElementById('avatarPreview').src = base64Avatar;
-        };
-        if (file) reader.readAsDataURL(file);
-    }
-
-    function previewLogo() {
-        const file = document.getElementById('bizLogoInput').files[0];
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            base64Logo = reader.result;
-            document.getElementById('logoPreview').src = base64Logo;
-            document.getElementById('logoPreview').style.display = 'block';
-        };
-        if (file) reader.readAsDataURL(file);
-    }
-
-    // --- SAUVEGARDE GLOBALE ---
-    async function saveAllData() {
-        const saveBtn = document.querySelector('.btn-save');
-        saveBtn.textContent = "⏳ Enregistrement...";
-        saveBtn.disabled = true;
-
-        try {
-            // A. Sauvegarde Profil (Identité)
-            const { error: pErr } = await _db.from('profiles').upsert({
-                id: currentUser.id,
-                full_name: document.getElementById('adminFullName').value,
-                avatar_url: base64Avatar,
-                updated_at: new Date()
-            });
-
-            // B. Sauvegarde Settings (Entreprise & Préférences)
-            const { error: sErr } = await _db.from('settings').upsert({
-                user_id: currentUser.id, // On utilise l'ID de l'utilisateur
-                company_name: document.getElementById('bizName').value,
-                address: document.getElementById('bizAddress').value,
-                currency: document.getElementById('baseCurrency').value,
-                rate: parseFloat(document.getElementById('exchangeRate').value) || 0,
-                dark_mode: document.getElementById('darkToggle').checked,
-                logo_url: base64Logo,
-                updated_at: new Date()
-            }, { onConflict: 'user_id' }); // Important pour ne pas créer de doublons
-
-            if (pErr || sErr) {
-                console.error("Profil Error:", pErr, "Settings Error:", sErr);
-                throw new Error("Erreur de synchronisation avec la base de données.");
-            }
-
-            alert("✅ Configuration mise à jour !");
-            location.reload();
-        } catch (err) {
-            alert(err.message);
-            saveBtn.textContent = "Enregistrer Tout";
-            saveBtn.disabled = false;
         }
     }
 
-    function toggleDarkModeUI() {
-        document.body.classList.toggle('dark-mode', document.getElementById('darkToggle').checked);
+    function formatDate(d) {
+        if(!d) return "-";
+        const parts = d.split('-');
+        return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+    }
+
+    function handleResponsiveSidebar() {
+        const width = window.innerWidth;
+        const sb = document.getElementById('sidebar');
+        if (sb) {
+            if (width <= 1024) sb.classList.add('collapsed');
+            else sb.classList.remove('collapsed');
+        }
+    }
+
+    function exportExcel() {
+        if (salesHistory.length === 0) {
+            alert("Aucune donnée à exporter.");
+            return;
+        }
+
+        const dataToExport = salesHistory.map(item => ({
+            "Date": item.date || "",
+            "Produit": item.product || "Sans nom",
+            "Marché": item.market || "Local",
+            "Quantité": parseInt(item.qty) || 0,
+            "Prix Vente": parseFloat(item.sell_price) || 0,
+            "Total Vente": (parseFloat(item.sell_price) * parseInt(item.qty)),
+            "Profit": ((parseFloat(item.sell_price) - parseFloat(item.buy_price)) * parseInt(item.qty))
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Historique");
+        XLSX.writeFile(wb, `Historique_Ventes_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
     function logout() {
-        _db.auth.signOut();
-        sessionStorage.clear();
-        window.location.href = "index.html";
+        if(confirm("Se déconnecter ?")) { sessionStorage.clear(); window.location.href = "index.html"; }
     }
-    </script>
+
+    window.addEventListener('resize', handleResponsiveSidebar);
+    function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    
+    sidebar.classList.toggle('collapsed');
+    
+    // Optionnel : Sauvegarder l'état dans le navigateur
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    localStorage.setItem('sidebarStatus', isCollapsed ? 'collapsed' : 'expanded');
+}
+
+// Au chargement de la page, appliquer l'état sauvegardé
+window.addEventListener('DOMContentLoaded', () => {
+    const status = localStorage.getItem('sidebarStatus');
+    const sidebar = document.getElementById('sidebar');
+    if (status === 'collapsed') {
+        sidebar.classList.add('collapsed');
+    }
+});
+</script>
 </body>
 </html>
