@@ -1,0 +1,645 @@
+/* --- 1. VARIABLES ET THÈMES --- */
+:root {
+    --primary: #1f3c63;
+    --secondary: #3b82f6;
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --text-main: #1e293b;
+    --text-light: #64748b;
+    --bg-body: #f1f5f9;
+    --bg-card: #ffffff;
+    --border-soft: #e2e8f0;
+    --sidebar-w: 260px;
+}
+
+/* Mode Sombre Global */
+body.dark-mode {
+    --bg-body: #0f172a;
+    --bg-card: #1e293b;
+    --text-main: #f1f5f9;
+    --text-light: #94a3b8;
+    --border-soft: #334155;
+}
+
+/* --- 2. RESET ET BASE --- */
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+body { 
+    display: flex; height: 100vh; overflow: hidden; 
+    background: var(--bg-body); color: var(--text-main); transition: 0.3s; 
+}
+
+.icon { width: 20px; height: 20px; min-width: 20px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+/* --- UNIFICATION SIDEBAR : DESKTOP, TABLETTE, MOBILE --- */
+
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: var(--sidebar-w);
+    height: 100vh;
+    background: var(--primary);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 2000;
+    box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+}
+
+/* État réduit (Collapsed) */
+
+}
+
+/* Gestion des Logos */
+.logo-box {
+    padding: 2rem 1rem;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100px;
+}
+
+.logo-full { width: 140px; transition: 0.3s; }
+.logo-short { display: none; width: 70px; }
+
+.sidebar.collapsed .logo-full { display: none; }
+.sidebar.collapsed .logo-short { display: block; }
+
+/* Liens de navigation */
+.nav-links {
+    list-style: none;
+    padding: 0 10px;
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: none; /* Cache scrollbar Firefox */
+}
+.nav-links::-webkit-scrollbar { display: none; } /* Cache scrollbar Chrome/Safari */
+
+.nav-links li { margin-bottom: 5px; }
+
+.nav-links a {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 15px;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    border-radius: 10px;
+    transition: 0.2s;
+    white-space: nowrap;
+}
+
+.nav-links a:hover, 
+.nav-links a.active {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+.sidebar.collapsed .nav-links span {
+    display: none; /* Cache le texte quand réduit */
+}
+
+/* Déconnexion */
+.logout-box {
+    padding: 20px 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 15px;
+    color: #ff6b6b;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+/* --- ADAPTATION MOBILE (Écrans < 768px) --- */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        height: 65px; /* Devient une barre horizontale */
+        top: auto;
+        bottom: 0; /* Fixée en bas comme une application mobile */
+        flex-direction: row;
+        padding: 0;
+    }
+
+    .logo-box, .logout-box {
+        display: none; /* On cache les logos et logout sur la barre basse */
+    }
+
+    .nav-links {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+    }
+
+    .nav-links li { margin: 0; }
+
+    .nav-links a {
+        flex-direction: column; /* Icône au dessus du texte */
+        gap: 4px;
+        padding: 8px;
+        font-size: 0.65rem;
+    }
+
+    .nav-links a .icon {
+        width: 22px;
+        height: 22px;
+    }
+.btn-main {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px; /* Espace parfait entre l'icône et le texte */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+    /* Ajuster le contenu principal pour ne pas être caché par la barre mobile */
+    .main-content {
+        margin-left: 0 !important;
+        padding-bottom: 80px; 
+    }
+}
+
+/* Ajustement Main Content pour Desktop */
+@media (min-width: 769px) {
+    .main-content {
+        margin-left: var(--sidebar-w); /* Pousse le contenu vers la droite */
+        transition: 0.3s;
+    }
+    .sidebar.collapsed + .main-content {
+        margin-left: 80px;
+    }
+}
+/* --- 4. LAYOUT ET CARDS --- */
+.main-content { flex-grow: 1; height: 100vh; overflow-y: auto; padding: 2rem; transition: 0.3s; }
+
+.header-flex { 
+    display: flex; justify-content: space-between; align-items: center; 
+    background: var(--bg-card); padding: 1rem 1.5rem; border-radius: 12px; 
+    box-shadow: 0 1px 3px rgba(0,0,0,.1); margin-bottom: 2rem; border: 1px solid var(--border-soft);
+}
+
+.card { background: var(--bg-card); padding: 1.5rem; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border-soft); margin-bottom: 1.5rem; }
+
+.summary-banner {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
+    gap: 1.5rem; background: var(--primary); color: white;
+    padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;
+}
+.summary-banner small { color: rgba(255,255,255,0.7); text-transform: uppercase; font-size: 0.7rem; font-weight: 600; }
+.summary-banner p { font-size: 1.4rem; font-weight: 700; margin-top: 5px; }
+
+/* --- 5. TABLES ET BADGES --- */
+.table-wrapper { overflow-x: auto; margin-top: 1rem; border-radius: 8px; border: 1px solid var(--border-soft); background: var(--bg-card); }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 850px; }
+th { background: rgba(0,0,0,0.02); color: var(--text-light); padding: 12px; text-align: left; border-bottom: 2px solid var(--border-soft); }
+td { padding: 12px 10px; border-bottom: 1px solid var(--border-soft); vertical-align: middle; }
+
+/* Badges Staff & Ventes */
+.status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+.active-bg { background: #dcfce7; color: #166534; }
+.inactive-bg { background: #fee2e2; color: #991b1b; }
+.badge { padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.7rem; }
+.badge-danger { background: #fee2e2; color: var(--danger); }
+.badge-success { background: #d1fae5; color: var(--success); }
+
+/* --- 6. FORMULAIRES ET BOUTONS --- */
+.action-bar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 1.5rem; align-items: center; }
+input, select { padding: 10px; border-radius: 8px; border: 1px solid var(--border-soft); background: var(--bg-body); color: var(--text-main); font-size: 0.9rem; }
+
+button { padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: 0.2s; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; }
+.btn-main { background: var(--primary); color: white; }
+.btn-outline { background: transparent; color: var(--text-main); border: 1px solid var(--border-soft); }
+.btn-outline:hover { background: var(--border-soft); }
+
+/* --- 7. MODALES ET IMPRESSION (STAFF) --- */
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.8); justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(4px); }
+.modal-content { background: var(--bg-card); padding: 2rem; border-radius: 16px; width: 95%; max-width: 600px; }
+.modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+/* --- MISE À JOUR : SECTION 4 - LAYOUT ET CARDS --- */
+
+/* On force les cartes KPI à se mettre côte à côte sur le Dashboard */
+.main-content > .kpi-card, 
+.main-content > div[style*="display: block"] > .kpi-card {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+/* Style individuel des cartes KPI pour qu'elles soient élégantes */
+.kpi-card, .card {
+    background: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: 16px; /* Arrondi plus moderne */
+    border: 1px solid var(--border-soft);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s ease;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* Amélioration des textes dans les KPI */
+.kpi-card h3 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-light);
+    margin-bottom: 10px;
+}
+
+.kpi-card p {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+/* Ajustement spécifique pour le graphique */
+#salesChart, canvas {
+    max-height: 400px;
+    margin-top: 1rem;
+}
+/* --- AMÉLIORATIONS DASHBOARD --- */
+
+/* Lignes de graphiques : 2 colonnes sur PC, 1 sur mobile */
+.charts-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+}
+
+.card-title {
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.chart-container {
+    height: 280px;
+    position: relative;
+}
+
+/* Badge pour le compteur de staff */
+.badge-count {
+    background: var(--secondary);
+    color: white;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+}
+
+/* Conteneur défilable horizontalement pour le staff */
+.scroll-x {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-soft) transparent;
+}
+
+.stack-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Responsive pour tablettes/mobiles */
+@media (max-width: 900px) {
+    .charts-row {
+        grid-template-columns: 1fr;
+    }
+}
+/* --- STYLE SPÉCIFIQUE DÉPENSES --- */
+
+/* Carte mise en avant pour le total */
+.total-highlight {
+    background: linear-gradient(135deg, var(--primary) 0%, #2a5298 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 15px rgba(31, 60, 99, 0.2);
+}
+
+.total-highlight h3 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    opacity: 0.8;
+    margin-bottom: 5px;
+}
+
+.total-highlight p {
+    font-size: 1.8rem;
+    font-weight: 800;
+}
+
+.icon-lg {
+    width: 48px;
+    height: 48px;
+    stroke: white;
+    opacity: 0.3;
+    stroke-width: 1.5;
+    fill: none;
+}
+
+/* Ajustement pour que le bouton d'ajout soit imposant */
+#addExpense {
+    padding: 12px 25px;
+    font-size: 0.9rem;
+}
+
+/* Style pour les lignes de tableau au survol */
+tbody tr:hover {
+    background: rgba(0,0,0,0.01);
+}
+/* --- OPTIMISATION FINALE EXPENSES --- */
+
+/* Uniformisation du formulaire */
+.modal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    align-items: flex-end; /* Aligne le bouton avec les inputs */
+}
+
+/* Style des labels pour plus de finesse */
+.input-group label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-light);
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+}
+
+/* Focus effect sur les champs pour le côté "Premium" */
+input:focus, select:focus {
+    outline: none;
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    background: var(--bg-card);
+}
+
+/* Amélioration de la barre de recherche */
+#searchInput {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 12px center;
+    padding-left: 40px;
+}
+
+/* Rendre le tableau plus aéré */
+table th {
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    padding: 15px;
+}
+
+table td {
+    padding: 15px;
+    font-size: 0.85rem;
+}
+
+/* Style pour le bouton supprimer dans le tableau */
+.btn-delete {
+    color: var(--danger);
+    background: rgba(239, 68, 68, 0.1);
+    padding: 6px;
+    border-radius: 6px;
+    transition: 0.2s;
+}
+.btn-delete:hover {
+    background: var(--danger);
+    color: white;
+}
+/* ==========================================================================
+   STYLES SPÉCIFIQUES : PARAMÈTRES & PROFIL (CORRIGÉ)
+   ========================================================================== */
+
+/* 1. Grille principale */
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
+    align-items: start;
+}
+
+/* 2. Titres des Cartes */
+.card h3 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 1.5rem;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--bg-body);
+}
+
+.dark-mode .card h3 {
+    color: var(--secondary) !important;
+    border-bottom-color: var(--border-soft) !important;
+}
+
+/* 3. Formulaires & Inputs Harmonisés */
+.form-group {
+    margin-bottom: 1.2rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-light);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Application universelle aux inputs */
+input[type="text"], 
+input[type="number"], 
+input[type="password"],
+select, 
+textarea {
+    width: 100% !important;
+    padding: 12px 15px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-md);
+    background-color: #ffffff;
+    color: var(--primary);
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    box-sizing: border-box; /* Crucial pour la largeur */
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: var(--secondary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* 4. Avatar & Upload */
+#avatarPreview {
+    transition: all 0.3s ease;
+    background-color: var(--bg-body);
+    border: 3px solid var(--border-soft);
+}
+
+.card button[onclick*="avatarInput"] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--secondary);
+    color: white;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+    z-index: 10;
+}
+
+/* 5. Switch & Toggles */
+.toggle-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-body);
+    padding: 12px 15px;
+    border-radius: var(--radius-md);
+    margin-top: 10px;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+}
+
+.switch input { opacity: 0; width: 0; height: 0; }
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #cbd5e1;
+    transition: .4s;
+    border-radius: 20px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 14px; width: 14px;
+    left: 3px; bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider { background-color: var(--secondary); }
+input:checked + .slider:before { transform: translateX(20px); }
+
+/* 6. Zone de Danger & Boutons */
+.danger-zone {
+    border: 1px dashed var(--danger) !important;
+    background: rgba(239, 68, 68, 0.02) !important;
+}
+
+.btn-danger-soft {
+    background: #fee2e2;
+    color: var(--danger);
+    width: 100%;
+    padding: 12px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+.btn-danger-soft:hover {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-outline {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border-soft);
+    padding: 10px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* 7. DARK MODE - Corrections forcées */
+.dark-mode input, 
+.dark-mode select, 
+.dark-mode textarea {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+
+.dark-mode .toggle-item {
+    background-color: #334155 !important;
+}
+
+.dark-mode .btn-outline {
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+/* 8. Responsive */
+@media (max-width: 768px) {
+    .settings-grid { grid-template-columns: 1fr; }
+    .header-flex { flex-direction: column; gap: 15px; text-align: center; }
+}
+@media print {
+    body * { visibility: hidden !important; }
+    #payslipModal, #payslipModal * { visibility: visible !important; }
+    #payslipModal { position: absolute !important; left: 0; top: 0; width: 100% !important; background: white !important; }
+    .no-print, .sidebar { display: none !important; }
+}
+
+/* --- 8. RESPONSIVE --- */
+@media (max-width: 1024px) {
+    :root { --sidebar-w: 80px; }
+    .sidebar span, .logo-full { display: none; }
+    .sidebar .logo-short { display: block; }
+}
+@media (max-width: 768px) {
+    body { flex-direction: column; height: auto; overflow-y: auto; }
+    .sidebar { width: 100%; height: auto; position: sticky; top: 0; flex-direction: row; padding: 0.5rem; justify-content: space-between; }
+    .nav-links { display: flex; flex-direction: row; overflow-x: auto; }
+    .nav-links a span, .logout-box { display: none; }
+    .main-content { padding: 1rem; }
+    .header-flex { flex-direction: column; gap: 15px; }
+    .summary-banner { grid-template-columns: 1fr 1fr; }
+    .modal-grid { grid-template-columns: 1fr; }
+}
