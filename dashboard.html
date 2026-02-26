@@ -5,11 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Moniteo Umbrella - Dashboard Pro</title>
 
-    <script>
-        if (sessionStorage.getItem('isLogged') !== 'true') {
-            window.location.href = "index.html";
-        }
-    </script>
+   
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -17,168 +13,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <style>
-        /* Couleurs pour le Mode Sombre */
-body.dark-mode {
-    --bg-body: #0f172a;       /* Fond sombre */
-    --bg-card: #1e293b;       /* Cartes sombres */
-    --text-main: #f1f5f9;     /* Texte blanc/gris clair */
-    --text-light: #94a3b8;    /* Texte secondaire gris */
-    --border-soft: #334155;   /* Bordures discrètes */
-}
-
-/* On force le changement de couleur sur les éléments critiques */
-body.dark-mode .card, 
-body.dark-mode .header-flex {
-    background-color: var(--bg-card);
-    color: var(--text-main);
-    border-color: var(--border-soft);
-}
-
-body.dark-mode input, 
-body.dark-mode select {
-    background-color: #0f172a;
-    color: white;
-    border-color: var(--border-soft);
-}
-        /* --- VARIABLES ET THÈMES --- */
-        :root {
-            --primary:#1f3c63; --secondary:#3b82f6; --success:#10b981; --danger:#ef4444;
-            --text-main:#1e293b; --text-light:#64748b; --bg-body:#f1f5f9; --bg-card:#ffffff;
-            --border-soft:#e2e8f0; --sidebar-w:260px;
-        }
-        body.dark {
-            --bg-body:#0f172a; --bg-card:#1e293b; --text-main:#e5e7eb; --text-light:#94a3b8; --border-soft:#334155;
-        }
-
-        /* --- RESET ET BASE --- */
-        * { margin:0; padding:0; box-sizing:border-box; font-family:Inter,sans-serif; }
-        
-        body { 
-            display:flex; 
-            height: 100vh;
-            overflow: hidden; 
-            background:var(--bg-body); 
-            color:var(--text-main); 
-            transition: 0.3s; 
-        }
-
-        .icon { 
-            width: 20px; 
-            height: 20px; 
-            min-width: 20px; 
-            stroke: currentColor; 
-            stroke-width: 2; 
-            fill: none; 
-        }
-
-        /* --- SIDEBAR --- */
-        .sidebar {
-            position: relative; 
-            width: var(--sidebar-w); 
-            height: 100vh; 
-            background: var(--primary);
-            color: #fff; 
-            padding: 1rem; 
-            display: flex; 
-            flex-direction: column; 
-            flex-shrink: 0;
-            transition: all 0.3s ease;
-            z-index: 1000;
-        }
-
-        .sidebar.collapsed { width: 80px; }
-        .sidebar.collapsed span, 
-        .sidebar.collapsed .logo-full { display: none; }
-        .sidebar.collapsed .logo-short { display: block; }
-
-        .logo-box { 
-            padding: 1rem 0; 
-            text-align: center; 
-            border-bottom: 1px solid rgba(255,255,255,.1); 
-            margin-bottom: 1.5rem; 
-        }
-
-        .logo-full { width: 140px; height: auto; transition: 0.3s; }
-        .logo-short { display: none; width: 70px; margin: 0 auto; transition: 0.3s; }
-
-        .nav-links { list-style:none; flex:1; overflow-y: auto; }
-        .nav-links a {
-            display:flex; align-items:center; gap:12px; padding:12px 15px; border-radius:10px;
-            text-decoration:none; color:rgba(255,255,255,.7); font-size:.9rem; transition:.2s;
-            border-left: 3px solid transparent;
-        }
-        .nav-links a:hover, .nav-links a.active { 
-            background:rgba(255,255,255,0.15); 
-            color:#fff; 
-            border-left: 3px solid var(--secondary);
-        }
-
-        /* --- CONTENU PRINCIPAL --- */
-        .main-content { 
-            flex-grow: 1;
-            height: 100vh;
-            overflow-y: auto; 
-            padding: 2rem; 
-            transition: .3s; 
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .header-top { 
-            display:flex; justify-content:space-between; align-items:center; 
-            background:var(--bg-card); padding:1rem 1.5rem; border-radius:12px; 
-            box-shadow:0 1px 3px rgba(0,0,0,.1); margin-bottom:2rem; 
-        }
-
-        .btn-icon { background:none; border:1px solid var(--border-soft); padding:8px; border-radius:8px; cursor:pointer; color:var(--text-main); }
-        .btn-primary { background:var(--primary); color:#fff; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:600; }
-
-        .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1.5rem; margin-bottom:2rem; }
-        .card { background:var(--bg-card); padding:1.5rem; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border-soft); }
-        
-        .kpi-card h3 { font-size:.75rem; text-transform:uppercase; color:var(--text-light); letter-spacing: 1px; }
-        .kpi-card .val { font-size:1.8rem; font-weight:700; display:block; margin-top:5px; }
-
-        .charts-row { display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:1.5rem; margin-bottom: 2rem; }
-        
-        /* --- DÉCONNEXION --- */
-        .logout-box { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem; }
-        .logout-btn {
-            display: flex; align-items: center; gap: 12px; padding: 12px 15px;
-            text-decoration: none; color: #ff6b6b; font-weight: 600; font-size: 0.9rem;
-            transition: 0.2s; border-radius: 8px;
-        }
-        .logout-btn:hover { background: rgba(239, 68, 68, 0.1); }
-
-        /* --- RESPONSIVE (Strictement identique au Dashboard) --- */
-        @media (max-width: 1024px) {
-            :root { --sidebar-w: 80px; }
-            .sidebar span, .logo-full { display: none; }
-            .sidebar .logo-short { display: block; }
-        }
-
-        @media (max-width: 768px) {
-            body { flex-direction: column; overflow-y: auto; height: auto; }
-            .sidebar { 
-                width: 100%; height: auto; position: sticky; top: 0; 
-                flex-direction: row; padding: 0.5rem; align-items: center;
-            }
-            .sidebar.collapsed { width: 100%; height: auto; }
-            .logo-box { border: none; margin: 0; padding: 0 1rem; }
-            .nav-links { display: flex; flex-direction: row; overflow-x: auto; scrollbar-width: none; }
-            .nav-links::-webkit-scrollbar { display: none; }
-            .nav-links a { padding: 8px 12px; white-space: nowrap; }
-            .nav-links span { display: none; } /* On cache le texte sur mobile pour fluidité */
-            
-            .logout-box { display: none; }
-            
-            .main-content { padding: 1rem; height: auto; }
-            .header-flex { flex-direction: column; gap: 1rem; text-align: center; }
-            .summary-banner { grid-template-columns: 1fr 1fr; gap: 10px; padding: 1rem; }
-            .summary-banner p { font-size: 1.1rem; }
-        }
-    </style>
-</head>
+    <link rel="stylesheet" href="UI/style.css">
+    <script src="js/common.js"></script>
+    </head>
+    
 <body>
 
 <nav class="sidebar" id="sidebar">
@@ -205,208 +43,217 @@ body.dark-mode select {
 </nav>
 
 <main class="main-content" id="mainContent">
-    <header class="header-top">
+    <header class="header-flex">
         <div style="display: flex; align-items: center; gap: 15px;">
             <div id="dynamicLogoContainer"></div>
             <div>
-                <h1 id="companyTitle" style="font-size: 1.4rem;">Tableau de Bord CEO</h1>
-                <p id="dateDisplay" style="color: var(--text-light); font-size: 0.85rem;"></p>
+                <h1 id="companyTitle" style="font-size: 1.4rem; margin:0;">Tableau de Bord CEO</h1>
+                <p id="dateDisplay" style="color: var(--text-light); font-size: 0.85rem; margin-top: 4px;"></p>
             </div>
         </div>
-        <div class="header-actions">
-            <button class="btn-icon" onclick="toggleSidebar()"><svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
-            <button class="btn-icon" onclick="toggleTheme()"><svg class="icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3"></path></svg></button>
-            <button class="btn-primary" onclick="exportDashboardPDF()">Exporter Rapport PDF</button>
+
+        <div class="header-actions" style="display: flex; gap: 10px;">
+            <button class="btn-outline" onclick="toggleSidebar()" title="Menu">
+                <svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <button class="btn-outline" onclick="toggleTheme()" title="Thème">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3"></path></svg>
+            </button>
+            <button class="btn-main" onclick="exportDashboardPDF()">
+                Exporter Rapport PDF
+            </button>
         </div>
     </header>
-
-    <section class="kpi-grid">
-        <div class="card kpi-card"><h3>Chiffre d'Affaires</h3><span class="val" id="totalCA">0</span></div>
-        <div class="card kpi-card"><h3>Bénéfice Réel</h3><span class="val" id="totalProfit" style="color: var(--success);">0</span></div>
-        <div class="card kpi-card"><h3>Stock & Staff</h3><span class="val" id="totalStock">0</span></div>
-        <div class="card kpi-card"><h3>Total Charges</h3><span class="val" id="totalExpenses" style="color: var(--danger);">0</span></div>
+    <section class="dashboard-grid">
+        <div class="card kpi-card">
+            <h3>Chiffre d'Affaires</h3>
+            <p id="totalCA">0 $</p>
+        </div>
+        <div class="card kpi-card">
+            <h3>Bénéfice Réel</h3>
+            <p id="totalProfit" style="color: var(--success);">0 $</p>
+        </div>
+        <div class="card kpi-card">
+            <h3>Stock & Staff</h3>
+            <p id="totalStock">0</p>
+        </div>
+        <div class="card kpi-card">
+            <h3>Total Charges</h3>
+            <p id="totalExpenses" style="color: var(--danger);">0 $</p>
+        </div>
     </section>
 
-<div class="charts-row">
+    <div class="charts-row">
         <div class="card">
-            <h3 style="margin-bottom:1rem; font-size: 0.9rem; color: var(--text-light);">Évolution des Ventes</h3>
-            <div style="height: 280px;"><canvas id="mainChart"></canvas></div>
+            <h3 class="card-title">Évolution des Ventes</h3>
+            <div class="chart-container"><canvas id="mainChart"></canvas></div>
         </div>
         <div class="card">
-            <h3 style="margin-bottom:1rem; font-size: 0.9rem; color: var(--text-light);">Distribution du Stock</h3>
-            <div style="height: 280px;"><canvas id="stockChart"></canvas></div>
+            <h3 class="card-title">Distribution du Stock</h3>
+            <div class="chart-container"><canvas id="stockChart"></canvas></div>
         </div>
     </div>
 
     <div class="charts-row" style="margin-top: 1.5rem;">
         <div class="card">
-            <h3 style="margin-bottom:1.5rem; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="card-title" style="display: flex; justify-content: space-between;">
                 Équipe Active 
-                <span id="staffCountLabel" style="background: var(--secondary); color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem;">0</span>
+                <span id="staffCountLabel" class="badge-count">0</span>
             </h3>
-            <div id="staffListContainer" style="display: flex; gap: 20px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: thin;">
+            <div id="staffListContainer" class="scroll-x">
                 </div>
         </div>
 
         <div class="card">
-            <h3 style="margin-bottom:1.5rem; font-size: 0.9rem;">Alertes Stocks Faibles</h3>
-            <div id="stockStatusList" style="display: flex; flex-direction: column; gap: 15px;">
+            <h3 class="card-title">Alertes Stocks Faibles</h3>
+            <div id="stockStatusList" class="stack-list">
                 </div>
         </div>
     </div>
 </main>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    // --- CONFIGURATION SUPABASE ---
-    const SUPABASE_URL = 'https://oysdycuouodarfkmdtop.supabase.co'; 
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k';
-    const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+   // Configuration identique à l'index
+// --- 1. CONFIGURATION & INITIALISATION ---
+const SUPABASE_URL = 'https://oysdycuouodarfkmdtop.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k'; 
+const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let mainChartObj = null; 
-    let stockChartObj = null;
-    let currentCurrency = "FC";
-    let currentUser = null;
+// Variables globales
+let mainChartObj = null; 
+let stockChartObj = null; // <--- AJOUTE CETTE LIGNE ICI
+let currentUser = null;
+let currentCurrency = "FC";
 
-    // --- 0. SÉCURITÉ STRICTE (ANTI-BOUCLE) ---
-    async function checkAuth() {
-        // getUser est plus fiable que getSession car il vérifie le token côté serveur
-        const { data: { user }, error } = await _db.auth.getUser();
-        
-        if (error || !user) {
-            console.warn("Session invalide ou expirée.");
-            window.location.replace("index.html");
-            return;
-        }
-        
-        currentUser = user;
-        console.log("Accès autorisé :", user.email);
-        initDashboard(); 
+// --- 2. AUTHENTIFICATION ---
+async function checkAuth() {
+    const { data: { session }, error } = await _db.auth.getSession();
+    if (error || !session) {
+        window.location.replace('index.html');
+        return;
     }
+    currentUser = session.user;
+    await loadCompanyData();
+}
 
-    // --- 1. CONFIGURATION GLOBALE (DATABASE + LOCAL) ---
-    async function applyGlobalConfig() {
-        // On essaye d'abord de charger les réglages depuis Supabase
+// --- 3. CHARGEMENT DES PARAMÈTRES ---
+async function loadCompanyData() {
+    try {
         const { data: settings, error } = await _db
             .from('settings')
             .select('*')
             .eq('user_id', currentUser.id)
-            .single();
+            .maybeSingle();
 
-        const config = settings || JSON.parse(localStorage.getItem('moniteo_config')) || {};
-        
-        currentCurrency = config.currency || "FC";
-        
-        // Mise à jour du Titre
-        const title = document.getElementById('companyTitle');
-        if (config.name && title) {
-            title.innerHTML = `Tableau de Bord <small style="font-size:0.6em; color:var(--secondary)">| ${config.name}</small>`;
+        if (error) throw error;
+        if (settings) {
+            if(document.getElementById('company-display')) 
+                document.getElementById('company-display').innerText = settings.company_name;
+            
+            if(document.getElementById('displayMatricule'))
+                document.getElementById('displayMatricule').innerText = settings.custom_id;
+
+            applyGlobalConfig(settings);
         }
-        
-        // Mise à jour du Logo
-        const logoCont = document.getElementById('dynamicLogoContainer');
-        if (config.logo && logoCont) {
-            logoCont.innerHTML = `<img src="${config.logo}" style="height: 45px; width: auto; border-radius: 5px; object-fit: contain;">`;
-        }
-        
-        // Mode Sombre
-        if (config.dark_mode || config.darkMode) document.body.classList.add('dark');
-        else document.body.classList.remove('dark');
+    } catch (err) { console.error("Erreur Settings:", err.message); }
+    
+    // Une fois les settings chargés, on lance le Dashboard
+    initDashboard(); 
+}
+
+function applyGlobalConfig(config) {
+    currentCurrency = config.currency || "FC";
+    const title = document.getElementById('companyTitle');
+    if (config.company_name && title) {
+        title.innerHTML = `Tableau de Bord <small style="font-size:0.6em; color:var(--secondary)">| ${config.company_name}</small>`;
     }
+    const logoCont = document.getElementById('dynamicLogoContainer');
+    if (config.logo_url && logoCont) {
+        logoCont.innerHTML = `<img src="${config.logo_url}" style="height: 45px; width: auto; border-radius: 5px; object-fit: contain;">`;
+    }
+    if (config.dark_mode) document.body.classList.add('dark');
+}
 
-    // --- 2. INITIALISATION ET RÉCUPÉRATION DONNÉES ---
-    async function initDashboard() {
-        await applyGlobalConfig();
-        
-        try {
-            const userId = currentUser.id;
+// --- 4. CŒUR DU DASHBOARD (FUSIONNÉ) ---
+async function initDashboard() {
+    console.log("📊 Initialisation des données métier...");
+    try {
+        const userId = currentUser.id;
 
-            // Récupération multi-tables filtrée par USER_ID
-            const [rSales, rInventory, rExpenses, rStaff] = await Promise.all([
-                _db.from('sales').select('*').eq('user_id', userId),
-                _db.from('inventory').select('*').eq('user_id', userId),
-                _db.from('expenses').select('*').eq('user_id', userId),
-                _db.from('staff').select('*').eq('user_id', userId)
-            ]);
+        const [rSales, rInventory, rExpenses, rStaff] = await Promise.all([
+            _db.from('sales').select('*').eq('user_id', userId),
+            _db.from('inventory').select('*').eq('user_id', userId),
+            _db.from('expenses').select('*').eq('user_id', userId),
+            _db.from('staff').select('*').eq('user_id', userId)
+        ]);
 
-            const sales = rSales.data || [];
-            const inventory = rInventory.data || [];
-            const expenses = rExpenses.data || [];
-            const staff = rStaff.data || [];
+        const sales = rSales.data || [];
+        const inventory = rInventory.data || [];
+        const expenses = rExpenses.data || [];
+        const staff = rStaff.data || [];
 
-            // --- CALCULS FINANCIERS ---
-            let totalCA = sales.reduce((sum, s) => sum + (parseFloat(s.sell_price || 0) * parseInt(s.qty || 0)), 0);
-            
-            let grossProfit = sales.reduce((sum, s) => {
-                const profitUnitaire = parseFloat(s.sell_price || 0) - parseFloat(s.buy_price || 0);
-                return sum + (profitUnitaire * parseInt(s.qty || 0));
-            }, 0);
-            
-            let otherExp = expenses.reduce((sum, e) => sum + (parseFloat(e.amount || 0)), 0);
-            let payroll = staff.reduce((sum, e) => {
-                const s = parseFloat(String(e.salary || 0).replace(/[^\d.-]/g, '')) || 0;
-                const b = parseFloat(String(e.bonus || 0).replace(/[^\d.-]/g, '')) || 0;
-                return sum + s + b;
-            }, 0);
+        // --- CALCULS KPI ---
+        let totalCA = sales.reduce((sum, s) => sum + (parseFloat(s.sell_price || 0) * parseInt(s.qty || 0)), 0);
+        let grossProfit = sales.reduce((sum, s) => {
+            return sum + ((parseFloat(s.sell_price || 0) - parseFloat(s.buy_price || 0)) * parseInt(s.qty || 0));
+        }, 0);
+        let totalCharges = expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0) + 
+                           staff.reduce((sum, e) => sum + (parseFloat(String(e.salary || 0).replace(/[^\d.-]/g, '')) || 0), 0);
 
-            let totalCharges = otherExp + payroll;
-            let netProfit = grossProfit - totalCharges;
+        updateKPI('totalCA', totalCA);
+        updateKPI('totalExpenses', totalCharges);
+        updateKPI('totalProfit', (grossProfit - totalCharges), true);
 
-            // --- MISE À JOUR KPI ---
-            if(document.getElementById('totalCA')) document.getElementById('totalCA').textContent = totalCA.toLocaleString() + " " + currentCurrency;
-            if(document.getElementById('totalExpenses')) document.getElementById('totalExpenses').textContent = totalCharges.toLocaleString() + " " + currentCurrency;
-            
-            const profitEl = document.getElementById('totalProfit');
-            if (profitEl) {
-                profitEl.textContent = netProfit.toLocaleString() + " " + currentCurrency;
-                profitEl.style.color = netProfit >= 0 ? "#10b981" : "#ef4444";
-            }
-
-            if(document.getElementById('totalStock')) document.getElementById('totalStock').textContent = `${inventory.length} Réf / ${staff.length} Pers.`;
-
-            // --- INJECTION STAFF ---
-            const staffContainer = document.getElementById('staffListContainer');
-            if (staffContainer) {
-                if(document.getElementById('staffCountLabel')) document.getElementById('staffCountLabel').textContent = staff.length;
-                staffContainer.innerHTML = staff.map(member => `
-                    <div style="min-width: 90px; text-align: center; flex-shrink: 0;">
-                        <div style="width: 55px; height: 55px; border-radius: 50%; overflow: hidden; margin: 0 auto 8px; border: 2px solid #3b82f6; background: #eee;">
-                            <img src="${member.photo || 'https://ui-avatars.com/api/?name='+encodeURIComponent(member.name)}" 
-                                 style="width: 100%; height: 100%; object-fit: cover;">
-                        </div>
-                        <p style="font-size: 0.75rem; font-weight: 700; margin: 0;">${member.name ? member.name.split(' ')[0] : 'Inconnu'}</p>
-                        <p style="font-size: 0.6rem; opacity: 0.8;">${member.role || 'Staff'}</p>
+        // --- INJECTION STAFF (AVATARS) ---
+        const staffContainer = document.getElementById('staffListContainer');
+        if (staffContainer) {
+            staffContainer.innerHTML = staff.map(member => `
+                <div style="min-width: 90px; text-align: center; flex-shrink: 0;">
+                    <div style="width: 55px; height: 55px; border-radius: 50%; overflow: hidden; margin: 0 auto 8px; border: 2px solid #3b82f6; background: #f3f4f6;">
+                        <img src="${member.photo || 'https://ui-avatars.com/api/?background=random&name='+encodeURIComponent(member.name)}" 
+                             style="width: 100%; height: 100%; object-fit: cover;">
                     </div>
-                `).join('') || '<p style="font-size:0.8rem">Aucun membre.</p>';
-            }
-
-            // --- ALERTES STOCKS ---
-            const stockStatusList = document.getElementById('stockStatusList');
-            if (stockStatusList) {
-                const lowStock = [...inventory].sort((a,b) => (parseInt(a.qty)||0) - (parseInt(b.qty)||0)).slice(0, 4);
-                stockStatusList.innerHTML = lowStock.map(item => {
-                    const q = parseInt(item.qty) || 0;
-                    const isLow = q <= 5;
-                    return `
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px; border-left: 4px solid ${isLow?'#ef4444':'#10b981'}; margin-bottom: 5px;">
-                            <div>
-                                <span style="font-size: 0.85rem; font-weight: 600;">${item.product || 'Produit'}</span>
-                                <br><span style="font-size: 0.7rem; opacity: 0.7;">Prix: ${item.sell_price || 0} ${currentCurrency}</span>
-                            </div>
-                            <span style="font-size: 0.85rem; font-weight: 700; color: ${isLow?'#ef4444':'#10b981'};">${q} en stock</span>
-                        </div>
-                    `;
-                }).join('') || '<p>Inventaire vide.</p>';
-            }
-
-            renderCharts(sales, inventory);
-
-        } catch (err) {
-            console.error("Erreur d'initialisation du Dashboard:", err);
+                    <p style="font-size: 0.75rem; font-weight: 700; margin: 0;">${member.name ? member.name.split(' ')[0] : 'Inconnu'}</p>
+                    <p style="font-size: 0.6rem; opacity: 0.8;">${member.role || 'Personnel'}</p>
+                </div>
+            `).join('') || '<p style="font-size:0.8rem">Aucun membre.</p>';
         }
-    }
+
+        // --- ALERTES STOCKS ---
+        const stockStatusList = document.getElementById('stockStatusList');
+        if (stockStatusList) {
+            const lowStock = [...inventory].sort((a,b) => (parseInt(a.qty)||0) - (parseInt(b.qty)||0)).slice(0, 4);
+            stockStatusList.innerHTML = lowStock.map(item => {
+                const q = parseInt(item.qty) || 0;
+                const isLow = q <= 5;
+                return `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.03); border-radius: 8px; border-left: 4px solid ${isLow?'#ef4444':'#10b981'}; margin-bottom: 8px;">
+                        <div>
+                            <span style="font-size: 0.85rem; font-weight: 600;">${item.product || 'Produit'}</span>
+                            <br><span style="font-size: 0.7rem; opacity: 0.7;">Prix: ${item.sell_price || 0} ${currentCurrency}</span>
+                        </div>
+                        <span style="font-size: 0.85rem; font-weight: 700; color: ${isLow?'#ef4444':'#10b981'};">${q} en stock</span>
+                    </div>
+                `;
+            }).join('') || '<p>Inventaire vide.</p>';
+        }
+
+        // --- GRAPHIQUES ---
+        if (typeof renderCharts === "function") renderCharts(sales, inventory);
+
+    } catch (err) { console.error("Erreur Dashboard:", err); }
+}
+
+function updateKPI(id, value, isProfit = false) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = value.toLocaleString() + " " + currentCurrency;
+    if (isProfit) el.style.color = value >= 0 ? "#10b981" : "#ef4444";
+}
+
+document.addEventListener('DOMContentLoaded', checkAuth);
 
     // --- 3. GRAPHIQUES ---
     function renderCharts(sales, inventory) {
@@ -622,6 +469,25 @@ body.dark-mode select {
     // Téléchargement
     doc.save(`Rapport_Moniteo_${companyName.replace(/\s+/g, '_')}.pdf`);
 }
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    
+    sidebar.classList.toggle('collapsed');
+    
+    // Optionnel : Sauvegarder l'état dans le navigateur
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    localStorage.setItem('sidebarStatus', isCollapsed ? 'collapsed' : 'expanded');
+}
+
+// Au chargement de la page, appliquer l'état sauvegardé
+window.addEventListener('DOMContentLoaded', () => {
+    const status = localStorage.getItem('sidebarStatus');
+    const sidebar = document.getElementById('sidebar');
+    if (status === 'collapsed') {
+        sidebar.classList.add('collapsed');
+    }
+});
 </script>
 </body>
 </html>
