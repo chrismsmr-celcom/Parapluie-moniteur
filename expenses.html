@@ -3,15 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moniteo Umbrella - Dépenses</title>
+    <title>Moniteo Umbrella - Reporting & Intelligence</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="js/auth-check.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
     // On utilise protectPage qui vient de auth-check.js
     protectPage((user) => {
@@ -47,24 +44,24 @@
         }
     }
 </script>
-    
-    <link rel="stylesheet" href="UI/style.css">
-    <script src="js/common.js"></script>
-    </head>
+
+   <link rel="stylesheet" href="UI/style.css">
+   <script src="js/common.js"></script>
+   </head>
 <body>
 
 <nav class="sidebar" id="sidebar">
     <div class="logo-box">
         <img src="https://i.postimg.cc/bJjy56Lq/Moniteo-1-removebg-preview.png" class="logo-full" alt="Moniteo">
         <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
-    </div>
+    </div>   
     <ul class="nav-links">
         <li><a href="dashboard.html"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> <span>Accueil</span></a></li>
-        <li><a href="sales.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
+        <li><a href="sales.html"  ><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
         <li><a href="inventory.html"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> <span>Inventaire</span></a></li>
-        <li><a href="expenses.html" class="active"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> <span>Dépenses</span></a></li>
+        <li><a href="expenses.html"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> <span>Dépenses</span></a></li>
         <li><a href="staff.html"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> <span>Staff</span></a></li>
-        <li><a href="reporting.html"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> <span>Reporting</span></a></li>
+        <li><a href="reporting.html"class="active"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> <span>Reporting</span></a></li>
         <li><a href="history.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>Historique</span></a></li>
         <li><a href="setting.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> <span>Paramètres</span></a></li>
     </ul>
@@ -76,348 +73,276 @@
     </div>
 </nav>
 
-<main class="main-content">
-    <div class="header-flex">
-        <div>
-            <h2 style="font-size: 1.2rem; margin: 0;">Gestion des Dépenses</h2>
-            <p style="color: var(--text-light); font-size: 0.8rem; margin-top: 4px;">Enregistrez et catégorisez vos sorties d'argent.</p>
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <button class="btn-outline" onclick="exportExpensesExcel()">Excel</button>
-            <button class="btn-outline" onclick="exportExpensesPDF()">PDF</button>
-        </div>
-    </div>
 
-    <div class="card">
-    <div class="modal-grid">
-        <div class="input-group">
-            <label>Date</label>
-            <input type="date" id="expenseDate">
-        </div>
-        <div class="input-group">
-            <label>Libellé</label>
-            <input type="text" id="expenseLabel" placeholder="Ex: Loyer...">
-        </div>
-        <div class="input-group">
-            <label>Catégorie</label>
-            <select id="expenseCategory">
-                <option value="Fixe">Fixe</option>
-                <option value="Variable">Variable</option>
-                <option value="RH">Salaires</option>
-            </select>
-        </div>
-        <div class="input-group">
-            <label>Montant</label>
-            <div style="display: flex; gap: 5px;">
-                <input type="number" id="expenseAmount" placeholder="0.00" style="flex:1">
-                <select id="inputCurrency" style="width: 70px;">
-                    <option value="FC">FC</option>
-                    <option value="USD">$</option>
-                </select>
-            </div>
-        </div>
-        <div class="input-group">
-            <button class="btn-main" id="addExpense" onclick="addExpense()" style="width: 100%;">
-                + Ajouter
-            </button>
-        </div>
-    </div>
-</div>   
-
-    <div class="dashboard-grid">
-        <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
-            <label style="display: block; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600;">Rechercher une dépense</label>
-            <input type="text" id="searchInput" onkeyup="filterExpenses()" placeholder="Rechercher par libellé ou catégorie..." style="width: 100%;">
-        </div>
-
-        <div class="total-highlight">
+    <main class="main-content" id="printableArea">
+        
+        <header class="header-flex">
             <div>
-                <h3>Total cumulé</h3>
-                <p id="expensesTotal">0,00 FC</p>
+                <h2 style="font-weight: 800; letter-spacing: -0.5px;">Reporting Stratégique</h2>
+                <p style="font-size: 0.8rem; color: var(--text-light);">Analyse approfondie de votre activité</p>
             </div>
-            <svg class="icon-lg" viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <select id="analysisPeriod" onchange="renderReporting()">
+                    <option value="7">7 derniers jours</option>
+                    <option value="30" selected>30 derniers jours</option>
+                    <option value="90">90 derniers jours</option>
+                </select>
+                <button class="btn-main" onclick="exportPDF()" aria-label="Exporter en PDF">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+    <span>Exporter en PDF</span>
+</button>
+            </div>
+        </header>
+
+        <section class="summary-banner" style="margin-bottom: 2.5rem;">
+            <div><small>Chiffre d'Affaires</small><p id="statRev">0 FCFA</p></div>
+            <div><small>Profit Net estimé</small><p id="statProf">0 FCFA</p></div>
+            <div><small>Santé du Stock</small><p id="statStockHealth">100%</p></div>
+            <div><small>Pic d'activité</small><p id="statPeak">-</p></div>
+        </section>
+
+        <div class="dashboard-grid">
+            <div class="card">
+                <h3 class="card-title">Évolution des revenus</h3>
+                <div class="chart-container"><canvas id="chartSales"></canvas></div>
+            </div>
+            <div class="card">
+                <h3 class="card-title">Flux de fréquentation (Heures)</h3>
+                <div class="chart-container"><canvas id="chartHours"></canvas></div>
+            </div>
+            <div class="card">
+                <h3 class="card-title">Top 5 Produits (Volume)</h3>
+                <div class="chart-container"><canvas id="chartTopProd"></canvas></div>
+            </div>
+            <div class="card">
+                <h3 class="card-title">Répartition de la Marge</h3>
+                <div class="chart-container"><canvas id="chartMargin"></canvas></div>
+            </div>
         </div>
-    </div>
-   
-    <div class="card">
-        <h3 class="card-title">Historique des transactions</h3>
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Libellé</th>
-                        <th>Catégorie</th>
-                        <th>Montant</th>
-                        <th>Valeur</th>
-                        <th style="text-align: right;">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="expensesTable">
-                    </tbody>
-            </table>
-        </div>
-    </div>
-</main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <section style="margin-top: 1rem;">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3 class="card-title" style="margin-bottom: 0;">Intelligence Réapprovisionnement</h3>
+                    <span class="badge badge-success">Analyse IA Active</span>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Produit</th>
+                                <th>Stock Actuel</th>
+                                <th>Vitesse de vente (/j)</th>
+                                <th>Autonomie estimée</th>
+                                <th>Niveau d'urgence</th>
+                            </tr>
+                        </thead>
+                        <tbody id="forecastBody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-    let expenses = [];
-    let globalRate = 2200; // Taux par défaut si non trouvé
+    let charts = {};
+    let globalRate = 2200;
 
     // --- 2. INITIALISATION ---
     document.addEventListener('DOMContentLoaded', async () => {
         applyGlobalSettings();
+        handleResponsiveSidebar();
+        await fetchDataAndRender();
         
-        if(document.getElementById('expenseDate')) {
-            document.getElementById('expenseDate').valueAsDate = new Date();
-        }
-        
-        // Charger les données depuis Supabase
-        fetchExpenses();
-
-        const currencySelector = document.getElementById('expenseCurrency');
-        if(currencySelector) {
-            currencySelector.addEventListener('change', renderExpenses);
-        }
+        // Ecouter le changement de période si le select existe
+        const periodSelect = document.getElementById('analysisPeriod');
+        if(periodSelect) periodSelect.addEventListener('change', fetchDataAndRender);
     });
 
     function applyGlobalSettings() {
         const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-        
         if (config.darkMode) document.body.classList.add('dark-mode');
-
+        
         currentCurrency = config.currency || "FC";
         globalRate = parseFloat(config.rate) || 2800;
-        
-        const select = document.getElementById('expenseCurrency');
-        if (select) select.value = currentCurrency;
 
         const brandName = document.querySelector('.header-flex h2');
         if (brandName && config.name) {
-            brandName.innerHTML = `Dépenses <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
+            brandName.innerHTML = `Analyses <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
         }
     }
 
-    // --- 3. LOGIQUE DE CALCUL (DYNAMIQUE) ---
-    function convertCurrency(amount, fromCurrency, toCurrency) {
-        if (fromCurrency === toCurrency) return amount;
+    // --- 3. RÉCUPÉRATION DES DONNÉES (SUPABASE) ---
+    async function fetchDataAndRender() {
+        const period = parseInt(document.getElementById('analysisPeriod')?.value || 7);
         
-        // Si on convertit du Dollar vers le Franc Congolais
-        if ((fromCurrency === "$" || fromCurrency === "USD") && toCurrency === "FC") {
-            return amount * globalRate;
+        // Calcul de la date limite selon la période
+        const dateLimit = new Date();
+        dateLimit.setDate(dateLimit.getDate() - period);
+        const isoDateLimit = dateLimit.toISOString().split('T')[0];
+
+        // 1. Récupérer les ventes
+        const { data: sales } = await _db.from('sales').select('*').gte('date', isoDateLimit);
+        // 2. Récupérer l'inventaire
+        const { data: inventory } = await _db.from('inventory').select('*');
+        // 3. Récupérer les dépenses
+        const { data: expenses } = await _db.from('expenses').select('*').gte('date', isoDateLimit);
+
+        renderReporting(sales || [], inventory || [], expenses || [], period);
+    }
+
+    // --- 4. LOGIQUE DE CALCUL DU REPORTING ---
+    function renderReporting(salesData, inventoryData, expensesData, period) {
+        let totalRev = 0, totalCost = 0, totalExp = 0;
+        let hourMap = Array(24).fill(0);
+        let productMap = {};
+        let dailyMap = {};
+
+        // Analyse des ventes
+        salesData.forEach(s => {
+            const qty = parseInt(s.qty) || 0;
+            const sellPrice = parseFloat(s.sell_price) || 0;
+            const buyPrice = parseFloat(s.buy_price) || 0;
+            
+            totalRev += (sellPrice * qty);
+            totalCost += (buyPrice * qty);
+
+            // Heures de pointe (On utilise created_at si timestamp absent)
+            const hour = new Date(s.created_at || s.date).getHours();
+            hourMap[hour] += qty;
+
+            if (s.product) productMap[s.product] = (productMap[s.product] || 0) + qty;
+            if (s.date) dailyMap[s.date] = (dailyMap[s.date] || 0) + (sellPrice * qty);
+        });
+
+        // Analyse des dépenses
+        expensesData.forEach(e => {
+            // Conversion si la dépense n'est pas dans la devise cible
+            let amt = parseFloat(e.amount) || 0;
+            if (e.currency === "$" && currentCurrency === "FC") amt *= globalRate;
+            if (e.currency === "FC" && currentCurrency === "$") amt /= globalRate;
+            totalExp += amt;
+        });
+        
+        // Mise à jour des Widgets
+        document.getElementById('statRev').textContent = totalRev.toLocaleString() + " " + currentCurrency;
+        // Profit Net = (Ventes - Coût d'achat) - Dépenses opérationnelles
+        const netProfit = (totalRev - totalCost) - totalExp;
+        document.getElementById('statProf').textContent = netProfit.toLocaleString() + " " + currentCurrency;
+        
+        const peakHour = hourMap.indexOf(Math.max(...hourMap));
+        document.getElementById('statPeak').textContent = peakHour + "h";
+
+        // --- PRÉVISIONS DE STOCK ---
+        const forecastBody = document.getElementById('forecastBody');
+        if (forecastBody) {
+            forecastBody.innerHTML = "";
+            let criticals = 0;
+            
+            inventoryData.forEach(item => {
+                const totalSold = productMap[item.product] || 0;
+                const dailyRate = totalSold / period;
+                const stock = parseInt(item.qty) || 0;
+                
+                let days = dailyRate > 0 ? Math.floor(stock / dailyRate) : "∞";
+                let status = '<span class="badge" style="background:#10b98122; color:#10b981; padding:4px 8px; border-radius:4px;">Ok</span>';
+                
+                if(stock === 0 || (days !== "∞" && days <= 3)) { 
+                    status = '<span class="badge" style="background:#ef444422; color:#ef4444; padding:4px 8px; border-radius:4px;">Urgent</span>'; 
+                    criticals++; 
+                } else if(days !== "∞" && days <= 7) { 
+                    status = '<span class="badge" style="background:#f59e0b22; color:#f59e0b; padding:4px 8px; border-radius:4px;">Alerte</span>'; 
+                }
+                
+                forecastBody.innerHTML += `<tr>
+                    <td><b>${item.product}</b></td>
+                    <td>${stock}</td>
+                    <td>${dailyRate.toFixed(1)}/j</td>
+                    <td>${days === "∞" ? "Stable" : days + " j"}</td>
+                    <td>${status}</td>
+                </tr>`;
+            });
+
+            const health = inventoryData.length ? Math.round(((inventoryData.length - criticals) / inventoryData.length) * 100) : 100;
+            document.getElementById('statStockHealth').textContent = health + "%";
         }
-        // Si on convertit du Franc Congolais vers le Dollar
-        if (fromCurrency === "FC" && (toCurrency === "$" || toCurrency === "USD")) {
-            return amount / globalRate;
-        }
-        return amount; 
+
+        updateCharts(dailyMap, hourMap, productMap, totalRev, totalCost, totalExp);
     }
 
-    // --- 4. CHARGEMENT & ACTIONS SUPABASE ---
-    async function fetchExpenses() {
-    const { data: { user } } = await _db.auth.getUser();
-    if (!user) return;
+    // --- 5. GESTION DES GRAPHIQUES ---
+    function updateCharts(daily, hours, products, rev, cost, expenses) {
+        const isDark = document.body.classList.contains('dark-mode');
+        const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+        const textColor = isDark ? '#94a3b8' : '#64748b';
 
-    const { data, error } = await _db
-        .from('expenses')
-        .select('*')
-        .eq('user_id', user.id) // Filtrer pour ne voir que SES dépenses
-        .order('date', { ascending: false });
+        Chart.defaults.color = textColor;
+        Chart.defaults.borderColor = gridColor;
 
-    if (!error) {
-        expenses = data || [];
-        renderExpenses();
-    }
-}
+        // Ventes Quotidiennes
+        if(charts.s) charts.s.destroy();
+        const days = Object.keys(daily).sort();
+        charts.s = new Chart(document.getElementById('chartSales'), {
+            type: 'line',
+            data: { labels: days, datasets: [{ label: 'Chiffre d\'Affaires', data: days.map(d=>daily[d]), borderColor: '#3b82f6', tension: 0.4, fill:true, backgroundColor:'rgba(59, 130, 246, 0.1)' }] },
+            options: { responsive:true, maintainAspectRatio:false }
+        });
 
-    async function addExpense() {
-    const { data: { user } } = await _db.auth.getUser();
-    if (!user) return alert("Session expirée");
+        // Top Produits
+        if(charts.t) charts.t.destroy();
+        const top = Object.entries(products).sort((a,b)=>b[1]-a[1]).slice(0,5);
+        charts.t = new Chart(document.getElementById('chartTopProd'), {
+            type: 'doughnut',
+            data: { labels: top.map(p=>p[0]), datasets: [{ data: top.map(p=>p[1]), backgroundColor: ['#1f3c63','#3b82f6','#10b981','#f59e0b','#ef4444'] }] },
+            options: { responsive:true, maintainAspectRatio:false, cutout: '75%' }
+        });
 
-    const date = document.getElementById('expenseDate').value;
-    const label = document.getElementById('expenseLabel').value.trim();
-    const amount = parseFloat(document.getElementById('expenseAmount').value);
-    
-    // On récupère la devise choisie pour CETTE dépense précise
-    const specificCurrency = document.getElementById('inputCurrency').value; 
-    const category = document.getElementById('expenseCategory').value;
-
-    if(!label || isNaN(amount)) return alert("Veuillez remplir le libellé et le montant.");
-
-    const { error } = await _db.from('expenses').insert([{ 
-        user_id: user.id,
-        date: date,
-        label: label,      // Maintenant reconnu grâce au SQL ci-dessus
-        amount: amount,
-        currency: specificCurrency, // Enregistre FC ou USD selon ton choix
-        category: category
-    }]);
-
-    if (error) {
-        alert("Erreur: " + error.message);
-    } else {
-        // Reset des champs
-        document.getElementById('expenseLabel').value = '';
-        document.getElementById('expenseAmount').value = '';
-        fetchExpenses(); 
-    }
-}
-    async function deleteExpense(id) {
-        if(confirm("Supprimer cette dépense ?")) {
-            const { error } = await _db.from('expenses').delete().eq('id', id);
-            if (!error) fetchExpenses();
-        }
-    }
-
-    // --- 5. RENDU DU TABLEAU (CORRIGÉ POUR L'ERREUR VALUE) ---
-    function renderExpenses() {
-    const table = document.getElementById('expensesTable');
-    if(!table) return;
-
-    const currencySelector = document.getElementById('expenseCurrency');
-    const targetCurrency = currencySelector ? currencySelector.value : currentCurrency;
-    
-    const totalDisplay = document.getElementById('expensesTotal');
-    table.innerHTML = '';
-    let totalGlobal = 0;
-
-    expenses.forEach(e => {
-        // 1. RÉCUPÉRATION DU LIBELLÉ (Vérifie 'label' puis 'description')
-        const displayLabel = e.label || e.description || 'Sans nom';
-
-        // 2. GESTION DE LA DEVISE LIGNE PAR LIGNE
-        const expenseCurrency = e.currency || "FC"; 
-        const convertedAmount = convertCurrency(e.amount, expenseCurrency, targetCurrency);
-        totalGlobal += convertedAmount;
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${e.date ? new Date(e.date).toLocaleDateString('fr-FR') : '-'}</td>
-            <td style="font-weight:600">${displayLabel}</td>
-            <td><span class="badge-cat">${e.category || 'Général'}</span></td>
-            <td style="color:var(--text-light); font-size:0.9em;">
-                ${(e.amount || 0).toLocaleString()} ${expenseCurrency}
-            </td>
-            <td style="font-weight:700; color:var(--danger)">
-                - ${convertedAmount.toLocaleString(undefined, {minimumFractionDigits:2})} ${targetCurrency}
-            </td>
-            <td style="text-align: right;">
-                <button onclick="deleteExpense('${e.id}')" class="btn-delete">
-                    <svg style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
-            </td>
-        `;
-        table.appendChild(row);
-    });
-
-    if(totalDisplay) {
-        totalDisplay.textContent = totalGlobal.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }) + " " + targetCurrency;
-    }
-}
-
-    // --- 6. AUTRES FONCTIONS ---
-    function filterExpenses() {
-        const query = document.getElementById('searchInput').value.toLowerCase();
-        const rows = document.querySelectorAll('#expensesTable tr');
-        rows.forEach(row => {
-            row.style.display = row.innerText.toLowerCase().includes(query) ? '' : 'none';
+        // Répartition financière (Coûts, Dépenses, Profit Net)
+        if(charts.m) charts.m.destroy();
+        charts.m = new Chart(document.getElementById('chartMargin'), {
+            type: 'pie',
+            data: { 
+                labels: ['Achat Marchandises', 'Dépenses Opé.', 'Profit Net'], 
+                datasets: [{ 
+                    data: [cost, expenses, (rev - cost - expenses)], 
+                    backgroundColor: ['#e2e8f0', '#ef4444', '#10b981'] 
+                }] 
+            },
+            options: { responsive:true, maintainAspectRatio:false }
         });
     }
 
-    function exportExpensesExcel() {
-        const currencySelector = document.getElementById('expenseCurrency');
-        const targetCurrency = currencySelector ? currencySelector.value : currentCurrency;
-
-        const wsData = [["Date", "Libellé", "Catégorie", "Montant Original", "Devise", `Valeur en ${targetCurrency}`]];
-        expenses.forEach(e => {
-            const converted = convertCurrency(e.amount, e.currency, targetCurrency);
-            wsData.push([e.date, e.label, e.category, e.amount, e.currency, converted.toFixed(2)]);
-        });
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Dépenses");
-        XLSX.writeFile(wb, `Depenses_${new Date().toLocaleDateString()}.xlsx`);
+    // --- 6. UTILITAIRES ---
+    function handleResponsiveSidebar() {
+        const width = window.innerWidth;
+        const sb = document.getElementById('sidebar');
+        if (sb) {
+            if (width <= 1024) sb.classList.add('collapsed');
+            else sb.classList.remove('collapsed');
+        }
     }
 
-    async function logout() {
-    if(confirm("Se déconnecter ?")) {
-        await _db.auth.signOut(); // Déconnexion réelle de Supabase
-        localStorage.removeItem('sb-oysdycuouodarfkmdtop-auth-token'); // Nettoyage propre
-        window.location.href = "index.html";
+    function exportPDF() {
+        const element = document.getElementById('printableArea');
+        const opt = {
+            margin: 5,
+            filename: `Rapport_Business_${new Date().toLocaleDateString()}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().from(element).set(opt).save();
     }
-}
-    async function exportExpensesPDF() {
-    // Vérification de sécurité
-    if (!window.jspdf) return alert("Erreur: Bibliothèque jsPDF non trouvée.");
-    if (!window.jspdf.jsPDF.API.autoTable) return alert("Erreur: Plugin autoTable non trouvé. Vérifiez vos scripts imports.");
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-
-    // 1. Récupération de l'utilisateur
-    const { data: { user } } = await _db.auth.getUser();
-    if (!user) return alert("Session expirée");
-
-    // 2. Infos entreprise
-    const { data: settings } = await _db
-        .from('settings')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-    const bizName = settings?.company_name || "MONITEO PRO";
-    const bizLogo = settings?.logo_url || null;
-    const currencySelector = document.getElementById('expenseCurrency');
-    const targetCurrency = currencySelector ? currencySelector.value : currentCurrency;
-
-    // --- EN-TÊTE ---
-    if (bizLogo) {
-        try { doc.addImage(bizLogo, 'PNG', 14, 10, 25, 25); } catch (e) {}
-    }
-    doc.setFontSize(18);
-    doc.setTextColor(31, 60, 99);
-    doc.text(bizName.toUpperCase(), bizLogo ? 45 : 14, 20);
-    doc.setFontSize(9);
-    doc.setTextColor(100);
-    doc.text(`Rapport des Dépenses - ${new Date().toLocaleDateString('fr-FR')}`, bizLogo ? 45 : 14, 26);
-
-    // --- TABLEAU ---
-    const totalGlobal = document.getElementById('expensesTotal')?.textContent || "0";
-    const tableBody = expenses.map(e => {
-        const expenseCurrency = e.currency || "FC";
-        const converted = convertCurrency(e.amount, expenseCurrency, targetCurrency);
-        return [
-            e.date ? new Date(e.date).toLocaleDateString('fr-FR') : '-',
-            e.label || 'Sans nom',
-            e.category || 'Général',
-            `${(e.amount || 0).toLocaleString()} ${expenseCurrency}`,
-            `${converted.toLocaleString(undefined, {minimumFractionDigits:2})} ${targetCurrency}`
-        ];
-    });
-
-    // Appel de autoTable
-    doc.autoTable({
-        startY: 40,
-        head: [['Date', 'Libellé', 'Catégorie', 'Montant Orig.', `Total (${targetCurrency})`]],
-        body: tableBody,
-        headStyles: { fillColor: [31, 60, 99] },
-        foot: [[ '', '', '', 'TOTAL GÉNÉRAL', totalGlobal ]],
-        footStyles: { fillColor: [240, 240, 240], textColor: [0,0,0], fontStyle: 'bold' }
-    });
-
-    doc.save(`Depenses_${bizName.replace(/\s+/g, '_')}.pdf`);
-}
-function toggleSidebar() {
+    function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.getElementById('mainContent');
     
