@@ -79,66 +79,80 @@
     <header class="header-flex">
         <div>
             <h2>Paramètres & Profil</h2>
-            <p id="userEmailDisplay" style="font-size: 0.85rem; color: var(--secondary); font-weight: 600;">Chargement du compte...</p>
+            <p id="userEmailDisplay" style="font-size: 0.85rem; color: var(--text-light); font-weight: 500;">Chargement du compte...</p>
         </div>
-        <button class="btn-save" onclick="saveAllData()" style="margin:0; width:auto; padding:10px 25px;">Enregistrer Tout</button>
+        <div class="group">
+            <button class="btn-main" onclick="saveAllData()">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                Enregistrer Tout
+            </button>
+        </div>
     </header>
 
-    <div class="settings-grid">
+    <div class="settings-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+        
         <div class="card">
-            <h3><svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Identité Admin</h3>
-            <div style="text-align: center; margin-bottom: 1.5rem;">
-                <div style="position: relative; display: inline-block;">
-                    <img id="avatarPreview" src="https://ui-avatars.com/api/?name=Admin&background=1f3c63&color=fff" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border-soft);">
-                    <input type="file" id="avatarInput" hidden accept="image/*" onchange="previewAvatar()">
-                    <button onclick="document.getElementById('avatarInput').click()" style="position: absolute; bottom: 0; right: 0; background: var(--secondary); border: none; border-radius: 50%; width: 25px; height: 25px; color: white; cursor: pointer;">+</button>
+            <h3 class="card-title"><svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Profil Administrateur</h3>
+            
+            <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1.5rem;">
+                <div class="avatar-upload" style="position: relative; cursor: pointer;" onclick="document.getElementById('avatarInput').click()">
+                    <img id="avatarPreview" src="https://ui-avatars.com/api/?name=Admin&background=1f3c63&color=fff" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid var(--bg-body); box-shadow: var(--shadow-sm);">
+                    <div style="position: absolute; bottom: 5px; right: 5px; background: var(--secondary); border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid white;">
+                        <svg style="width:16px; height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                    </div>
                 </div>
+                <input type="file" id="avatarInput" hidden accept="image/*" onchange="previewAvatar()">
             </div>
+
             <div class="form-group">
                 <label>Nom Complet</label>
-                <input type="text" id="adminFullName" placeholder="Ex: Jean Dupont">
+                <input type="text" id="adminFullName" placeholder="Jean Dupont">
             </div>
             <div class="form-group">
-                <label>Rôle / Titre</label>
-                <input type="text" id="adminRole" value="Administrateur Principal" readonly style="background: var(--bg-body); opacity: 0.7;">
+                <label>Rôle</label>
+                <input type="text" id="adminRole" value="Administrateur Principal" readonly style="background: var(--bg-body); cursor: not-allowed;">
             </div>
         </div>
 
         <div class="card">
-            <h3><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg> Entreprise</h3>
+            <h3 class="card-title"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line></svg> Entreprise</h3>
+            
             <div class="form-group">
                 <label>Nom du Business</label>
-                <input type="text" id="bizName" placeholder="Ex: Moniteo Umbrella Ltd">
+                <input type="text" id="bizName" placeholder="Moniteo Umbrella Ltd">
             </div>
             <div class="form-group">
                 <label>Adresse physique</label>
                 <textarea id="bizAddress" rows="2" placeholder="Kinshasa, Gombe..."></textarea>
             </div>
             <div class="form-group">
-                <label>Logo du Business</label>
-                <input type="file" id="bizLogoInput" accept="image/*" onchange="previewLogo()">
-                <div style="margin-top:10px; text-align:center;">
-                    <img id="logoPreview" src="" style="max-height: 40px; display:none; margin: 0 auto;">
+                <label>Logo (En-tête des PDF)</label>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <button class="btn-outline" onclick="document.getElementById('bizLogoInput').click()" style="margin: 0;">Choisir logo</button>
+                    <img id="logoPreview" src="" style="max-height: 45px; border-radius: 4px; border: 1px solid var(--border-soft); display: none;">
                 </div>
+                <input type="file" id="bizLogoInput" hidden accept="image/*" onchange="previewLogo()">
             </div>
         </div>
 
         <div class="card">
-            <h3><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle></svg> Préférences Système</h3>
+            <h3 class="card-title"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Système</h3>
             <div class="form-group">
-                <label>Devise de base</label>
+                <label>Devise par défaut</label>
                 <select id="baseCurrency">
                     <option value="$">Dollar ($)</option>
                     <option value="FC">Franc Congolais (FC)</option>
-                    <option value="€">Euro (€)</option>
                 </select>
             </div>
             <div class="form-group">
                 <label>Taux de change (1$ = ? FC)</label>
-                <input type="number" id="exchangeRate" placeholder="Ex: 2850">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="number" id="exchangeRate" placeholder="2850" style="flex: 1;">
+                    <span style="font-weight: bold; color: var(--secondary);">FC</span>
+                </div>
             </div>
-            <div class="toggle-item">
-                <span>Mode Sombre</span>
+            <div class="toggle-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
+                <span>Interface Sombre</span>
                 <label class="switch">
                     <input type="checkbox" id="darkToggle" onchange="toggleDarkModeUI()">
                     <span class="slider"></span>
@@ -146,10 +160,11 @@
             </div>
         </div>
 
-        <div class="card danger-zone">
+        <div class="card" style="border: 1px dashed var(--danger); background: rgba(239, 68, 68, 0.02);">
             <h3 style="color: var(--danger);">Zone de Danger</h3>
-            <button class="btn-danger-soft" onclick="resetApp()" style="margin-bottom: 10px;">Réinitialiser les données</button>
-            <button class="btn-outline" onclick="logout()" style="width: 100%; justify-content: center; color: var(--danger);">Déconnexion</button>
+            <p style="font-size: 0.75rem; color: var(--text-light); margin-bottom: 15px;">Attention : la réinitialisation effacera toutes vos ventes et dépenses localement.</p>
+            <button class="btn-outline" onclick="resetApp()" style="width: 100%; border-color: #fca5a5; color: var(--danger); margin-bottom: 10px;">Réinitialiser les données</button>
+            <button class="btn-danger" onclick="logout()" style="width: 100%; justify-content: center;">Déconnexion</button>
         </div>
     </div>
 </main>
@@ -243,45 +258,63 @@
     }
 
     // --- SAUVEGARDE GLOBALE ---
-    async function saveAllData() {
-        const saveBtn = document.querySelector('.btn-save');
-        const originalText = saveBtn.textContent;
-        
-        saveBtn.textContent = "⏳ Enregistrement...";
-        saveBtn.disabled = true;
+    // --- SAUVEGARDE GLOBALE ---
+async function saveAllData() {
+    try {
+        // 1. Récupération des valeurs avec les bons IDs de ton HTML
+        const config = {
+            fullName: document.getElementById('adminFullName')?.value || "",
+            companyName: document.getElementById('bizName')?.value || "",
+            address: document.getElementById('bizAddress')?.value || "",
+            currency: document.getElementById('baseCurrency')?.value || "$",
+            rate: document.getElementById('exchangeRate')?.value || "0",
+            darkMode: document.getElementById('darkToggle')?.checked || false,
+            logo: base64Logo,   // Variable globale définie dans tes previews
+            avatar: base64Avatar // Variable globale définie dans tes previews
+        };
 
-        try {
-            // 1. Sauvegarde Profil (Table: profiles)
-            const { error: pErr } = await _db.from('profiles').upsert({
-                id: currentUser.id,
-                full_name: document.getElementById('adminFullName').value,
-                avatar_url: base64Avatar,
-                updated_at: new Date()
-            });
+        // 2. Sauvegarde Locale (pour une réactivité immédiate)
+        localStorage.setItem('moniteo_config', JSON.stringify(config));
 
-            // 2. Sauvegarde Settings (Table: settings)
-            const { error: sErr } = await _db.from('settings').upsert({
-                user_id: currentUser.id,
-                company_name: document.getElementById('bizName').value,
-                address: document.getElementById('bizAddress').value,
-                currency: document.getElementById('baseCurrency').value,
-                rate: parseFloat(document.getElementById('exchangeRate').value) || 0,
-                dark_mode: document.getElementById('darkToggle').checked,
-                logo_url: base64Logo,
-                updated_at: new Date()
-            }, { onConflict: 'user_id' });
+        // 3. Sauvegarde Supabase (Tables : profiles et settings)
+        if (currentUser) {
+            // A. Mise à jour du Profil
+            const { error: profileError } = await _db
+                .from('profiles')
+                .upsert({ 
+                    id: currentUser.id, 
+                    full_name: config.fullName,
+                    avatar_url: config.avatar 
+                });
 
-            if (pErr || sErr) throw new Error("Erreur de synchronisation Supabase.");
+            if (profileError) throw profileError;
 
-            alert("✅ Configuration mise à jour avec succès !");
-            location.reload(); // Recharge pour appliquer les changements partout
-            
-        } catch (err) {
-            alert("Erreur lors de la sauvegarde: " + err.message);
-            saveBtn.textContent = originalText;
-            saveBtn.disabled = false;
+            // B. Mise à jour des Settings
+            const { error: settingsError } = await _db
+                .from('settings')
+                .upsert({ 
+                    user_id: currentUser.id, 
+                    company_name: config.companyName,
+                    address: config.address,
+                    currency: config.currency,
+                    rate: config.rate,
+                    dark_mode: config.darkMode,
+                    logo_url: config.logo
+                });
+
+            if (settingsError) throw settingsError;
         }
+
+        alert("✅ Tous les paramètres ont été enregistrés avec succès !");
+        
+        // Appliquer le mode sombre si changé
+        document.body.classList.toggle('dark-mode', config.darkMode);
+
+    } catch (error) {
+        console.error("Erreur lors de la sauvegarde :", error.message);
+        alert("❌ Erreur lors de l'enregistrement : " + error.message);
     }
+}
 
     // --- INTERFACE & SIDEBAR ---
     function toggleDarkModeUI() {
@@ -319,6 +352,16 @@
             location.reload();
         }
     }
+function previewAvatar() {
+    const file = document.getElementById('avatarInput').files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('avatarPreview').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+}
 </script>
 </body>
 </html>
