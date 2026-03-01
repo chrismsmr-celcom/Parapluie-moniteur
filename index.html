@@ -57,7 +57,7 @@
 
         .login-box { 
             width: 100%; 
-            max-width: 420px; 
+            max-width: 500px; 
             padding: 2.5rem;
             border-radius: var(--radius);
             /* Suppression de l'ombre ici si tu veux un look puriste, ou ajout pour relief */
@@ -132,7 +132,83 @@
 
         .footer-note { text-align: center; margin-top: 1.5rem; font-size: 0.95rem; color: var(--text-muted); }
         .footer-note span { color: var(--primary); cursor: pointer; font-weight: 700; }
+        /* --- FOOTER INTEGRATION --- */
+.main-footer {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 41.66%; /* Correspond à la largeur de .form-side (flex: 1 sur un total de 2.4) */
+    padding: 1.5rem 2.5rem;
+    background: transparent;
+    z-index: 20;
+}
 
+.footer-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+}
+
+.copyright {
+    font-size: 0.65rem;
+    color: var(--text-main);
+    opacity: 0.8;
+}
+
+.footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.footer-link {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+    font-weight: 500;
+}
+
+.footer-link:hover {
+    color: var(--primary);
+}
+
+.separator {
+    color: var(--border);
+    font-size: 0.7rem;
+    user-select: none;
+}
+
+/* --- RESPONSIVE FOOTER --- */
+@media (max-width: 1024px) {
+    .main-footer {
+        position: relative;
+        width: 100%;
+        background: white;
+        padding: 2rem;
+        text-align: center;
+    }
+
+    .footer-content {
+        align-items: center;
+        border-top: 1px solid var(--border);
+    }
+
+    .footer-links {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .separator { display: none; }
+    .footer-links {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
         @media (max-width: 1024px) { 
             .vanta-side { display: none; } 
             .form-side { flex: 1; background: var(--bg-body); }
@@ -217,6 +293,21 @@
         </div>
     </div>
 </div>
+<footer class="main-footer">
+    <div class="footer-content">
+        <span class="copyright">&copy; 2026 <strong>Moniteo</strong> by Umbrella</span>
+        <div class="footer-links">
+            <a href="mentions.html" class="footer-link">Mentions légales & CGU</a>
+            <span class="separator">|</span>
+            <a href="confidentialite.html" class="footer-link">Confidentialité</a>
+            <span class="separator">|</span>
+            <a href="aide.html" class="footer-link">Centre d'aide</a>
+            <span class="separator">|</span>
+            <a href="mailto:support@umbrella-moniteo.com" class="footer-link">Support technique</a>
+        </div>
+    </div>
+</footer>
+
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
