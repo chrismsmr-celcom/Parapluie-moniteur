@@ -4,50 +4,65 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Moniteo Umbrella - Gestion Staff</title>
-		<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-	      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<link rel="stylesheet" href="UI/style.css">
 
-           <script src="js/auth-check.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+<script src="js/supabase-config.js"></script> 
+<script src="js/auth-check.js"></script>
+
+<script src="js/common.js"></script>
+<script src="js/stats-manager.js"></script>
+<script src="js/settings-manager.js"></script>
+<script src="js/exportPDF.js"></script>
 
 <script>
-    // 1. On protège la page
-    protectPage((user) => {
-        console.log("Accès autorisé pour :", user.id);
-        // APPEL DE LA VRAIE FONCTION
-        fetchStaffData(); 
+    // Variable globale pour stocker les données du staff
+    let staffData = [];
+
+    // protectPage vient de auth-check.js
+    protectPage(async (user) => {
+        console.log("✅ Accès Staff autorisé pour :", user.email);
+        // On attend que les données soient là avant de faire quoi que ce soit
+        await fetchStaffData(user); 
     });
 
-    // 2. TA VRAIE FONCTION (Celle qui contient toute ta logique de rendu)
-    async function fetchStaffData() {
+    async function fetchStaffData(user) {
         try {
-            // CHANGE "ma_table" PAR "staff" ICI 👇
-            const { data, error } = await _db
+            const db = window._db || _db;
+            if (!db) throw new Error("Base de données non initialisée.");
+
+            const { data, error } = await db
                 .from('staff') 
                 .select('*')
-                .eq('user_id', currentUser.id)
+                .eq('user_id', user.id)
                 .order('name', { ascending: true });
 
             if (error) throw error;
 
             if (data) {
-                console.log("Données reçues :", data);
-                // Ici tu appelles ta fonction qui dessine le tableau (ex: renderStaff(data))
-                staffData = data; // Si tu utilises une variable globale
-                renderStaff();    // Ta fonction qui crée les lignes <tr>
+                console.log("👥 Staff récupéré :", data.length);
+                
+                // On remplit la variable globale
+                staffData = data;
+                
+                // Appel du rendu (défini dans common.js ou ci-dessous)
+                if (typeof renderStaff === 'function') {
+                    renderStaff(); 
+                } else {
+                    console.warn("⚠️ La fonction renderStaff n'est pas encore définie.");
+                }
             }
         } catch (err) {
-            console.error("Erreur critique :", err.message);
+            console.error("❌ Erreur critique :", err.message);
         }
     }
 </script>
-		<link rel="stylesheet" href="UI/style.css">
-		    <script src="js/common.js"></script>
-
 	</head>
 	<body>
 		<nav class="sidebar" id="sidebar">
@@ -74,42 +89,99 @@
 </nav>
 
 		<main class="main-content">
-			<header class="header-flex" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-				<div>
-					<h2 style="margin: 0;">Gestion du Personnel</h2>
-					<p style="font-size: 0.8rem; color: var(--text-light); margin: 0;">Registre RH & Masse Salariale</p>
-				</div>
-				<div style="display: flex; gap: 15px; align-items: center;">
-						
-					<input type="text" id="searchInput" placeholder="Chercher un nom..." oninput="filterStaff()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-soft); outline: none;">
-				</div>
-			</header>
-			<div class="summary-banner">
-				<div>
-					<small>Effectif Total</small>
-					<p id="statTotal">0</p>
-				</div>
-				<div>
-					<small>Masse Salariale</small>
-					<p id="statMasse">0</p>
-				</div>
-				<div>
-					<small>Fin de Contrats</small>
-					<p id="statAlerts" style="color:#ff6b6b">0</p>
-				</div>
-				<div>
-					<small>Salaire Moyen</small>
-					<p id="statMoyenne">0</p>
-				</div>
-			</div>
+			<header class="header-flex" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); margin-bottom: 25px;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <div id="dynamicLogoContainer" style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px;"></div>
+        
+        <div style="border-left: 2px solid var(--border-soft); padding-left: 15px; display: flex; flex-direction: column; justify-content: center; min-height: 45px;">
+            <h2 id="pageTitle" style="margin: 0; font-size: 1.25rem; font-weight: 700; line-height: 1.2; color: var(--text-main);">GESTION DU PERSONNEL</h2>
+            <div style="display: flex; flex-direction: column; margin-top: 2px;">
+                <span id="companySubtitle" style="color: var(--secondary); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.8px; line-height: 1.4;"></span>
+                <span id="dateDisplay" style="color: var(--text-light); font-size: 0.75rem; font-weight: 500;"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="header-actions" style="display: flex; gap: 12px; align-items: center;">
+        <div style="position: relative;">
+            <input type="text" id="searchInput" placeholder="Chercher un employé..." oninput="filterStaff()" 
+                style="padding: 10px 15px 10px 35px; border-radius: 8px; border: 1px solid var(--border-soft); background: var(--bg-body); color: var(--text-main); font-size: 0.9rem; outline: none; width: 220px;">
+            <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; color: var(--text-light);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </div>
+        
+        <button class="btn-outline" onclick="window.print()" style="padding: 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        </button>
+    </div>
+</header>
+			<div class="summary-banner" style="display: grid; grid-gap: 20px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 25px;">
+    
+    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #3b82f6; display: flex; align-items: center; gap: 15px;">
+        <div style="background: #eff6ff; padding: 10px; border-radius: 10px; color: #3b82f6;">
+            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        </div>
+        <div>
+            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Effectif Total</small>
+            <p id="statTotal" style="margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text-main);">0</p>
+        </div>
+    </div>
+
+    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #10b981; display: flex; align-items: center; gap: 15px;">
+        <div style="background: #ecfdf5; padding: 10px; border-radius: 10px; color: #10b981;">
+            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+        </div>
+        <div>
+            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Masse Salariale</small>
+            <p id="statMasse" style="margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text-main);">0</p>
+        </div>
+    </div>
+
+    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #ef4444; display: flex; align-items: center; gap: 15px;">
+        <div style="background: #fef2f2; padding: 10px; border-radius: 10px; color: #ef4444;">
+            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        </div>
+        <div>
+            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Fin de Contrats</small>
+            <p id="statAlerts" style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #ef4444;">0</p>
+        </div>
+    </div>
+
+    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #f59e0b; display: flex; align-items: center; gap: 15px;">
+        <div style="background: #fffbeb; padding: 10px; border-radius: 10px; color: #f59e0b;">
+            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>
+        </div>
+        <div>
+            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Salaire Moyen</small>
+            <p id="statMoyenne" style="margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text-main);">0</p>
+        </div>
+    </div>
+</div>
 			<div class="action-bar">
-				<button class="btn-main" onclick="addEmployee()">+ Nouveau Collaborateur</button>
-<button onclick="exportToExcel()" class="btn-save" style="width:auto; padding:10px; background:#10b981;">Excel</button>
-<button onclick="exportToPDF()" class="btn-save" style="width:auto; padding:10px; background:#ef4444;">PDF Rapport</button>
-				<input type="file" id="importExcel" hidden accept=".xlsx, .xls" onchange="importStaffExcel(event)">
-				<button class="btn-outline" onclick="document.getElementById('importExcel').click()">Importer</button>
-				<button class="btn-danger" onclick="clearStaff()" style="margin-left: auto;">Nettoyer Liste</button>
-			</div>
+    <div class="group">
+        <button class="btn-main" onclick="addEmployee()">
+            <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Nouveau Collaborateur
+        </button>
+
+        <div class="dropdown">
+            <button class="btn-outline dropdown-trigger" onclick="toggleDropdown(event, 'staffActionsMenu')">Actions</button>
+            <div class="dropdown-menu" id="staffActionsMenu">
+                <button onclick="exportToExcel()">Exporter vers Excel</button>
+                <button onclick="exportToPDF()">Générer Rapport PDF</button>
+                <button onclick="document.getElementById('importExcel').click()">Importer Excel</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="importExcel" hidden accept=".xlsx, .xls" onchange="importStaffExcel(event)">
+
+    <div class="dropdown" style="margin-left: auto;">
+        <button class="btn-danger dropdown-trigger" onclick="toggleDropdown(event, 'staffDangerMenu')">Options Critiques</button>
+        <div class="dropdown-menu" id="staffDangerMenu">
+            <button onclick="clearStaff()" style="color: var(--danger); font-weight: bold;">Nettoyer la liste</button>
+        </div>
+    </div>
+</div>
 			<div class="card">
 				<div class="table-wrapper">
 					<table>
@@ -232,7 +304,6 @@
 		</div>
 		<script>
     // --- 2. VARIABLES & DONNÉES ---
-    let staffData = []; 
     let currentIdx = -1;
     let cChart = null;
     let sChart = null;
@@ -248,7 +319,6 @@
         }
         
         currentUser = user; 
-        updateConfig();
         await fetchStaffData(); // Remplace loadStaff() pour la logique Supabase
     }
 
@@ -349,18 +419,6 @@
     }
 
     // --- 7. LOGIQUE DE CONFIGURATION ---
-    function updateConfig() {
-        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-        currentCurrency = config.currency || "";
-
-        if (config.darkMode) document.body.classList.add('dark-mode');
-        else document.body.classList.remove('dark-mode');
-
-        const brandName = document.querySelector('.header-flex h2');
-        if (brandName && config.name) {
-            brandName.innerHTML = `Gestion du Personnel <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
-        }
-    }
 
     function parseMoney(val) {
         if (val === null || val === undefined) return 0;
@@ -369,65 +427,92 @@
     }
 
     // --- 8. RENDU ET AFFICHAGE ---
-    function renderStaff(filter = '') {
-        const tbody = document.getElementById('staffTable');
-        if(!tbody) return;
-        tbody.innerHTML = '';
-        
-        const limit = new Date(); limit.setDate(limit.getDate() + 30);
+  function renderStaff(filter = '') {
+    // 1. Protection contre les types non-string (le bug que tu avais)
+    const searchFilter = (typeof filter === 'string' ? filter : '').toLowerCase().trim();
+    
+    const tbody = document.getElementById('staffTable'); // Assure-toi que c'est l'ID du <tbody>
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    const limit = new Date(); 
+    limit.setDate(limit.getDate() + 30);
 
-        staffData.forEach((e, i) => {
-            if(e.name.toLowerCase().includes(filter.toLowerCase())) {
-                let isWarning = (e.expiryDate && e.status === 'actif' && new Date(e.expiryDate) <= limit);
+    // 2. Filtrage et Rendu
+    staffData.forEach((e, i) => {
+        const nameMatch = e.name.toLowerCase().includes(searchFilter);
+        const roleMatch = (e.role || '').toLowerCase().includes(searchFilter);
+        const idMatch = (e.id_employee || '').toLowerCase().includes(searchFilter);
 
-                const tr = document.createElement('tr');
-                if(isWarning) tr.classList.add('expiry-warning');
+        if (nameMatch || roleMatch || idMatch) {
+            let isWarning = (e.expiryDate && e.status === 'actif' && new Date(e.expiryDate) <= limit);
 
-                tr.innerHTML = `
-                    <td>
-                        <div style="display:flex; align-items:center; gap:10px;">
-<img src="${e.photo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(e.name) + '&background=random'}" 
-     style="width:35px; height:35px; border-radius:50%; object-fit:cover;">                            <div>
-                                <div style="font-weight:600; cursor:pointer; color:var(--primary)" onclick="openModal(${i})">
-                                    ${isWarning ? '⚠️ ' : ''}${e.name}
-                                </div>
-                                <span class="contract-badge">${e.contractType || 'CDI'}</span>
-                            </div>
-                        </div>
-                    </td>
-                    <td contenteditable="true" onblur="updateField(${i},'role',this.textContent)">${e.role}</td>
-                    <td>${e.id_employee}</td>
-                    <td style="font-size:0.75rem">In: ${e.entryDate}<br><span style="color:var(--danger)">${e.expiryDate ? 'Out: '+e.expiryDate : ''}</span></td>
-                    <td><span class="status-badge ${e.status==='actif'?'active-bg':'inactive-bg'}" onclick="toggleStatus(${i})">${e.status}</span></td>
-                    <td contenteditable="true" onblur="updateField(${i},'salary',this.textContent)" style="font-weight:600">
-                        ${parseMoney(e.salary).toLocaleString()} ${currentCurrency}
-                    </td>
-                    <td contenteditable="true" onblur="updateField(${i},'bonus',this.textContent)" style="color:var(--success)">
-                        ${parseMoney(e.bonus).toLocaleString()} ${currentCurrency}
-                    </td>
-                    <td>
-                        <div style="display:flex; gap:10px; align-items:center;">
-                            <button class="btn-icon" onclick="showPayslip(${i})" title="Fiche de paie">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--secondary);">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                                </svg>
-                            </button>
-                            <button class="btn-icon" onclick="removeEmp(${i})" title="Supprimer">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--danger);">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </td>
-                `;                tbody.appendChild(tr);
+            // Gestion du surlignage (Highlight)
+            let highlightedName = e.name;
+            if (searchFilter) {
+                const regex = new RegExp(`(${searchFilter})`, 'gi');
+                highlightedName = e.name.replace(regex, '<mark style="background:#fef08a; padding:0; border-radius:2px;">$1</mark>');
             }
-        });
-        updateKPIs(); 
-    }
+
+            const tr = document.createElement('tr');
+            if (isWarning) tr.classList.add('expiry-warning');
+
+            tr.innerHTML = `
+                <td>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <img src="${e.photo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(e.name) + '&background=random'}" 
+                             style="width:35px; height:35px; border-radius:50%; object-fit:cover;">
+                        <div>
+                            <div style="font-weight:600; cursor:pointer; color:var(--primary)" onclick="openModal(${i})">
+                                ${isWarning ? '⚠️ ' : ''}${highlightedName}
+                            </div>
+                            <span class="contract-badge">${e.contractType || 'CDI'}</span>
+                        </div>
+                    </div>
+                </td>
+                <td contenteditable="true" onblur="updateField(${i},'role',this.textContent)">${e.role}</td>
+                <td><code style="background:#f1f5f9; padding:2px 5px; border-radius:4px;">${e.id_employee}</code></td>
+                <td style="font-size:0.75rem; line-height:1.2;">
+                    <span style="color:var(--text-soft)">In:</span> ${e.entryDate}<br>
+                    <span style="color:var(--danger)">${e.expiryDate ? 'Out: ' + e.expiryDate : ''}</span>
+                </td>
+                <td>
+                    <span class="status-badge ${e.status === 'actif' ? 'active-bg' : 'inactive-bg'}" 
+                          onclick="toggleStatus(${i})" style="cursor:pointer;">
+                        ${e.status}
+                    </span>
+                </td>
+                <td contenteditable="true" onblur="updateField(${i},'salary',this.textContent)" style="font-weight:600">
+                    ${parseMoney(e.salary).toLocaleString()} ${window.currentCurrency || 'FC'}
+                </td>
+                <td contenteditable="true" onblur="updateField(${i},'bonus',this.textContent)" style="color:var(--success); font-weight:600">
+                    ${parseMoney(e.bonus).toLocaleString()} ${window.currentCurrency || 'FC'}
+                </td>
+                <td>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <button class="btn-icon" onclick="showPayslip(${i})" title="Fiche de paie">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--secondary);">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                            </svg>
+                        </button>
+                        <button class="btn-icon" onclick="removeEmp(${i})" title="Supprimer">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--danger);">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        }
+    });
+
+    updateKPIs(); 
+}
 
     function updateField(i, k, v) {
         staffData[i][k] = (k === 'salary' || k === 'bonus') ? parseMoney(v) : v.trim();
@@ -484,8 +569,25 @@
             options: { maintainAspectRatio: false }
         });
     }
-
+     
     // --- 10. MODALE DOSSIER ---
+           function applyGlobalSettings() {
+    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+    window.currentCurrency = config.currency || "FC";
+
+    if (config.darkMode) document.body.classList.add('dark-mode');
+    else document.body.classList.remove('dark-mode');
+
+    const title = document.getElementById('companyTitle');
+    if (title && config.name) {
+        title.innerHTML = `Inventaire <small style="font-size:0.6em; color:var(--secondary)">| ${config.name}</small>`;
+    }
+
+    const logoCont = document.getElementById('dynamicLogoContainer');
+    if (logoCont && config.logo) {
+        logoCont.innerHTML = `<img src="${config.logo}" style="height: 40px; width: auto; border-radius: 4px;">`;
+    }
+}
     // --- MODALE DOSSIER ---
 function openModal(i) {
     currentIdx = i;
@@ -540,139 +642,57 @@ async function saveEmployeeDetails() {
     // --- 11. FONCTIONS D'EXPORT PDF ---
 
 // A. RAPPORT SIMPLE DU PERSONNEL
+/**
+ * Correction de exportToPDF pour utiliser le module MoniteoPDF
+ * Lié au bouton d'export rapide de la liste du personnel
+ */
 async function exportToPDF() {
-    if (!currentUser) return;
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    // 1. Vérifications de base
+    const user = window.currentUser || (window._db?.auth?.user());
+    if (!user) return alert("Session expirée. Veuillez vous reconnecter.");
     
-    const { data: settings } = await _db.from('settings').select('*').eq('user_id', currentUser.id).maybeSingle();
+    if (!staffData || staffData.length === 0) {
+        return alert("Aucune donnée disponible pour l'export.");
+    }
 
-    doc.setFontSize(18).setTextColor(31, 60, 99).text(settings?.company_name || "MONITEO", 14, 20);
-    doc.setFontSize(10).setTextColor(100).text(`Rapport Personnel - ${new Date().toLocaleDateString()}`, 14, 28);
-
+    // 2. Préparation des données du tableau
+    // On extrait proprement le nom, poste, statut et salaire
+    const curr = window.currentCurrency || "FC";
     const body = staffData.map(e => [
-        e.name, 
-        e.role, 
-        e.status.toUpperCase(), 
-        `${parseMoney(e.salary).toLocaleString()} ${currentCurrency}`
+        e.name.toUpperCase(), 
+        e.role || "Non défini", 
+        e.status ? e.status.toUpperCase() : "ACTIF", 
+        `${(typeof parseMoney === 'function' ? parseMoney(e.salary) : e.salary).toLocaleString()} ${curr}`
     ]);
-    
-    doc.autoTable({
-        startY: 35,
-        head: [['Nom', 'Poste', 'Statut', 'Salaire']],
-        body: body,
-        headStyles: { fillColor: [31, 60, 99] },
-        theme: 'striped'
-    });
 
-    doc.save("Rapport_Personnel.pdf");
-}
-
-// B. DASHBOARD COMPLET (SANTÉ DE L'ENTREPRISE)
-async function exportDashboardPDF() {
-    if (!currentUser) return;
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-
-    const { data: settings } = await _db.from('settings').select('*').eq('user_id', currentUser.id).maybeSingle();
-    const companyName = settings?.company_name || "MONITEO PRO";
-
-    // En-tête
-    if (settings?.logo_url) {
-        try { doc.addImage(settings.logo_url, 'PNG', 14, 10, 25, 25); } catch(e) {}
-    }
-    doc.setFontSize(18).setTextColor(31, 60, 99).text(companyName.toUpperCase(), settings?.logo_url ? 45 : 14, 20);
-    doc.setFontSize(9).setTextColor(100).text(settings?.address || "Rapport d'activité", settings?.logo_url ? 45 : 14, 26);
-
-    // Section KPI
-    doc.setFontSize(14).text("RÉSUMÉ FINANCIER", 14, 45);
-    const ca = document.getElementById('statTotal')?.textContent || "0"; // Adapté à tes IDs staff
-    const masse = document.getElementById('statMasse')?.textContent || "0";
-
-    doc.autoTable({
-        startY: 50,
-        head: [['Indicateur', 'Valeur']],
-        body: [['Effectif Total', staffData.length], ['Masse Salariale', masse]],
-        headStyles: { fillColor: [31, 60, 99] }
-    });
-
-    // Graphiques
-    let finalY = doc.lastAutoTable.finalY + 15;
-    try {
-        const canvasSalary = document.getElementById('salaryChart');
-        if (canvasSalary) {
-            const img = canvasSalary.toDataURL('image/png', 1.0);
-            doc.addImage(img, 'PNG', 14, finalY, 180, 60);
-        }
-    } catch (e) { console.error("Erreur graphiques", e); }
-
-    doc.save(`Dashboard_${companyName.replace(/\s+/g, '_')}.pdf`);
-}
-
-// C. BULLETIN DE PAIE (FICHE DE PAIE INDIVIDUELLE)
-async function downloadPayslipPDF() {
-    if (!currentUser) return;
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    // 1. Infos entreprise (depuis Supabase)
-    const { data: settings } = await _db.from('settings').select('*').eq('user_id', currentUser.id).maybeSingle();
-    
-    // 2. Infos employé (depuis la modale ouverte)
-    const name = document.getElementById('psName').innerText;
-    const role = document.getElementById('psRole').innerText;
-    const idSimplifie = document.getElementById('psID').innerText;
-    const period = document.getElementById('psDate').innerText;
-    const salaryTxt = document.getElementById('psSalary').innerText;
-    const bonusTxt = document.getElementById('psBonus').innerText;
-    const totalTxt = document.getElementById('psTotal').innerText;
-
-    // Mise en page Bulletin
-    if (settings?.logo_url) {
-        try { doc.addImage(settings.logo_url, 'PNG', 14, 10, 22, 22); } catch (e) {}
-    }
-
-    // En-tête entreprise
-    doc.setFont("helvetica", "bold").setFontSize(16).setTextColor(31, 60, 99);
-    doc.text(settings?.company_name || "MONITEO", 40, 18);
-    doc.setFontSize(8).setFont("helvetica", "normal").setTextColor(100);
-    doc.text(settings?.address || "", 40, 23);
-    doc.text(`Tél: ${settings?.phone || ""}`, 40, 27);
-
-    // Titre
-    doc.setFontSize(14).setTextColor(0).text("BULLETIN DE PAIE", 105, 45, { align: 'center' });
-    doc.setDrawColor(31, 60, 99).line(14, 48, 196, 48);
-
-    // Infos Employé
-    doc.setFontSize(10).text(`NOM : ${name}`, 14, 58);
-    doc.text(`POSTE : ${role}`, 14, 64);
-    doc.text(`PÉRIODE : ${period}`, 14, 70);
-    doc.text(`MATRICULE : ${idSimplifie}`, 130, 58);
-
-    // Tableau des montants
-    doc.autoTable({
-        startY: 80,
-        head: [['DÉSIGNATION', 'MONTANT']],
-        body: [
-            ['Salaire de Base', salaryTxt],
-            ['Primes et Bonus', bonusTxt],
-            [{ content: 'TOTAL NET À PAYER', styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }, 
-             { content: totalTxt, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }]
+    // 3. Appel du module universel (pour avoir le logo et l'en-tête entreprise)
+    await window.MoniteoPDF.generate({
+        title: "REGISTRE DU PERSONNEL",
+        subtitle: `Rapport généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`,
+        tables: [
+            {
+                headers: ['NOM COMPLET', 'POSTE / FONCTION', 'STATUT', 'REMUNÉRATION'],
+                rows: body,
+                theme: 'striped', // Look professionnel avec lignes alternées
+                headStyles: { fillColor: [31, 60, 99] }, // Bleu Moniteo Corporate
+                styles: { fontSize: 9, cellPadding: 4 }
+            }
         ],
-        theme: 'grid',
-        headStyles: { fillColor: [31, 60, 99] },
-        columnStyles: { 1: { halign: 'right' } }
+        // Petit plus : Ajouter une zone de signature en bas du rapport
+        onAfterGenerate: (doc, currentY) => {
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const y = (currentY + 20 > pageHeight - 30) ? 20 : currentY + 20;
+
+            if (currentY + 20 > pageHeight - 30) doc.addPage();
+
+            doc.setFontSize(8).setTextColor(100).setFont("helvetica", "italic");
+            doc.text(`Nombre total de collaborateurs : ${staffData.length}`, 14, y);
+            
+            doc.setFontSize(10).setTextColor(31, 60, 99).setFont("helvetica", "bold");
+            doc.text("Cachet et Signature Direction", pageWidth - 14, y + 10, { align: 'right' });
+        }
     });
-
-    // Signatures
-    const finalY = doc.lastAutoTable.finalY + 30;
-    doc.setFontSize(9).text("Signature Employeur", 14, finalY);
-    doc.text("Signature Collaborateur", 140, finalY);
-    doc.setDrawColor(200).line(14, finalY + 15, 60, finalY + 15);
-    doc.line(140, finalY + 15, 186, finalY + 15);
-
-    doc.save(`Fiche_Paie_${name.replace(/\s+/g, '_')}.pdf`);
 }
     function exportToExcel() {
         const worksheet = XLSX.utils.json_to_sheet(staffData);
@@ -681,33 +701,200 @@ async function downloadPayslipPDF() {
         XLSX.writeFile(workbook, "Export_Staff.xlsx");
     }
 
-    // --- 12. PAYS LIP (FICHE DE PAIE) ---
-    function showPayslip(i) {
-        const e = staffData[i];
-        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-        const sal = parseMoney(e.salary);
-        const bon = parseMoney(e.bonus);
+   // --- 12. PAYS LIP (FICHE DE PAIE - LOGIQUE UI) ---
+/**
+ * Affiche la modale du bulletin de paie avec ton HTML personnalisé
+ */
+function showPayslip(i) {
+    currentIdx = i; 
+    const e = staffData[i];
+    
+    // 1. Récupération de la configuration entreprise
+    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+    const curr = window.currentCurrency || "FC";
 
-        document.getElementById('psCompany').innerText = config.name || "MONITEO";
-        document.getElementById('psName').innerText = e.name;
-        document.getElementById('psRole').innerText = e.role;
-        document.getElementById('psID').innerText = e.id_employee;
-        document.getElementById('psSalary').innerText = sal.toLocaleString() + " " + currentCurrency;
-        document.getElementById('psBonus').innerText = bon.toLocaleString() + " " + currentCurrency;
-        document.getElementById('psTotal').innerText = (sal + bon).toLocaleString() + " " + currentCurrency;
-        document.getElementById('psDate').innerText = new Date().toLocaleDateString('fr-FR', {month: 'long', year: 'numeric'});
+    // 2. Préparation des montants (Nettoyage et Calculs)
+    const salBase = typeof parseMoney === 'function' ? parseMoney(e.salary) : parseFloat(e.salary || 0);
+    const bonus = typeof parseMoney === 'function' ? parseMoney(e.bonus) : parseFloat(e.bonus || 0);
+    const netAPayer = salBase + bonus;
 
-        document.getElementById('payslipModal').style.display = 'flex';
+    // 3. Remplissage de l'en-tête (Branding)
+    // Utilise le nom de l'entreprise ou "MONITEO" par défaut
+    document.getElementById('psCompany').innerText = (config.name || "MONITEO").toUpperCase();
+    
+    // 4. Identification du Salarié et Détails Administratifs
+    document.getElementById('psName').innerText = e.name;
+    document.getElementById('psRole').innerText = e.role || "Collaborateur";
+    document.getElementById('psID').innerText = e.id_employee || `CB${Math.random().toString(36).toUpperCase().substring(2, 7)}`;
+    document.getElementById('psContract').innerText = e.contractType || "CDI";
+
+    // 5. Tableau des Montants
+    // Salaire de base (Noir)
+    document.getElementById('psSalary').innerText = salBase.toLocaleString() + " " + curr;
+    
+    // Primes et Bonus (Vert via ton style inline #10b981)
+    document.getElementById('psBonus').innerText = bonus > 0 
+        ? "+" + bonus.toLocaleString() + " " + curr 
+        : "0 " + curr;
+    
+    // Total Net (Bleu via ton style #1f3c63)
+    document.getElementById('psTotal').innerText = netAPayer.toLocaleString() + " " + curr;
+
+    // 6. Date et Période (Ex: MARS 2026)
+    const optionsDate = { month: 'long', year: 'numeric' };
+    document.getElementById('psDate').innerText = new Date().toLocaleDateString('fr-FR', optionsDate).toUpperCase();
+
+    // 7. Affichage de la modale
+    const modal = document.getElementById('payslipModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        // On s'assure que la modale est bien centrée si elle est en position fixed/flex
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
     }
-
-    function closePayslip() { document.getElementById('payslipModal').style.display = 'none'; }
-    function downloadPayslipPDF() { /* Ta fonction jsPDF existante pour le bulletin */ window.print(); }
-
-    // Démarrage
-    document.addEventListener('DOMContentLoaded', init);
-    function closeModal() {
-    document.getElementById('employeeModal').style.display = 'none';
 }
-</script>
+
+/**
+ * Fermeture de la modale
+ */
+function closePayslip() { 
+    const modal = document.getElementById('payslipModal');
+    if (modal) modal.style.display = 'none'; 
+}
+
+// --- 13. GÉNÉRATION DU PDF (BULLETIN DE PAIE) ---
+/**
+ * Génère un bulletin de paie haute fidélité (Standard Entreprise)
+ */
+async function downloadPayslipPDF() {
+    const user = window.currentUser || (typeof _db !== 'undefined' ? (await _db.auth.getUser()).data.user : null);
+    if (!user) return alert("Session expirée.");
+
+    // 1. Collecte des données
+    const name = document.getElementById('psName')?.innerText || "NON DÉFINI";
+    const role = document.getElementById('psRole')?.innerText || "COLLABORATEUR";
+    const idEmp = document.getElementById('psID')?.innerText || "-";
+    const period = document.getElementById('psDate')?.innerText || "MOIS COURANT";
+    
+    // Conversion propre des montants
+    const baseSalary = parseFloat(document.getElementById('psSalary')?.innerText.replace(/[^0-9.]/g, '')) || 0;
+    const bonus = parseFloat(document.getElementById('psBonus')?.innerText.replace(/[^0-9.]/g, '')) || 0;
+    const totalNet = parseFloat(document.getElementById('psTotal')?.innerText.replace(/[^0-9.]/g, '')) || 0;
+
+    // 2. Appel du générateur universel
+    await window.MoniteoPDF.generate({
+        title: "BULLETIN DE PAIE DÉTAILLÉ",
+        subtitle: `PÉRIODE DU : ${period.toUpperCase()}`,
+        tables: [
+            {
+                // TABLEAU 1 : BLOC IDENTIFICATION (Design pro)
+                headers: ['INFORMATIONS SALARIÉ', 'DÉTAILS ADMINISTRATIFS'],
+                rows: [
+                    [`NOM : ${name.toUpperCase()}`, `MATRICULE : ${idEmp}`],
+                    [`POSTE : ${role}`, `TYPE CONTRAT : C.D.I`], // Exemple
+                    [`PÉRIODE : ${period}`, `DEVISE : ${window.currentCurrency || 'USD'}`]
+                ],
+                theme: 'striped',
+                styles: { fontSize: 8, cellPadding: 2 }
+            },
+            {
+                // TABLEAU 2 : CORPS DU BULLETIN (Calculs)
+                headers: ['LIBELLÉ', 'BASE', 'TAUX', 'GAINS', 'RETENUES'],
+                rows: [
+                    ['Salaire de Base', baseSalary.toLocaleString(), '100%', baseSalary.toLocaleString(), ''],
+                    ['Primes et Gratifications', bonus.toLocaleString(), '', bonus.toLocaleString(), ''],
+                    ['Congés Payés', '-', '', '-', ''],
+                    ['Avances sur salaire', '-', '', '', '-'], // Espace pour déductions
+                    ['Cotisations Sociales', '-', '', '', '-'],
+                ],
+                // Bloc de totalisation en bas de tableau
+                foot: [
+                    ['', '', 'TOTAL NET À PAYER', totalNet.toLocaleString() + ' ' + (window.currentCurrency || 'FC'), '']
+                ],
+                margin: { top: 10 },
+                headStyles: { fillColor: [31, 60, 99] }, // Bleu Marine
+                footStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontSize: 10 }
+            }
+        ],
+        // 3. BLOC SIGNATURES ET MENTIONS LÉGALES
+        onAfterGenerate: (doc, currentY) => {
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            let finalY = currentY + 25;
+
+            // Protection : ne pas écrire en dehors de la page
+            if (finalY > pageHeight - 40) {
+                doc.addPage();
+                finalY = 30;
+            }
+
+            // Cadre Signatures
+            doc.setDrawColor(31, 60, 99);
+            doc.setLineWidth(0.1);
+            
+            // Carré Employeur
+            doc.setFontSize(9).setFont("helvetica", "bold").setTextColor(31, 60, 99);
+            doc.text("L'EMPLOYEUR (Cachet & Signature)", 14, finalY);
+            doc.rect(14, finalY + 4, 80, 25); 
+
+            // Carré Employé
+            doc.text("LE SALARIÉ (Signature)", pageWidth - 94, finalY);
+            doc.rect(pageWidth - 94, finalY + 4, 80, 25);
+            
+            doc.setFontSize(8).setFont("helvetica", "italic").setTextColor(120);
+            doc.text("Pour vous aider à faire valoir vos droits, conservez ce bulletin de paie sans limitation de durée.", pageWidth / 2, finalY + 40, { align: 'center' });
+        }
+    });
+}
+
+// --- 14. EXPORT EXCEL & UTILS ---
+function exportToExcel() {
+    const worksheet = XLSX.utils.json_to_sheet(staffData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Staff");
+    XLSX.writeFile(workbook, "Export_Staff.xlsx");
+}
+
+function toggleDropdown(event, menuId) {
+    event.stopPropagation();
+    document.querySelectorAll('.dropdown-menu').forEach(m => {
+        if (m.id !== menuId) m.classList.remove('show');
+    });
+    const menu = document.getElementById(menuId);
+    if(menu) menu.classList.toggle('show');
+}
+
+// Démarrage final
+document.addEventListener('DOMContentLoaded', init);
+
+ /**
+ * Filtre la liste du personnel en temps réel selon la saisie utilisateur
+ * Recherche par : Nom, Poste ou Matricule
+ */
+function filterStaff() {
+    const searchInput = document.getElementById('searchInput');
+    if (!searchInput) return;
+
+    // On récupère juste le texte tapé
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    
+    // On laisse renderStaff faire le travail avec ce mot-clé
+    renderStaff(searchTerm);
+
+    // Gestion de l'affichage "Aucun résultat"
+    // On vérifie si après le rendu, le tableau est vide
+    const tbody = document.getElementById('staffTable');
+    if (tbody && tbody.children.length === 0 && searchTerm !== "") {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-soft);">
+                    <div style="opacity: 0.5; margin-bottom: 10px;">🔍</div>
+                    Aucun collaborateur trouvé pour "<strong>${searchTerm}</strong>"
+                </td>
+            </tr>
+        `;
+    }
+}
+ </script>
 	</body>
 </html>
