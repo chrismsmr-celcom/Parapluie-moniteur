@@ -6,15 +6,57 @@
     <title>Moniteo Umbrella - Dashboard Pro</title>
 
    
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="UI/style.css">
 
-    <link rel="stylesheet" href="UI/style.css">
-    <script src="js/common.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+<script src="js/supabase-config.js"></script> <script src="js/auth-check.js"></script>      <script src="js/common.js"></script>
+<script src="js/stats-manager.js"></script>
+<script src="js/exportPDF.js"></script>
+
+<script>
+    // protectPage vient de auth-check.js
+    protectPage(async (user) => {
+        console.log("🚀 Accès autorisé pour :", user.email);
+        await loadDashboardData(user); 
+    });
+
+    async function loadDashboardData(user) {
+        try {
+            if (typeof _db === 'undefined') {
+                console.error("❌ _db n'est pas initialisé. Vérifiez supabase-config.js");
+                return;
+            }
+
+            const { data, error } = await _db
+                .from('sales') 
+                .select('*')
+                .eq('user_id', user.id)
+                .order('date', { ascending: false });
+
+            if (error) throw error;
+
+            if (data) {
+                console.log("📊 Données de ventes récupérées :", data.length);
+                
+                // On attache les données à window pour les rendre globales
+                window.salesData = data;
+                
+                // Lancement du rendu selon la fonction disponible
+                if (typeof initDashboard === 'function') {
+                    initDashboard();
+                } else if (typeof renderTable === 'function') {
+                    renderTable();
+                }
+            }
+        } catch (err) {
+            console.error("❌ Erreur critique lors du chargement :", err.message);
+        }
+    }
+</script>
     </head>
     
 <body>
@@ -26,7 +68,7 @@
     </div>   
     <ul class="nav-links">
         <li><a href="dashboard.html" class="active"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> <span>Accueil</span></a></li>
-        <li><a href="sales.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
+        <li><a href="sales.html"  ><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
         <li><a href="inventory.html"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> <span>Inventaire</span></a></li>
         <li><a href="expenses.html"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> <span>Dépenses</span></a></li>
         <li><a href="staff.html"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> <span>Staff</span></a></li>
@@ -41,29 +83,28 @@
         </a>
     </div>
 </nav>
-
 <main class="main-content" id="mainContent">
-    <header class="header-flex">
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <div id="dynamicLogoContainer"></div>
-            <div>
-                <h1 id="companyTitle" style="font-size: 1.4rem; margin:0;">Tableau de Bord CEO</h1>
-                <p id="dateDisplay" style="color: var(--text-light); font-size: 0.85rem; margin-top: 4px;"></p>
+    <header class="header-flex" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); margin-bottom: 25px;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <div id="dynamicLogoContainer" style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px;">
+            </div>
+        
+        <div style="border-left: 2px solid var(--border-soft); padding-left: 15px; display: flex; flex-direction: column; justify-content: center; min-height: 45px;">
+            <h2 id="pageTitle" style="margin: 0; font-size: 1.25rem; font-weight: 700; line-height: 1.2; color: var(--text-main);">TABLEAU DE BORDS
+                </h2>
+            <div style="display: flex; flex-direction: column; margin-top: 2px;">
+                <span id="companySubtitle" style="color: var(--secondary); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.8px; line-height: 1.4;"></span>
+                <span id="dateDisplay" style="color: var(--text-light); font-size: 0.75rem; font-weight: 500;"></span>
             </div>
         </div>
+    </div>
 
-        <div class="header-actions" style="display: flex; gap: 10px;">
-            <button class="btn-outline" onclick="toggleSidebar()" title="Menu">
-                <svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-            </button>
-            <button class="btn-outline" onclick="toggleTheme()" title="Thème">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3"></path></svg>
-            </button>
-            <button class="btn-main" onclick="exportDashboardPDF()">
-                Exporter Rapport PDF
-            </button>
-        </div>
-    </header>
+    <div class="header-actions">
+        <button class="btn-outline" onclick="window.print()" style="padding: 8px; border-radius: 8px; cursor: pointer;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        </button>
+    </div>
+</header>
     <section class="dashboard-grid">
         <div class="card kpi-card">
             <h3>Chiffre d'Affaires</h3>
@@ -115,31 +156,43 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-   // Configuration identique à l'index
-// --- 1. CONFIGURATION & INITIALISATION ---
-const SUPABASE_URL = 'https://oysdycuouodarfkmdtop.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k'; 
-const _db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// Variables globales
+ // --- 1. VARIABLES GLOBALES ---
 let mainChartObj = null; 
-let stockChartObj = null; // <--- AJOUTE CETTE LIGNE ICI
-let currentUser = null;
-let currentCurrency = "FC";
+let stockChartObj = null; 
+let globalRate = 2800; // Valeurs par défaut
 
-// --- 2. AUTHENTIFICATION ---
+// --- 2. INITIALISATION ---
+document.addEventListener('DOMContentLoaded', async () => {
+    // A. Appliquer le cache immédiatement (vitesse visuelle)
+    applyGlobalSettings();
+    updateCEOHeader();
+
+    // B. Vérifier l'authentification et lancer la synchro Cloud
+    await checkAuth();
+});
+window.addEventListener('DOMContentLoaded', async () => {
+    // ... tes autres fonctions ...
+    const valeurStock = await fetchTotalStockValue();
+    console.log("Valeur marchande du dépôt :", valeurStock);
+});
+// --- 3. AUTHENTIFICATION & SYNCHRO ---
 async function checkAuth() {
-    const { data: { session }, error } = await _db.auth.getSession();
-    if (error || !session) {
-        window.location.replace('index.html');
-        return;
+    try {
+        const { data: { session }, error } = await _db.auth.getSession();
+        if (error || !session) {
+            window.location.replace('index.html');
+            return;
+        }
+        currentUser = session.user;
+        
+        // Synchroniser les réglages depuis Supabase
+        await syncSettingsWithCloud();
+    } catch (err) {
+        console.error("Erreur Auth:", err);
     }
-    currentUser = session.user;
-    await loadCompanyData();
 }
 
-// --- 3. CHARGEMENT DES PARAMÈTRES ---
-async function loadCompanyData() {
+async function syncSettingsWithCloud() {
     try {
         const { data: settings, error } = await _db
             .from('settings')
@@ -148,40 +201,121 @@ async function loadCompanyData() {
             .maybeSingle();
 
         if (error) throw error;
+
         if (settings) {
-            if(document.getElementById('company-display')) 
-                document.getElementById('company-display').innerText = settings.company_name;
+            const configToSave = {
+                name: settings.company_name || "Mon Entreprise",
+                currency: settings.currency || "FC",
+                rate: parseFloat(settings.exchange_rate) || 2800,
+                darkMode: settings.dark_mode || false,
+                logo: settings.logo_url || "",
+                matricule: settings.custom_id || ""
+            };
+            localStorage.setItem('moniteo_config', JSON.stringify(configToSave));
             
-            if(document.getElementById('displayMatricule'))
-                document.getElementById('displayMatricule').innerText = settings.custom_id;
-
-            applyGlobalConfig(settings);
+            // Ré-appliquer les réglages frais
+            applyGlobalSettings(); 
         }
-    } catch (err) { console.error("Erreur Settings:", err.message); }
+    } catch (err) {
+        console.warn("Synchro Cloud limitée, utilisation du cache.");
+    } finally {
+        // Lancement final des données métier
+        initDashboard();
+    }
+}
+/**
+ * Récupère et calcule la valeur totale du stock depuis Supabase
+ * @returns {Promise<number>} La valeur monétaire totale du stock
+ */
+async function fetchTotalStockValue() {
+    try {
+        if (!currentUser) return 0;
+
+        // 1. Récupération des articles en stock
+        // On sélectionne uniquement les colonnes nécessaires pour optimiser la bande passante
+        const { data: items, error } = await _db
+            .from('inventory')
+            .select('quantity, purchase_price')
+            .eq('user_id', currentUser.id);
+
+        if (error) throw error;
+
+        // 2. Calcul de la valeur totale (Quantité x Prix d'achat)
+        // Utilisation de reduce pour un calcul propre et rapide
+        const total = items.reduce((sum, item) => {
+            const qty = parseFloat(item.quantity) || 0;
+            const price = parseFloat(item.purchase_price) || 0;
+            return sum + (qty * price);
+        }, 0);
+
+        // 3. Mise à jour de l'interface si l'élément existe
+        const stockDisplay = document.getElementById('statTotalStock');
+        if (stockDisplay) {
+            stockDisplay.textContent = `${total.toLocaleString()} ${window.currentCurrency || 'FC'}`;
+        }
+
+        return total;
+
+    } catch (err) {
+        console.error("Erreur récupération Total Stock:", err.message);
+        return 0;
+    }
+}
+// --- 4. INTERFACE ET RÉGLAGES ---
+function applyGlobalSettings() {
+    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
     
-    // Une fois les settings chargés, on lance le Dashboard
-    initDashboard(); 
-}
-
-function applyGlobalConfig(config) {
+    globalRate = config.rate || 2800;
     currentCurrency = config.currency || "FC";
-    const title = document.getElementById('companyTitle');
-    if (config.company_name && title) {
-        title.innerHTML = `Tableau de Bord <small style="font-size:0.6em; color:var(--secondary)">| ${config.company_name}</small>`;
+
+    // Thème
+    document.body.classList.toggle('dark-mode', config.darkMode === true);
+
+    // Sidebar Status
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && localStorage.getItem('sidebarStatus') === 'collapsed') {
+        sidebar.classList.add('collapsed');
     }
+
+    // Logo
     const logoCont = document.getElementById('dynamicLogoContainer');
-    if (config.logo_url && logoCont) {
-        logoCont.innerHTML = `<img src="${config.logo_url}" style="height: 45px; width: auto; border-radius: 5px; object-fit: contain;">`;
+    if (logoCont && config.logo) {
+        logoCont.innerHTML = `<img src="${config.logo}" style="height: 40px; width: auto; border-radius: 4px; object-fit: contain;">`;
     }
-    if (config.dark_mode) document.body.classList.add('dark');
+
+    // Matricule / Nom
+    const displayMat = document.getElementById('displayMatricule');
+    if (displayMat) displayMat.innerText = config.matricule || "";
 }
 
-// --- 4. CŒUR DU DASHBOARD (FUSIONNÉ) ---
+function updateCEOHeader() {
+    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+    const titleElement = document.getElementById('companyTitle');
+    if (titleElement) {
+        titleElement.innerHTML = `Tableau de Bord CEO <span style="color: var(--secondary); font-weight: 400;">| ${config.name || 'Mon Entreprise'}</span>`;
+    }
+
+    const dateElement = document.getElementById('dateDisplay');
+    if (dateElement) {
+        const today = new Date();
+        const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+        let dateStr = today.toLocaleDateString('fr-FR', options);
+        dateElement.innerText = dateStr.replace(/(^\w|\s\w)/g, m => m.toUpperCase());
+    }
+}
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    sidebar.classList.toggle('collapsed');
+    localStorage.setItem('sidebarStatus', sidebar.classList.contains('collapsed') ? 'collapsed' : 'expanded');
+}
+
+// --- 5. LOGIQUE MÉTIER (DASHBOARD) ---
 async function initDashboard() {
-    console.log("📊 Initialisation des données métier...");
+    console.log("📊 Chargement des KPIs...");
     try {
         const userId = currentUser.id;
-
         const [rSales, rInventory, rExpenses, rStaff] = await Promise.all([
             _db.from('sales').select('*').eq('user_id', userId),
             _db.from('inventory').select('*').eq('user_id', userId),
@@ -194,54 +328,22 @@ async function initDashboard() {
         const expenses = rExpenses.data || [];
         const staff = rStaff.data || [];
 
-        // --- CALCULS KPI ---
-        let totalCA = sales.reduce((sum, s) => sum + (parseFloat(s.sell_price || 0) * parseInt(s.qty || 0)), 0);
-        let grossProfit = sales.reduce((sum, s) => {
-            return sum + ((parseFloat(s.sell_price || 0) - parseFloat(s.buy_price || 0)) * parseInt(s.qty || 0));
-        }, 0);
+        // Calculs
+        let totalCA = sales.reduce((sum, s) => sum + (parseFloat(s.sell_price || 0) * (parseInt(s.qty) || 0)), 0);
+        let grossProfit = sales.reduce((sum, s) => sum + ((parseFloat(s.sell_price || 0) - parseFloat(s.buy_price || 0)) * (parseInt(s.qty) || 0)), 0);
         let totalCharges = expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0) + 
-                           staff.reduce((sum, e) => sum + (parseFloat(String(e.salary || 0).replace(/[^\d.-]/g, '')) || 0), 0);
+                           staff.reduce((sum, st) => sum + (parseFloat(String(st.salary || 0).replace(/[^\d.-]/g, '')) || 0), 0);
 
         updateKPI('totalCA', totalCA);
         updateKPI('totalExpenses', totalCharges);
         updateKPI('totalProfit', (grossProfit - totalCharges), true);
 
-        // --- INJECTION STAFF (AVATARS) ---
-        const staffContainer = document.getElementById('staffListContainer');
-        if (staffContainer) {
-            staffContainer.innerHTML = staff.map(member => `
-                <div style="min-width: 90px; text-align: center; flex-shrink: 0;">
-                    <div style="width: 55px; height: 55px; border-radius: 50%; overflow: hidden; margin: 0 auto 8px; border: 2px solid #3b82f6; background: #f3f4f6;">
-                        <img src="${member.photo || 'https://ui-avatars.com/api/?background=random&name='+encodeURIComponent(member.name)}" 
-                             style="width: 100%; height: 100%; object-fit: cover;">
-                    </div>
-                    <p style="font-size: 0.75rem; font-weight: 700; margin: 0;">${member.name ? member.name.split(' ')[0] : 'Inconnu'}</p>
-                    <p style="font-size: 0.6rem; opacity: 0.8;">${member.role || 'Personnel'}</p>
-                </div>
-            `).join('') || '<p style="font-size:0.8rem">Aucun membre.</p>';
-        }
+        // UI : Staff & Stocks
+        renderStaffAvatars(staff);
+        renderStockAlerts(inventory);
 
-        // --- ALERTES STOCKS ---
-        const stockStatusList = document.getElementById('stockStatusList');
-        if (stockStatusList) {
-            const lowStock = [...inventory].sort((a,b) => (parseInt(a.qty)||0) - (parseInt(b.qty)||0)).slice(0, 4);
-            stockStatusList.innerHTML = lowStock.map(item => {
-                const q = parseInt(item.qty) || 0;
-                const isLow = q <= 5;
-                return `
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.03); border-radius: 8px; border-left: 4px solid ${isLow?'#ef4444':'#10b981'}; margin-bottom: 8px;">
-                        <div>
-                            <span style="font-size: 0.85rem; font-weight: 600;">${item.product || 'Produit'}</span>
-                            <br><span style="font-size: 0.7rem; opacity: 0.7;">Prix: ${item.sell_price || 0} ${currentCurrency}</span>
-                        </div>
-                        <span style="font-size: 0.85rem; font-weight: 700; color: ${isLow?'#ef4444':'#10b981'};">${q} en stock</span>
-                    </div>
-                `;
-            }).join('') || '<p>Inventaire vide.</p>';
-        }
-
-        // --- GRAPHIQUES ---
-        if (typeof renderCharts === "function") renderCharts(sales, inventory);
+        // Graphiques
+        renderCharts(sales, inventory);
 
     } catch (err) { console.error("Erreur Dashboard:", err); }
 }
@@ -253,241 +355,139 @@ function updateKPI(id, value, isProfit = false) {
     if (isProfit) el.style.color = value >= 0 ? "#10b981" : "#ef4444";
 }
 
-document.addEventListener('DOMContentLoaded', checkAuth);
+// --- 6. GRAPHIQUES ---
+function renderCharts(sales, inventory) {
+    const isDark = document.body.classList.contains('dark-mode');
+    const textColor = isDark ? '#94a3b8' : '#64748b';
 
-    // --- 3. GRAPHIQUES ---
-    function renderCharts(sales, inventory) {
-        const isDarkTheme = isDark();
-        const textColor = isDarkTheme ? '#94a3b8' : '#64748b';
-
-        // Logique Ventes/Date
-        const dailyVentes = {};
-        sales.forEach(s => {
-            const d = s.date || "Inconnue";
-            dailyVentes[d] = (dailyVentes[d] || 0) + (parseFloat(s.sell_price || 0) * parseInt(s.qty || 0));
-        });
-        const dates = Object.keys(dailyVentes).sort().slice(-7);
-
-        const canvasMain = document.getElementById('mainChart');
-        if (canvasMain) {
-            const ctx1 = canvasMain.getContext('2d');
-            if(mainChartObj) mainChartObj.destroy();
-            mainChartObj = new Chart(ctx1, {
-                type: 'line',
-                data: {
-                    labels: dates,
-                    datasets: [{
-                        label: 'Chiffre d\'Affaires',
-                        data: dates.map(d => dailyVentes[d]),
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        fill: true, tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { ticks: { color: textColor }, grid: { display: false } },
-                        y: { ticks: { color: textColor }, grid: { color: isDarkTheme ? '#334155' : '#e2e8f0' } }
-                    }
-                }
-            });
-        }
-
-        const canvasStock = document.getElementById('stockChart');
-        if (canvasStock) {
-            const ctx2 = canvasStock.getContext('2d');
-            if(stockChartObj) stockChartObj.destroy();
-            stockChartObj = new Chart(ctx2, {
-                type: 'doughnut',
-                data: {
-                    labels: inventory.slice(0, 5).map(i => i.product || i.name),
-                    datasets: [{
-                        data: inventory.slice(0, 5).map(i => i.qty || 0),
-                        backgroundColor: ['#1f3c63', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { color: textColor, boxWidth: 10 } } }
-                }
-            });
-        }
-    }
-
-    // --- 4. ACTIONS ---
-    async function logout() { 
-        if(confirm("Se déconnecter ?")) { 
-            await _db.auth.signOut(); 
-            window.location.replace("index.html"); 
-        } 
-    }
-
-    function isDark() { return document.body.classList.contains('dark'); }
-    
-    // --- DÉMARRAGE ---
-    document.addEventListener('DOMContentLoaded', () => {
-        const dateEl = document.getElementById('dateDisplay');
-        if(dateEl) dateEl.textContent = new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
-        
-        checkAuth(); // Lance la vérification serveur avant tout
+    // Graphique Ventes
+    const dailyVentes = {};
+    sales.forEach(s => {
+        const d = s.date || "Inconnue";
+        dailyVentes[d] = (dailyVentes[d] || 0) + (parseFloat(s.sell_price || 0) * (parseInt(s.qty) || 0));
     });
-    async function exportDashboardPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
+    const dates = Object.keys(dailyVentes).sort().slice(-7);
 
-    // 1. Récupération des données entreprise (Settings)
-    const { data: settings } = await _db
-        .from('settings')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .maybeSingle();
-
-    const companyName = settings?.company_name || "MONITEO PRO";
-    const companyAddress = settings?.address || "Rapport d'activité";
-    const companyLogo = settings?.logo_url || null;
-
-    // --- EN-TÊTE ---
-    if (companyLogo) {
-        try {
-            // On ajoute le logo (si c'est du base64)
-            doc.addImage(companyLogo, 'PNG', 14, 10, 25, 25);
-        } catch(e) { console.error("Erreur logo PDF", e); }
+    if (document.getElementById('mainChart')) {
+        if(mainChartObj) mainChartObj.destroy();
+        mainChartObj = new Chart(document.getElementById('mainChart'), {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [{ label: 'CA', data: dates.map(d => dailyVentes[d]), borderColor: '#3b82f6', tension: 0.4, fill: true, backgroundColor: 'rgba(59,130,246,0.1)' }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: textColor } }, y: { ticks: { color: textColor } } } }
+        });
     }
 
-    doc.setFontSize(18);
-    doc.setTextColor(31, 60, 99); 
-    doc.text(companyName.toUpperCase(), companyLogo ? 45 : 14, 20);
-    
-    doc.setFontSize(9);
-    doc.setTextColor(100);
-    doc.text(companyAddress, companyLogo ? 45 : 14, 26);
-    doc.text(`Généré le : ${new Date().toLocaleString('fr-FR')}`, companyLogo ? 45 : 14, 31);
+    // Graphique Stock (Doughnut)
+    if (document.getElementById('stockChart')) {
+        if(stockChartObj) stockChartObj.destroy();
+        stockChartObj = new Chart(document.getElementById('stockChart'), {
+            type: 'doughnut',
+            data: {
+                labels: inventory.slice(0, 5).map(i => i.product || i.name),
+                datasets: [{ data: inventory.slice(0, 5).map(i => i.qty || 0), backgroundColor: ['#1f3c63', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'] }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: textColor } } } }
+        });
+    }
+}
 
-    // --- SECTION 1 : CHIFFRES CLÉS (KPI) ---
-    doc.setFontSize(14);
-    doc.setTextColor(31, 60, 99);
-    doc.text("RÉSUMÉ FINANCIER", 14, 45);
-
+// --- 7. EXPORT PDF ---
+async function exportDashboardPDF() {
+    // On prépare les données des tables
     const ca = document.getElementById('totalCA')?.textContent || "0";
     const depenses = document.getElementById('totalExpenses')?.textContent || "0";
     const profit = document.getElementById('totalProfit')?.textContent || "0";
 
-    doc.autoTable({
-        startY: 50,
-        head: [['Indicateur', 'Montant']],
-        body: [
-            ['Chiffre d\'Affaires (CA)', ca],
-            ['Total Dépenses & Salaires', depenses],
-            ['Résultat Net (Bénéfice/Perte)', profit]
-        ],
-        theme: 'grid',
-        headStyles: { fillColor: [31, 60, 99], halign: 'center' },
-        styles: { fontSize: 11 }
+    const tables = [
+        {
+            headers: ['Indicateur', 'Valeur'],
+            rows: [
+                ['Chiffre d\'Affaires', ca],
+                ['Dépenses & Salaires', depenses],
+                ['Résultat Net', profit]
+            ],
+            color: [31, 60, 99]
+        }
+    ];
+
+    // Appel du module standardisé
+    await MoniteoPDF.generate({
+        title: "RAPPORT DE PERFORMANCE",
+        subtitle: "Analyse globale du Dashboard",
+        tables: tables,
+        charts: ['mainChart', 'stockChart'] // IDs des canvas
     });
+}
 
-    // --- SECTION 2 : GRAPHIQUES (Conversion Canvas en Image) ---
-    let finalY = doc.lastAutoTable.finalY + 15;
-    doc.setFontSize(14);
-    doc.text("ANALYSES VISUELLES", 14, finalY);
+async function logout() { 
+    if(confirm("Se déconnecter ?")) { 
+        await _db.auth.signOut(); 
+        window.location.replace("index.html"); 
+    } 
+}
+    // --- FONCTION : DESSINER LES AVATARS DU STAFF ---
+function renderStaffAvatars(staff) {
+    const staffContainer = document.getElementById('staffListContainer');
+    if (!staffContainer) return;
 
-    try {
-        // Capture du graphique linéaire (Ventes)
-        const canvasMain = document.getElementById('mainChart');
-        if (canvasMain) {
-            const imgData1 = canvasMain.toDataURL('image/png', 1.0);
-            doc.addImage(imgData1, 'PNG', 14, finalY + 5, 90, 50);
-        }
-
-        // Capture du graphique circulaire (Stock)
-        const canvasStock = document.getElementById('stockChart');
-        if (canvasStock) {
-            const imgData2 = canvasStock.toDataURL('image/png', 1.0);
-            doc.addImage(imgData2, 'PNG', 110, finalY + 5, 80, 50);
-        }
-    } catch (e) {
-        doc.setFontSize(10);
-        doc.text("Graphiques non disponibles dans l'export.", 14, finalY + 10);
+    if (staff.length === 0) {
+        staffContainer.innerHTML = '<p style="font-size:0.8rem; padding:10px;">Aucun membre enregistré.</p>';
+        return;
     }
 
-    // --- SECTION 3 : ÉTAT DES STOCKS (TABLEAU) ---
-    const { data: inventory } = await _db.from('inventory').select('*').eq('user_id', currentUser.id);
-    
-    if (inventory && inventory.length > 0) {
-        doc.addPage(); // Nouvelle page pour les tableaux détaillés
-        doc.setFontSize(14);
-        doc.setTextColor(31, 60, 99);
-        doc.text("DÉTAIL DE L'INVENTAIRE ET STOCKS", 14, 20);
+    staffContainer.innerHTML = staff.map(member => `
+        <div style="min-width: 90px; text-align: center; flex-shrink: 0; padding: 5px;">
+            <div style="width: 55px; height: 55px; border-radius: 50%; overflow: hidden; margin: 0 auto 8px; border: 2px solid var(--secondary); background: var(--secondary-soft);">
+                <img src="${member.photo || 'https://ui-avatars.com/api/?background=random&name='+encodeURIComponent(member.name || 'User')}" 
+                     style="width: 100%; height: 100%; object-fit: cover;"
+                     onerror="this.src='https://ui-avatars.com/api/?background=ccc&name=?'">
+            </div>
+            <p style="font-size: 0.75rem; font-weight: 700; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${member.name ? member.name.split(' ')[0] : 'Inconnu'}
+            </p>
+            <p style="font-size: 0.6rem; opacity: 0.7;">${member.role || 'Personnel'}</p>
+        </div>
+    `).join('');
+}
 
-        const tableBody = inventory.map(item => [
-            item.product || 'N/A',
-            item.qty || 0,
-            `${item.buy_price || 0} ${currentCurrency}`,
-            `${item.sell_price || 0} ${currentCurrency}`,
-            ((item.qty || 0) <= 5 ? 'BAS' : 'OK')
-        ]);
+// --- FONCTION : DESSINER LES ALERTES DE STOCK ---
+function renderStockAlerts(inventory) {
+    const stockStatusList = document.getElementById('stockStatusList');
+    if (!stockStatusList) return;
 
-        doc.autoTable({
-            startY: 25,
-            head: [['Produit', 'Quantité', 'Prix Achat', 'Prix Vente', 'Statut']],
-            body: tableBody,
-            headStyles: { fillColor: [59, 130, 246] },
-            didParseCell: function(data) {
-                if (data.section === 'body' && data.column.index === 4) {
-                    if (data.cell.raw === 'BAS') data.cell.styles.textColor = [239, 68, 68];
-                }
-            }
-        });
+    if (inventory.length === 0) {
+        stockStatusList.innerHTML = '<p style="font-size:0.8rem; padding:10px;">Inventaire vide.</p>';
+        return;
     }
 
-    // --- SECTION 4 : PERSONNEL ---
-    const { data: staff } = await _db.from('staff').select('*').eq('user_id', currentUser.id);
-    if (staff && staff.length > 0) {
-        doc.setFontSize(14);
-        doc.text("RESSOURCES HUMAINES", 14, doc.lastAutoTable.finalY + 15);
+    // On trie pour mettre les stocks les plus bas en premier
+    const sortedStock = [...inventory].sort((a, b) => (parseInt(a.qty) || 0) - (parseInt(b.qty) || 0)).slice(0, 5);
+
+    stockStatusList.innerHTML = sortedStock.map(item => {
+        const q = parseInt(item.qty) || 0;
+        const isCritical = q <= 5;
+        const color = isCritical ? '#ef4444' : '#10b981';
         
-        doc.autoTable({
-            startY: doc.lastAutoTable.finalY + 20,
-            head: [['Nom', 'Rôle', 'Salaire']],
-            body: staff.map(s => [s.name, s.role, s.salary]),
-            headStyles: { fillColor: [16, 185, 129] }
-        });
-    }
-
-    // --- BAS DE PAGE ---
-    const pageCount = doc.internal.getNumberOfPages();
-    for(let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(150);
-        doc.text(`Moniteo Umbrella System - Page ${i} / ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
-    }
-
-    // Téléchargement
-    doc.save(`Rapport_Moniteo_${companyName.replace(/\s+/g, '_')}.pdf`);
+        return `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-soft); border-radius: 8px; border-left: 4px solid ${color}; margin-bottom: 8px;">
+                <div style="max-width: 60%;">
+                    <span style="font-size: 0.85rem; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        ${item.product || 'Produit sans nom'}
+                    </span>
+                    <span style="font-size: 0.7rem; opacity: 0.6;">Réf: ${item.id.split('-')[0] || 'N/A'}</span>
+                </div>
+                <div style="text-align: right;">
+                    <span style="font-size: 0.85rem; font-weight: 700; color: ${color};">${q} en stock</span>
+                    <br>
+                    <span style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase;">${isCritical ? 'Réapprovisionner' : 'Correct'}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const mainContent = document.getElementById('mainContent');
-    
-    sidebar.classList.toggle('collapsed');
-    
-    // Optionnel : Sauvegarder l'état dans le navigateur
-    const isCollapsed = sidebar.classList.contains('collapsed');
-    localStorage.setItem('sidebarStatus', isCollapsed ? 'collapsed' : 'expanded');
-}
-
-// Au chargement de la page, appliquer l'état sauvegardé
-window.addEventListener('DOMContentLoaded', () => {
-    const status = localStorage.getItem('sidebarStatus');
-    const sidebar = document.getElementById('sidebar');
-    if (status === 'collapsed') {
-        sidebar.classList.add('collapsed');
-    }
-});
 </script>
 </body>
-</html>
+</html>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
