@@ -1,36 +1,96 @@
 /**
- * common.js - Gestionnaire de préférences globales (Supabase)
+ * common.js - Gestionnaire de préférences globales, sécurité et interface
  */
+
 document.addEventListener('DOMContentLoaded', async () => {
-    // Petit délai pour s'assurer que _db est bien prêt
-    setTimeout(async () => {
-        if (typeof _db === 'undefined') {
-            console.error("Erreur : _db (Supabase) n'est pas accessible.");
-            return;
-        }
+    // 1. Appliquer IMMEDIATEMENT le cache local (Évite le flash blanc en dark mode)
+    applyLocalCache();
 
-        try {
-            // 1. Vérifier si l'utilisateur est connecté
-            const { data: { session } } = await _db.auth.getSession();
-
-            if (session) {
-                // 2. Si oui, on synchronise ses préférences
-                await syncGlobalPreferences(session.user.id);
-            } else {
-                // Si pas de session et qu'on n'est pas sur l'index, redirection
-                if (!window.location.pathname.includes('index.html')) {
-                    window.location.href = 'index.html';
-                }
-            }
-        } catch (err) {
-            console.error("Erreur de session globale:", err.message);
-        }
-    }, 50);
+    // 2. Vérifier la connexion et synchroniser avec Supabase
+    await checkAuthAndSync();
 });
 
+/**
+ * Applique les réglages stockés en local pour une interface instantanée
+ */
+function applyLocalCache() {
+    try {
+        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+        const sidebarStatus = localStorage.getItem('sidebarStatus');
+        
+        // A. Appliquer le Mode Sombre
+        if (config.darkMode !== undefined) {
+            document.body.classList.toggle('dark-mode', config.darkMode === true);
+        }
+
+        // B. Appliquer l'état de la Sidebar
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar && sidebarStatus === 'collapsed') {
+            sidebar.classList.add('collapsed');
+        }
+        
+        // C. Appliquer les symboles monétaires
+        if (config.currency) {
+            window.currentCurrency = config.currency; // Définit la variable globale
+            updateCurrencyUI(config.currency);
+        }
+    } catch (e) {
+        console.error("Erreur lecture localStorage", e);
+    }
+}
+
+/**
+ * Met à jour tous les labels de devise dans la page
+ */
+function updateCurrencyUI(currency) {
+    document.querySelectorAll('.currency-label').forEach(el => {
+        el.textContent = currency;
+    });
+}
+
+/**
+ * Vérifie l'authentification avec un système de retry pour _db
+ */
+async function checkAuthAndSync() {
+    let attempts = 0;
+    const maxAttempts = 20; 
+
+    while (typeof _db === 'undefined' && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+    }
+
+    if (typeof _db === 'undefined') {
+        console.error("❌ Supabase n'est pas initialisé.");
+        return;
+    }
+
+    try {
+        const { data: { session }, error: sessionError } = await _db.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        if (session) {
+            console.log("✅ Connecté :", session.user.email);
+            await syncGlobalPreferences(session.user.id);
+        } else {
+            // Protection des pages privées
+            const path = window.location.pathname;
+            const isLoginPage = path.includes('index.html') || path === '/' || path.endsWith('index.html');
+            
+            if (!isLoginPage) {
+                window.location.replace('index.html');
+            }
+        }
+    } catch (err) {
+        console.error("❌ Erreur session:", err.message);
+    }
+}
+
+/**
+ * Synchronise les réglages Cloud vers le LocalStorage
+ */
 async function syncGlobalPreferences(userId) {
     try {
-        // On récupère les réglages dans la table 'settings'
         const { data: settings, error } = await _db
             .from('settings')
             .select('*')
@@ -40,24 +100,57 @@ async function syncGlobalPreferences(userId) {
         if (error) throw error;
 
         if (settings) {
-            // A. Application du Mode Sombre
-            if (settings.dark_mode) {
-                document.body.classList.add('dark-mode');
-            } else {
-                document.body.classList.remove('dark-mode');
+            const configToSave = {
+                name: settings.company_name || "Mon Entreprise",
+                currency: settings.currency || "FC",
+                rate: parseFloat(settings.exchange_rate) || 2800,
+                darkMode: settings.dark_mode === true,
+                logo: settings.logo_url || "",
+                matricule: settings.custom_id || ""
+            };
+
+            localStorage.setItem('moniteo_config', JSON.stringify(configToSave));
+            window.currentCurrency = configToSave.currency;
+
+            // Appliquer les changements à l'UI
+            document.body.classList.toggle('dark-mode', configToSave.darkMode);
+            updateCurrencyUI(configToSave.currency);
+
+            // Appel de la fonction de rendu global si elle existe
+            if (typeof applyGlobalSettings === 'function') {
+                applyGlobalSettings();
             }
-
-            // B. Mise à jour automatique des symboles monétaires ($ ou FC)
-            // Note: utilise la classe .currency-label dans ton HTML pour que ça marche
-            const currencyLabels = document.querySelectorAll('.currency-label');
-            currencyLabels.forEach(el => {
-                el.textContent = settings.currency || '$';
-            });
-
-            // C. Rendre les réglages accessibles aux autres scripts de la page
-            window.userSettings = settings;
         }
     } catch (err) {
-        console.warn("Préférences non trouvées, utilisation des valeurs par défaut.");
+        console.warn("⚠️ Mode hors-ligne : utilisation du cache local.");
     }
 }
+
+/**
+ * Gère l'affichage des menus déroulants de manière exclusive
+ * Correction : Ajout de l'événement en paramètre pour plus de stabilité
+ */
+function toggleDropdown(id) {
+    // Empêcher la propagation si l'événement existe
+    if (window.event) window.event.stopPropagation();
+
+    const targetMenu = document.getElementById(id);
+    if (!targetMenu) return;
+
+    // 1. Fermer tous les autres menus
+    document.querySelectorAll('.dropdown-menu, .dropdown-content').forEach(menu => {
+        if (menu.id !== id) {
+            menu.classList.remove('show');
+        }
+    });
+
+    // 2. Basculer le menu actuel
+    targetMenu.classList.toggle('show');
+}
+
+// Fermer les menus si on clique ailleurs
+window.addEventListener('click', () => {
+    document.querySelectorAll('.dropdown-menu, .dropdown-content').forEach(menu => {
+        menu.classList.remove('show');
+    });
+});
