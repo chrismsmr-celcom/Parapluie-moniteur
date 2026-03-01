@@ -11,45 +11,59 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
+<script src="js/supabase-config.js"></script> 
 <script src="js/auth-check.js"></script>
 
+<script src="js/common.js"></script>
+<script src="js/stats-manager.js"></script>
+<script src="js/settings-manager.js"></script>
+<script src="js/exportPDF.js"></script>
+<link rel="stylesheet" href="UI/style.css">
+
 <script>
-    // On utilise protectPage qui vient de auth-check.js
-    protectPage((user) => {
-        console.log("Accès autorisé pour :", user.email);
-        fetchStaffData(); 
+    // protectPage (de auth-check.js) garantit que user est connecté
+    protectPage(async (user) => {
+        console.log("📦 Accès Inventaire autorisé :", user.email);
+        await fetchInventoryData(user); 
     });
 
-    async function fetchStaffData() {
+    async function fetchInventoryData(user) {
         try {
-            // Utilisation de _db (défini dans auth-check.js)
-            const { data, error } = await _db
-                .from('sales') // Ou 'staff' selon ce que tu veux afficher ici
+            const db = window._db;
+            if (!db) throw new Error("Base de données non initialisée");
+
+            // Requête sur la table 'inventory'
+            const { data, error } = await db
+                .from('inventory')
                 .select('*')
-                .eq('user_id', currentUser.id)
-                .order('date', { ascending: false });
+                .eq('user_id', user.id)
+                .order('product', { ascending: true }); // Tri par nom de produit
 
             if (error) throw error;
 
-            if (data) {
-                console.log("Données reçues :", data);
-                // Si tu as une variable globale pour stocker les données
-                if (typeof salesData !== 'undefined') salesData = data;
-                
-                // Appelle ta fonction de rendu du tableau
-                if (typeof renderTable === 'function') {
-                    renderTable();
-                } else if (typeof renderStaff === 'function') {
-                    renderStaff();
-                }
+            console.log("📋 Articles en stock récupérés :", data.length);
+            
+            // Stockage global pour les graphiques de stock (stats-manager.js)
+            window.inventoryData = data;
+            
+            // Rendu du tableau
+            // On vérifie si une fonction spécifique existe, sinon on utilise la générique
+            if (typeof renderInventoryTable === 'function') {
+                renderInventoryTable(data);
+            } else if (typeof renderTable === 'function') {
+                renderTable(); 
             }
+
+            // Mise à jour des alertes de stock bas
+            if (typeof updateStockAlerts === 'function') {
+                updateStockAlerts(data);
+            }
+
         } catch (err) {
-            console.error("Erreur critique lors du chargement :", err.message);
+            console.error("❌ Erreur Inventaire :", err.message);
         }
     }
-</script>   
-    <link rel="stylesheet" href="UI/style.css">
-    <script src="js/common.js"></script>
+</script>
     </head>
 <body>
 
@@ -77,41 +91,129 @@
     </nav>
 
     <main class="main-content">
-    <header class="header-flex">
-        <div>
-            <h2 style="font-size: 1.2rem;">Gestion de l'Inventaire</h2>
-            <p style="color: var(--text-light); font-size: 0.8rem;">Suivi du stock, marges et valorisation.</p>
+    <header class="header-flex" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); margin-bottom: 25px;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <div id="dynamicLogoContainer" style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px;">
+            </div>
+        
+        <div style="border-left: 2px solid var(--border-soft); padding-left: 15px; display: flex; flex-direction: column; justify-content: center; min-height: 45px;">
+            <h2 id="pageTitle" style="margin: 0; font-size: 1.25rem; font-weight: 700; line-height: 1.2; color: var(--text-main);">GESTION DE L'INVENTAIRE
+                </h2>
+            <div style="display: flex; flex-direction: column; margin-top: 2px;">
+                <span id="companySubtitle" style="color: var(--secondary); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.8px; line-height: 1.4;"></span>
+                <span id="dateDisplay" style="color: var(--text-light); font-size: 0.75rem; font-weight: 500;"></span>
+            </div>
         </div>
-        <div id="saveStatus" style="font-size: 0.75rem; color: var(--success); font-weight: 600; opacity: 0; transition: 0.3s;">
+    </div>
+        <div id="saveStatus" class="save-indicator">
             ● Enregistré
         </div>
     </header>
 
-    <div class="summary-banner">
-        <div><small>Articles en Stock</small><p id="countStock">0</p></div>
-        <div><small>Valeur Achat</small><p id="stockValue">0 €</p></div>
-        <div><small>Valeur Vente</small><p id="saleValue">0 €</p></div>
-        <div><small>Marge Est. (Gains)</small><p id="profitValue" style="color: #6ee7b7;">0 €</p></div>
+    <div class="summary-banner" style="display: grid; grid-gap: 20px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 25px;">
+    
+    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #6366f1; display: flex; align-items: center; gap: 15px;">
+        <div style="background: #eef2ff; padding: 10px; border-radius: 10px; color: #6366f1;">
+            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+        </div>
+        <div>
+            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Articles en Stock</small>
+            <p id="countStock" style="margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text-main);">0</p>
+        </div>
     </div>
 
-    <div class="action-bar">
-        <input type="text" id="searchBar" placeholder="Rechercher un produit..." style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-soft); flex-grow: 1; min-width: 200px;">
-        <button class="btn-main" onclick="addRow()">+ Ajouter</button>
-        <button class="btn-outline" onclick="undo()">Annuler</button>
-        <button class="btn-outline" onclick="exportInventory()">Exporter</button>
-        <button class="btn-outline" onclick="document.getElementById('importInventory').click()">Importer</button>
-        <input type="file" id="importInventory" style="display:none" accept=".xlsx,.xls">
-        <button class="btn-danger" onclick="deleteSelectedRow()">Supprimer</button>
-        <button class="btn-danger" onclick="clearInventory()">Vider</button>
-        <button class="btn-outline" onclick="generatePDF()" style="background: #fee2e2; color: #b91c1c; border-color: #fecaca;">PDF</button>
+    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #94a3b8; display: flex; align-items: center; gap: 15px;">
+        <div style="background: #f1f5f9; padding: 10px; border-radius: 10px; color: #64748b;">
+            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+        </div>
+        <div>
+            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Valeur Achat</small>
+            <p style="margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text-main);">
+                <span id="stockValue">0</span> <small style="font-size: 0.9rem; color: var(--text-light);"></small>
+            </p>
+        </div>
     </div>
 
+    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #3b82f6; display: flex; align-items: center; gap: 15px;">
+        <div style="background: #eff6ff; padding: 10px; border-radius: 10px; color: #3b82f6;">
+            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+        </div>
+        <div>
+            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Valeur Vente</small>
+            <p style="margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text-main);">
+                <span id="saleValue">0</span> <small style="font-size: 0.9rem; color: var(--text-light);"></small>
+            </p>
+        </div>
+    </div>
+
+    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #10b981; display: flex; align-items: center; gap: 15px;">
+        <div style="background: #ecfdf5; padding: 10px; border-radius: 10px; color: #10b981;">
+            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        </div>
+        <div>
+            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Marge Est. (Gains)</small>
+            <p style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #10b981;">
+                <span id="profitValue">0</span> <small style="font-size: 0.9rem; color: #10b981;">$</small>
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="action-bar">
+    <div class="search-wrapper">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" id="searchBar" placeholder="Rechercher un produit..." class="search-input">
+    </div>
+    
+    <div class="group">
+        <button class="btn-main" onclick="addRow()">
+            <i class="fas fa-plus"></i> Ajouter
+        </button>
+        
+        <div class="dropdown">
+            <button class="btn-outline dropdown-trigger" onclick="toggleDropdown('toolsMenu')">
+                <i class="fas fa-tools"></i> Actions
+            </button>
+            <div class="dropdown-menu" id="toolsMenu">
+                <button onclick="undo()">
+                    <i class="fas fa-undo"></i> Annuler
+                </button>
+                <button onclick="exportInventory()">
+                    <i class="fas fa-file-excel" style="color: #10b981;"></i> Exporter Excel
+                </button>
+                <button onclick="document.getElementById('importInventory').click()">
+                    <i class="fas fa-upload"></i> Importer Excel
+                </button>
+                <button onclick="generateInventoryPDF()" class="pdf-action">
+                    <i class="fas fa-file-pdf" style="color: #ef4444;"></i> Générer PDF
+                </button>
+            </div>
+        </div>
+
+        <div class="dropdown">
+            <button class="btn-danger dropdown-trigger" onclick="toggleDropdown('dangerMenu')">
+                <i class="fas fa-exclamation-triangle"></i> Options Critiques
+            </button>
+            <div class="dropdown-menu" id="dangerMenu">
+                <button onclick="deleteSelectedRow()" style="color: var(--danger);">
+                    <i class="fas fa-trash-alt"></i> Supprimer la sélection
+                </button>
+                <div class="divider"></div>
+                <button onclick="clearInventory()" style="color: var(--danger); font-weight: bold;">
+                    <i class="fas fa-dumpster-fire"></i> Vider tout l'inventaire
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="importInventory" style="display:none" accept=".xlsx,.xls">
+</div>
     <div class="card">
         <div class="table-wrapper">
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 40px;">Sélect</th>
+                        <th style="width: 40px;"><input type="checkbox" onclick="toggleSelectAll(this)"></th>
                         <th>Produit</th>
                         <th>Quantité</th>
                         <th>Prix Achat (u)</th>
@@ -123,7 +225,7 @@
             </table>
         </div>
     </div>
-
+        
     <div class="card" style="border-left: 4px solid var(--danger);">
         <h3 style="font-size: 0.9rem; color: var(--danger); display: flex; align-items: center; gap: 8px;">
             <svg class="icon" style="stroke: var(--danger)" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
@@ -135,54 +237,75 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// --- VARIABLES D'ÉTAT ---
 let inventoryData = [];
 let saveTimeout;
-document.addEventListener('DOMContentLoaded', async () => {
-    applyGlobalConfig();
-    await loadInventory();
-    
-    window.addEventListener('storage', async (e) => {
-        if (e.key === 'inventory_trigger') await loadInventory();
-    });
+window.currentCurrency = "FC"; // Valeur par défaut
 
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Initialisation de la configuration
+    if (typeof applyGlobalSettings === 'function') {
+        applyGlobalSettings();
+    } else if (typeof applyGlobalConfig === 'function') {
+        applyGlobalConfig();
+    }
+
+    // 2. Connexion Base de données et chargement
+    if (window._db) {
+        await loadInventory();
+    } else {
+        console.error("❌ Base de données non connectée.");
+    }
+
+    // 3. Écouteurs pour la recherche
     document.getElementById('searchBar')?.addEventListener('input', (e) => {
         filterTable(e.target.value.toLowerCase());
     });
 
-    // ÉCOUTEUR PRINCIPAL : Gestion des entrées
-    document.getElementById('inventoryTable')?.addEventListener('input', (e) => {
-        const target = e.target;
-        
-        // Sécurité : Si on modifie Quantité, Prix Achat ou Prix Vente
-        if (target.classList.contains('edit-cell') && target.cellIndex >= 2) {
-            validateNumericInput(target);
-        }
+    // 4. ÉCOUTEUR PRINCIPAL : Sauvegarde automatique et Calculs Live
+    const tbody = document.getElementById('inventoryTable');
+    if (tbody) {
+        tbody.addEventListener('input', (e) => {
+            const cell = e.target;
+            
+            // Si c'est une cellule numérique (Quantité, Prix)
+            if (cell.cellIndex >= 2 && cell.cellIndex <= 4) {
+                validateNumericInput(cell);
+            }
 
-        // Mise à jour visuelle immédiate
-        updateBannerUI_Live(); 
-        
-        // Sauvegarde différée
-        showSavingStatus();
-        clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(saveInventory, 1500);
-    });
+            // Mise à jour visuelle immédiate (Bannière + Marges)
+            updateBannerUI_Live(); 
+            
+            // Sauvegarde différée (Debounce)
+            showSavingStatus();
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(saveInventory, 1500);
+        });
+    }
 });
-// --- 1. CONFIGURATION & TITRE ---
-function applyGlobalConfig() {
-    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-    currentCurrency = config.currency || "FC";
-    if (config.darkMode) document.body.classList.add('dark', 'dark-mode');
 
-    // Récupération du nom de l'entreprise (Ancien JS)
-    const brand = document.querySelector('.header-flex h2');
-    if (brand && config.name) {
-        brand.innerHTML = `Gestion de l'Inventaire <small style="font-size: 0.6em; opacity: 0.8;">| ${config.name}</small>`;
+// --- 1. CONFIGURATION & TITRE ---
+function applyGlobalSettings() {
+    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+    window.currentCurrency = config.currency || "FC";
+
+    if (config.darkMode) document.body.classList.add('dark-mode');
+    else document.body.classList.remove('dark-mode');
+
+    const title = document.getElementById('companyTitle');
+    if (title && config.name) {
+        title.innerHTML = `Inventaire <small style="font-size:0.6em; color:var(--secondary)">| ${config.name}</small>`;
+    }
+
+    const logoCont = document.getElementById('dynamicLogoContainer');
+    if (logoCont && config.logo) {
+        logoCont.innerHTML = `<img src="${config.logo}" style="height: 40px; width: auto; border-radius: 4px;">`;
     }
 }
 
-// --- 2. CHARGEMENT & RENDU (Avec Alertes de l'ancien JS) ---
+// --- 2. CHARGEMENT & RENDU ---
 async function loadInventory() {
-    const { data, error } = await _db.from('inventory').select('*').order('created_at', { ascending: false });
+    const { data, error } = await _db.from('inventory').select('*').order('product', { ascending: true });
     if (!error) { 
         inventoryData = data; 
         renderInventory(); 
@@ -191,11 +314,11 @@ async function loadInventory() {
 
 function renderInventory(dataToRender = inventoryData) {
     const tbody = document.getElementById('inventoryTable');
-    const alertList = document.getElementById('alertList'); // Récupéré de l'ancien JS
+    const alertList = document.getElementById('alertList');
     if(!tbody) return;
 
     tbody.innerHTML = '';
-    if(alertList) alertList.innerHTML = ''; // Reset des alertes
+    if(alertList) alertList.innerHTML = ''; 
 
     dataToRender.forEach((item, index) => {
         const qty = parseInt(item.qty) || 0;
@@ -203,19 +326,14 @@ function renderInventory(dataToRender = inventoryData) {
         const sell = parseFloat(item.sell_price) || 0;
         const margin = sell - buy;
 
-        // --- GESTION DES ALERTES (Ancien JS) ---
+        // Alertes
         if(alertList) {
-            if(qty <= 0) {
-                alertList.innerHTML += `<li style="color: #ef4444; font-size:0.85rem;">🔴 Rupture : <strong>${item.product}</strong></li>`;
-            } else if(qty <= 5) {
-                alertList.innerHTML += `<li style="color: #f59e0b; font-size:0.85rem;">🟠 Faible : <strong>${item.product}</strong> (${qty})</li>`;
-            }
+            if(qty <= 0) alertList.innerHTML += `<li style="color: #ef4444;">🔴 Rupture : <strong>${item.product}</strong></li>`;
+            else if(qty <= 5) alertList.innerHTML += `<li style="color: #f59e0b;">🟠 Faible : <strong>${item.product}</strong> (${qty})</li>`;
         }
 
         const tr = document.createElement('tr');
         tr.setAttribute('data-id', item.id);
-        
-        // Style visuel pour rupture (Ancien JS)
         if(qty <= 0) tr.style.background = "rgba(239, 68, 68, 0.05)";
 
         tr.innerHTML = `
@@ -225,7 +343,7 @@ function renderInventory(dataToRender = inventoryData) {
             <td contenteditable="true" class="edit-cell">${buy}</td>
             <td contenteditable="true" class="edit-cell">${sell}</td>
             <td style="font-weight:600; color: ${margin >= 0 ? '#10b981' : '#ef4444'}">
-                ${margin.toLocaleString()} ${currentCurrency}
+                ${margin.toLocaleString()} ${window.currentCurrency}
             </td>
         `;
         tbody.appendChild(tr);
@@ -233,34 +351,55 @@ function renderInventory(dataToRender = inventoryData) {
     updateBannerUI();
 }
 
-// --- 3. CALCULS BANNIÈRE (Version Complète) ---
+// --- 3. CALCULS BANNIÈRE ---
 function updateBannerUI() {
     let tQty = 0, tBuyTotal = 0, tSellTotal = 0;
-    
     inventoryData.forEach(item => {
         const q = parseInt(item.qty) || 0;
-        const b = parseFloat(item.buy_price) || 0;
-        const s = parseFloat(item.sell_price) || 0;
+        tQty += q;
+        tBuyTotal += (q * (parseFloat(item.buy_price) || 0));
+        tSellTotal += (q * (parseFloat(item.sell_price) || 0));
+    });
+
+    const tProfit = tSellTotal - tBuyTotal;
+    if(document.getElementById('countStock')) document.getElementById('countStock').textContent = tQty;
+    if(document.getElementById('stockValue')) document.getElementById('stockValue').textContent = tBuyTotal.toLocaleString() + " " + window.currentCurrency;
+    if(document.getElementById('saleValue')) document.getElementById('saleValue').textContent = tSellTotal.toLocaleString() + " " + window.currentCurrency;
+    if(document.getElementById('profitValue')) {
+        const el = document.getElementById('profitValue');
+        el.textContent = tProfit.toLocaleString() + " " + window.currentCurrency;
+        el.style.color = tProfit >= 0 ? "#10b981" : "#ef4444";
+    }
+}
+
+function updateBannerUI_Live() {
+    const rows = document.querySelectorAll('#inventoryTable tr');
+    let tQty = 0, tBuyTotal = 0, tSellTotal = 0;
+
+    rows.forEach(tr => {
+        const q = parseInt(tr.cells[2].innerText.replace(/\s/g, '')) || 0;
+        const b = parseFloat(tr.cells[3].innerText.replace(/\s/g, '').replace(',', '.')) || 0;
+        const s = parseFloat(tr.cells[4].innerText.replace(/\s/g, '').replace(',', '.')) || 0;
+        const margin = s - b;
+
+        const marginCell = tr.cells[5];
+        if (marginCell) {
+            marginCell.innerText = `${margin.toLocaleString()} ${window.currentCurrency}`;
+            marginCell.style.color = margin >= 0 ? '#10b981' : '#ef4444';
+        }
         tQty += q;
         tBuyTotal += (q * b);
         tSellTotal += (q * s);
     });
 
     const tProfit = tSellTotal - tBuyTotal;
-
     if(document.getElementById('countStock')) document.getElementById('countStock').textContent = tQty;
-    if(document.getElementById('stockValue')) document.getElementById('stockValue').textContent = tBuyTotal.toLocaleString() + " " + currentCurrency;
-    if(document.getElementById('saleValue')) document.getElementById('saleValue').textContent = tSellTotal.toLocaleString() + " " + currentCurrency;
-    
-    // Ajout du Profit Potentiel (Ancien JS)
-    const profitEl = document.getElementById('profitValue');
-    if(profitEl) {
-        profitEl.textContent = tProfit.toLocaleString() + " " + currentCurrency;
-        profitEl.style.color = tProfit >= 0 ? "#10b981" : "#ef4444";
-    }
+    if(document.getElementById('stockValue')) document.getElementById('stockValue').textContent = tBuyTotal.toLocaleString() + " " + window.currentCurrency;
+    if(document.getElementById('saleValue')) document.getElementById('saleValue').textContent = tSellTotal.toLocaleString() + " " + window.currentCurrency;
+    if(document.getElementById('profitValue')) document.getElementById('profitValue').textContent = tProfit.toLocaleString() + " " + window.currentCurrency;
 }
 
-// --- 4. SAUVEGARDE & ACTIONS (Version Supabase) ---
+// --- 4. SAUVEGARDE & ACTIONS ---
 async function saveInventory() {
     const rows = document.querySelectorAll('#inventoryTable tr');
     const updates = [];
@@ -279,20 +418,15 @@ async function saveInventory() {
         }
     });
 
-    const { error } = await _db.from('inventory').upsert(updates, { onConflict: 'id' });
-    
+    const { error } = await _db.from('inventory').upsert(updates);
     if(!error) {
         inventoryData = updates;
-        updateBannerUI(); // Mise à jour immédiate des totaux
         hideSavingStatus();
     }
 }
 
 async function addRow() {
-    const { error } = await _db.from('inventory').insert([
-        { product: "Nouveau Produit", qty: 0, buy_price: 0, sell_price: 0 }
-    ]);
-
+    const { error } = await _db.from('inventory').insert([{ product: "Nouveau Produit", qty: 0, buy_price: 0, sell_price: 0 }]);
     if(!error) await loadInventory();
 }
 
@@ -301,17 +435,73 @@ async function deleteSelectedRow() {
     if (checks.length === 0 || !confirm("Supprimer ces articles ?")) return;
     
     for (let cb of checks) {
-        const index = cb.dataset.index;
-        const idToDelete = inventoryData[index].id;
+        const tr = cb.closest('tr');
+        const idToDelete = tr.getAttribute('data-id');
         await _db.from('inventory').delete().eq('id', idToDelete);
     }
     await loadInventory();
 }
 
-// --- 5. UTILITAIRES ---
+async function clearInventory() {
+    if (confirm("⚠️ ATTENTION : Supprimer TOUT l'inventaire ?")) {
+        const { error } = await _db.from('inventory').delete().neq('product', '###'); 
+        if (!error) await loadInventory();
+    }
+}
+
+// --- 5. EXPORTS & IMPORTS ---
+async function generateInventoryPDF() {
+    if (!inventoryData.length) return alert("Inventaire vide");
+    
+    // Calcul du total pour le footer du tableau
+    const totalValeur = inventoryData.reduce((acc, i) => acc + (i.qty * i.buy_price), 0);
+
+    await window.MoniteoPDF.generate({
+        title: "RAPPORT D'INVENTAIRE",
+        subtitle: `Situation du stock au ${new Date().toLocaleString()}`,
+        tables: [
+            {
+                headers: ['Produit', 'Qté', 'P. Achat', 'P. Vente', 'Statut'],
+                rows: inventoryData.map(i => [
+                    i.product, 
+                    i.qty, 
+                    i.buy_price.toLocaleString() + " " + window.currentCurrency, 
+                    i.sell_price.toLocaleString() + " " + window.currentCurrency, 
+                    i.qty <= 0 ? "RUPTURE" : (i.qty <= 5 ? "FAIBLE" : "OK")
+                ]),
+                // Ajout de la ligne de pied de tableau (Footer)
+                foot: [['TOTAL INVENTAIRE', '', totalValeur.toLocaleString() + " " + window.currentCurrency, '', '']]
+            }
+        ]
+    });
+}
+
+function exportInventory() {
+    const ws = XLSX.utils.json_to_sheet(inventoryData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Inventaire");
+    XLSX.writeFile(wb, "Inventaire_Moniteo.xlsx");
+}
+
+// --- 6. UTILITAIRES ---
 function filterTable(q) { 
     const filtered = inventoryData.filter(i => i.product.toLowerCase().includes(q));
     renderInventory(filtered);
+}
+
+function validateNumericInput(cell) {
+    const originalText = cell.innerText;
+    const cleanedText = originalText.replace(/[^0-9.,]/g, '');
+    if (originalText !== cleanedText) {
+        cell.innerText = cleanedText;
+        // Reposistionner le curseur
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(cell);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+    }
 }
 
 function showSavingStatus() { 
@@ -323,269 +513,14 @@ function hideSavingStatus() {
     const s = document.getElementById('saveStatus'); 
     if(s) { s.innerHTML = "● Synchronisé"; s.style.color = "#10b981"; setTimeout(() => s.style.opacity = "0", 2000); } 
 }
-async function generatePDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
 
-    // 1. Récupération de l'utilisateur actuel
-    const { data: { user } } = await _db.auth.getUser();
-    if (!user) return alert("Session expirée");
 
-    // 2. Récupération des infos entreprise (Settings)
-    const { data: settings } = await _db
-        .from('settings')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-    const bizName = settings?.company_name || "MONITEO PRO";
-    const bizAddress = settings?.address || "Rapport d'Inventaire";
-    const bizLogo = settings?.logo_url || null;
-
-    // --- EN-TÊTE PROFESSIONNEL ---
-    if (bizLogo) {
-        try {
-            doc.addImage(bizLogo, 'PNG', 14, 10, 25, 25);
-        } catch (e) { console.error("Logo non compatible", e); }
-    }
-
-    doc.setFontSize(18);
-    doc.setTextColor(31, 60, 99); // Couleur var(--primary)
-    doc.text(bizName.toUpperCase(), bizLogo ? 45 : 14, 20);
-    
-    doc.setFontSize(9);
-    doc.setTextColor(100);
-    doc.text(bizAddress, bizLogo ? 45 : 14, 26);
-    doc.text(`Inventaire au : ${new Date().toLocaleString('fr-FR')}`, bizLogo ? 45 : 14, 31);
-
-    // --- RÉSUMÉ DE L'INVENTAIRE (BANNIÈRE) ---
-    doc.setFontSize(14);
-    doc.setTextColor(31, 60, 99);
-    doc.text("RÉSUMÉ DES VALEURS", 14, 45);
-
-    const countStock = document.getElementById('countStock')?.textContent || "0";
-    const stockValue = document.getElementById('stockValue')?.textContent || "0";
-    const saleValue = document.getElementById('saleValue')?.textContent || "0";
-    const profitValue = document.getElementById('profitValue')?.textContent || "0";
-
-    doc.autoTable({
-        startY: 50,
-        head: [['Articles Totaux', 'Valeur Achat', 'Valeur Vente', 'Profit Potentiel']],
-        body: [[countStock, stockValue, saleValue, profitValue]],
-        theme: 'grid',
-        headStyles: { fillColor: [31, 60, 99], halign: 'center' },
-        styles: { halign: 'center', fontSize: 10, fontStyle: 'bold' }
-    });
-
-    // --- TABLEAU DES PRODUITS ---
-    doc.setFontSize(14);
-    doc.text("DÉTAIL DES ARTICLES EN STOCK", 14, doc.lastAutoTable.finalY + 15);
-
-    const body = inventoryData.map(item => {
-        const qty = parseInt(item.qty) || 0;
-        let status = "OK";
-        if (qty <= 0) status = "RUPTURE";
-        else if (qty <= 5) status = "FAIBLE";
-
-        return [
-            item.product,
-            qty,
-            `${item.buy_price.toLocaleString()} ${currentCurrency}`,
-            `${item.sell_price.toLocaleString()} ${currentCurrency}`,
-            status
-        ];
-    });
-
-    doc.autoTable({
-        startY: doc.lastAutoTable.finalY + 20,
-        head: [['Produit', 'Qté', 'Prix Achat', 'Prix Vente', 'Statut']],
-        body: body,
-        theme: 'striped',
-        headStyles: { fillColor: [59, 130, 246] }, // Couleur var(--secondary)
-        didParseCell: function(data) {
-            // Coloration du texte selon le statut
-            if (data.section === 'body' && data.column.index === 4) {
-                if (data.cell.raw === 'RUPTURE') data.cell.styles.textColor = [239, 68, 68]; // Rouge
-                if (data.cell.raw === 'FAIBLE') data.cell.styles.textColor = [245, 158, 11];  // Orange
-                if (data.cell.raw === 'OK') data.cell.styles.textColor = [16, 185, 129];      // Vert
-            }
-        }
-    });
-
-    // --- PIED DE PAGE ---
-    const pageCount = doc.internal.getNumberOfPages();
-    for(let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(150);
-        doc.text(`Moniteo Umbrella System - Page ${i} / ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
-    }
-
-    doc.save(`Inventaire_${bizName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
-}
-function exportInventory() {
-    const ws = XLSX.utils.json_to_sheet(inventoryData.map(item => ({
-        "Produit": item.product,
-        "Quantité": item.qty,
-        "Prix Achat": item.buy_price,
-        "Prix Vente": item.sell_price,
-        "Marge": item.sell_price - item.buy_price
-    })));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Inventaire");
-    XLSX.writeFile(wb, "Inventaire_Moniteo.xlsx");
-}
-async function clearInventory() {
-    if (confirm("⚠️ ATTENTION : Voulez-vous vraiment supprimer TOUT l'inventaire ? Cette action est irréversible.")) {
-        const { error } = await _db.from('inventory').delete().neq('qty', -1); // Supprime tout
-        if (!error) {
-            await loadInventory();
-        } else {
-            alert("Erreur lors de la suppression : " + error.message);
-        }
-    }
-}
-// --- IMPORTATION EXCEL AVEC NETTOYAGE (ANTI-MARGE NULLE) ---
-document.getElementById('importInventory').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-
-            if (jsonData.length === 0) return;
-
-            if (confirm(`Importer ${jsonData.length} produits ?`)) {
-                showSavingStatus();
-
-                const formattedData = jsonData.map(row => {
-                    // Fonction interne pour nettoyer les nombres (enlève espaces, remplace virgule par point)
-                    const cleanNum = (val) => {
-                        if (!val) return 0;
-                        let s = val.toString().replace(/\s/g, '').replace(',', '.');
-                        return parseFloat(s) || 0;
-                    };
-
-                    return {
-                        product: row.Produit || row.product || "Sans nom",
-                        qty: Math.floor(cleanNum(row.Quantité || row.qty)),
-                        buy_price: cleanNum(row.PrixAchat || row.buy_price),
-                        sell_price: cleanNum(row.PrixVente || row.sell_price)
-                    };
-                });
-
-                // Utilisation de upsert pour écraser les anciennes valeurs fausses
-                const { error } = await _db
-                    .from('inventory')
-                    .upsert(formattedData, { onConflict: 'product' }); 
-
-                if (error) {
-                    alert("Erreur Supabase: " + error.message);
-                } else {
-                    alert("Importation réussie et données nettoyées !");
-                    await loadInventory();
-                }
-                hideSavingStatus();
-            }
-        } catch (err) {
-            alert("Erreur de format.");
-            console.error(err);
-        }
-    };
-    reader.readAsArrayBuffer(file);
-});
-// --- NOUVELLE FONCTION : CALCUL TEMPS RÉEL ---
-function updateBannerUI_Live() {
-    const rows = document.querySelectorAll('#inventoryTable tr');
-    let tQty = 0, tBuyTotal = 0, tSellTotal = 0;
-
-    rows.forEach(tr => {
-        // Nettoyage des données pour éviter les erreurs de calcul (NaN)
-        const q = parseInt(tr.cells[2].innerText.replace(/\s/g, '')) || 0;
-        const b = parseFloat(tr.cells[3].innerText.replace(/\s/g, '').replace(',', '.')) || 0;
-        const s = parseFloat(tr.cells[4].innerText.replace(/\s/g, '').replace(',', '.')) || 0;
-        
-        const margin = s - b;
-        
-        // Mise à jour de la colonne Marge (cellule 5)
-        const marginCell = tr.cells[5];
-        if (marginCell) {
-            marginCell.innerText = `${margin.toLocaleString()} ${currentCurrency}`;
-            marginCell.style.color = margin >= 0 ? '#10b981' : '#ef4444';
-        }
-
-        // Totaux pour la bannière
-        tQty += q;
-        tBuyTotal += (q * b);
-        tSellTotal += (q * s);
-    });
-
-    // Mise à jour des éléments de la bannière bleue
-    const tProfit = tSellTotal - tBuyTotal;
-    
-    const elements = {
-        'countStock': tQty,
-        'stockValue': `${tBuyTotal.toLocaleString()} ${currentCurrency}`,
-        'saleValue': `${tSellTotal.toLocaleString()} ${currentCurrency}`,
-        'profitValue': `${tProfit.toLocaleString()} ${currentCurrency}`
-    };
-
-    for (let id in elements) {
-        const el = document.getElementById(id);
-        if (el) {
-            el.textContent = elements[id];
-            if (id === 'profitValue') el.style.color = tProfit >= 0 ? "#6ee7b7" : "#ef4444";
-        }
-    }
-}
-// --- FONCTION DE SÉCURITÉ : BLOCAGE DES LETTRES ---
-function validateNumericInput(cell) {
-    // On autorise les chiffres, le point et la virgule
-    // On supprime tout le reste instantanément
-    const originalText = cell.innerText;
-    const cleanedText = originalText.replace(/[^0-9.,]/g, '');
-    
-    if (originalText !== cleanedText) {
-        cell.innerText = cleanedText;
-        // Replacer le curseur à la fin pour ne pas gêner la frappe
-        const range = document.createRange();
-        const sel = window.getSelection();
-        range.selectNodeContents(cell);
-        range.collapse(false);
-        sel.removeAllRanges();
-        sel.addRange(range);
-    }
-}
 async function logout() { 
-        if(confirm("Se déconnecter ?")) { 
-            await _db.auth.signOut(); 
-            window.location.replace("index.html"); 
-        } 
-    }
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const mainContent = document.getElementById('mainContent');
-    
-    sidebar.classList.toggle('collapsed');
-    
-    // Optionnel : Sauvegarder l'état dans le navigateur
-    const isCollapsed = sidebar.classList.contains('collapsed');
-    localStorage.setItem('sidebarStatus', isCollapsed ? 'collapsed' : 'expanded');
+    if(confirm("Se déconnecter ?")) { 
+        await _db.auth.signOut(); 
+        window.location.replace("index.html"); 
+    } 
 }
-
-// Au chargement de la page, appliquer l'état sauvegardé
-window.addEventListener('DOMContentLoaded', () => {
-    const status = localStorage.getItem('sidebarStatus');
-    const sidebar = document.getElementById('sidebar');
-    if (status === 'collapsed') {
-        sidebar.classList.add('collapsed');
-    }
-});
 </script>
 </body>
 </html>
