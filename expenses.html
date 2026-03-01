@@ -4,53 +4,64 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Moniteo Umbrella - Dépenses</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="UI/style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="js/auth-check.js"></script>
-    <script>
-    // On utilise protectPage qui vient de auth-check.js
-    protectPage((user) => {
-        console.log("Accès autorisé pour :", user.email);
-        fetchStaffData(); 
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+<script src="js/supabase-config.js"></script>
+<script src="js/auth-check.js"></script>
+
+<script src="js/common.js"></script>
+<script src="js/stats-manager.js"></script>
+<script src="js/settings-manager.js"></script>
+<script src="js/exportPDF.js"></script>
+
+<script>
+    // protectPage vient de auth-check.js
+    protectPage(async (user) => {
+        console.log("✅ Accès autorisé :", user.email);
+        // On passe directement l'objet 'user' pour éviter d'utiliser un 'currentUser' global non défini
+        await fetchStaffData(user); 
     });
 
-    async function fetchStaffData() {
+    async function fetchStaffData(user) {
         try {
-            // Utilisation de _db (défini dans auth-check.js)
-            const { data, error } = await _db
-                .from('sales') // Ou 'staff' selon ce que tu veux afficher ici
+            // On vérifie que la DB est prête
+            const db = window._db || _db;
+            if (!db) throw new Error("Base de données non initialisée");
+
+            const { data, error } = await db
+                .from('staff') // Si c'est la page personnel, utilise 'staff'
                 .select('*')
-                .eq('user_id', currentUser.id)
-                .order('date', { ascending: false });
+                .eq('user_id', user.id) // Utilise user.id du paramètre
+                .order('name', { ascending: true });
 
             if (error) throw error;
 
             if (data) {
-                console.log("Données reçues :", data);
-                // Si tu as une variable globale pour stocker les données
-                if (typeof salesData !== 'undefined') salesData = data;
+                console.log("👥 Membres du personnel récupérés :", data.length);
                 
-                // Appelle ta fonction de rendu du tableau
-                if (typeof renderTable === 'function') {
+                // On attache les données à window pour les rendre accessibles partout
+                window.staffData = data;
+                
+                // Rendu visuel
+                if (typeof renderStaff === 'function') {
+                    renderStaff(data);
+                } else if (typeof renderTable === 'function') {
                     renderTable();
-                } else if (typeof renderStaff === 'function') {
-                    renderStaff();
                 }
             }
         } catch (err) {
-            console.error("Erreur critique lors du chargement :", err.message);
+            console.error("❌ Erreur de chargement :", err.message);
         }
     }
 </script>
-    
-    <link rel="stylesheet" href="UI/style.css">
-    <script src="js/common.js"></script>
-    </head>
+</head>
 <body>
 
 <nav class="sidebar" id="sidebar">
@@ -77,68 +88,78 @@
 </nav>
 
 <main class="main-content">
-    <div class="header-flex">
-        <div>
-            <h2 style="font-size: 1.2rem; margin: 0;">Gestion des Dépenses</h2>
-            <p style="color: var(--text-light); font-size: 0.8rem; margin-top: 4px;">Enregistrez et catégorisez vos sorties d'argent.</p>
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <button class="btn-outline" onclick="exportExpensesExcel()">Excel</button>
-            <button class="btn-outline" onclick="exportExpensesPDF()">PDF</button>
-        </div>
-    </div>
-
-    <div class="card">
-    <div class="modal-grid">
-        <div class="input-group">
-            <label>Date</label>
-            <input type="date" id="expenseDate">
-        </div>
-        <div class="input-group">
-            <label>Libellé</label>
-            <input type="text" id="expenseLabel" placeholder="Ex: Loyer...">
-        </div>
-        <div class="input-group">
-            <label>Catégorie</label>
-            <select id="expenseCategory">
-                <option value="Fixe">Fixe</option>
-                <option value="Variable">Variable</option>
-                <option value="RH">Salaires</option>
-            </select>
-        </div>
-        <div class="input-group">
-            <label>Montant</label>
-            <div style="display: flex; gap: 5px;">
-                <input type="number" id="expenseAmount" placeholder="0.00" style="flex:1">
-                <select id="inputCurrency" style="width: 70px;">
-                    <option value="FC">FC</option>
-                    <option value="USD">$</option>
-                </select>
+    <header class="header-flex" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); margin-bottom: 25px;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <div id="dynamicLogoContainer" style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px;">
+            </div>
+        
+        <div style="border-left: 2px solid var(--border-soft); padding-left: 15px; display: flex; flex-direction: column; justify-content: center; min-height: 45px;">
+            <h2 id="pageTitle" style="margin: 0; font-size: 1.25rem; font-weight: 700; line-height: 1.2; color: var(--text-main);">GESTION DE DEPENSES
+                </h2>
+            <div style="display: flex; flex-direction: column; margin-top: 2px;">
+                <span id="companySubtitle" style="color: var(--secondary); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.8px; line-height: 1.4;"></span>
+                <span id="dateDisplay" style="color: var(--text-light); font-size: 0.75rem; font-weight: 500;"></span>
             </div>
         </div>
-        <div class="input-group">
-            <button class="btn-main" id="addExpense" onclick="addExpense()" style="width: 100%;">
-                + Ajouter
-            </button>
-        </div>
     </div>
-</div>   
 
-    <div class="dashboard-grid">
-        <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
-            <label style="display: block; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600;">Rechercher une dépense</label>
-            <input type="text" id="searchInput" onkeyup="filterExpenses()" placeholder="Rechercher par libellé ou catégorie..." style="width: 100%;">
+    <div class="header-actions">
+        <button class="btn-outline" onclick="window.print()" style="padding: 8px; border-radius: 8px; cursor: pointer;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        </button>
+    </div>
+</header>
+
+    <div class="card">
+        <div class="modal-grid" style="align-items: flex-end;">
+            <div class="input-group">
+                <label>Date</label>
+                <input type="date" id="expenseDate">
+            </div>
+            <div class="input-group">
+                <label>Libellé</label>
+                <input type="text" id="expenseLabel" placeholder="Ex: Loyer, Carburant...">
+            </div>
+            <div class="input-group">
+                <label>Catégorie</label>
+                <select id="expenseCategory">
+                    <option value="Fixe">Charges Fixes</option>
+                    <option value="Variable">Charges Variables</option>
+                    <option value="RH">Salaires / Staff</option>
+                    <option value="Stock">Achat Marchandises</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Montant</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="number" id="expenseAmount" placeholder="0.00" style="flex:1">
+                    </select>
+                </div>
+            </div>
+            <div class="input-group">
+                <button class="btn-main" id="addExpense" onclick="addExpense()" style="width: 100%; justify-content: center;">
+                    <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Ajouter
+                </button>
+            </div>
+        </div>
+    </div>   
+
+    <div class="dashboard-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+        <div class="card" style="display: flex; flex-direction: column; justify-content: center; margin-bottom: 0;">
+            <label style="display: block; margin-bottom: 8px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-light);">Recherche filtrée</label>
+            <input type="text" id="searchInput" onkeyup="filterExpenses()" placeholder="Par libellé ou catégorie..." class="search-input" style="margin-bottom: 0;">
         </div>
 
         <div class="total-highlight">
             <div>
                 <h3>Total cumulé</h3>
-                <p id="expensesTotal">0,00 FC</p>
+                <p id="expensesTotal">0,00 <span class="currency-label">FC</span></p>
             </div>
             <svg class="icon-lg" viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
         </div>
     </div>
-   
+    
     <div class="card">
         <h3 class="card-title">Historique des transactions</h3>
         <div class="table-wrapper">
@@ -148,8 +169,8 @@
                         <th>Date</th>
                         <th>Libellé</th>
                         <th>Catégorie</th>
-                        <th>Montant</th>
-                        <th>Valeur</th>
+                        <th>Montant Saisi</th>
+                        <th>Valeur (<span class="currency-label">FC</span>)</th>
                         <th style="text-align: right;">Action</th>
                     </tr>
                 </thead>
@@ -187,22 +208,44 @@
         }
     });
 
-    function applyGlobalSettings() {
-        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-        
-        if (config.darkMode) document.body.classList.add('dark-mode');
+    // --- 3. APPLICATION DES RÉGLAGES (CACHE & UI) ---
+function applyGlobalSettings() {
+    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+    
+    // 1. Variables Globales
+    if (typeof globalRate !== 'undefined') globalRate = config.rate || 2800;
+    if (typeof currentCurrency !== 'undefined') currentCurrency = config.currency || "FC";
 
-        currentCurrency = config.currency || "FC";
-        globalRate = parseFloat(config.rate) || 2800;
-        
-        const select = document.getElementById('expenseCurrency');
-        if (select) select.value = currentCurrency;
+    // 2. Mode Sombre
+    if (config.darkMode) {
+        document.body.classList.add('dark-mode');
+    } else {
+        document.body.classList.remove('dark-mode');
+    }
 
-        const brandName = document.querySelector('.header-flex h2');
-        if (brandName && config.name) {
-            brandName.innerHTML = `Dépenses <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
+    // 3. Titre et Nom de l'entreprise
+    const title = document.getElementById('companyTitle');
+    if (title && config.name) {
+        title.innerHTML = `Tableau de Bord <small style="font-size:0.6em; color:var(--secondary)">| ${config.name}</small>`;
+    }
+
+    // 4. Logo Dynamique
+    const logoCont = document.getElementById('dynamicLogoContainer');
+    if (logoCont) {
+        if (config.logo) {
+            logoCont.innerHTML = `<img src="${config.logo}" style="height: 40px; width: auto; border-radius: 4px; object-fit: contain;">`;
+        } else {
+            logoCont.innerHTML = ""; // Vide si pas de logo
         }
     }
+
+    // 5. Affichages spécifiques (Matricule, etc.)
+    const displayMat = document.getElementById('displayMatricule');
+    if (displayMat && config.matricule) displayMat.innerText = config.matricule;
+
+    const displayComp = document.getElementById('company-display');
+    if (displayComp && config.name) displayComp.innerText = config.name;
+}
 
     // --- 3. LOGIQUE DE CALCUL (DYNAMIQUE) ---
     function convertCurrency(amount, fromCurrency, toCurrency) {
@@ -436,6 +479,33 @@ window.addEventListener('DOMContentLoaded', () => {
         sidebar.classList.add('collapsed');
     }
 });
+// Assure-toi que cette fonction est bien isolée
+function toggleDropdown(event, menuId) {
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+
+    // Fermer les autres menus
+    document.querySelectorAll('.dropdown-menu').forEach(m => {
+        if (m.id !== menuId) {
+            m.classList.remove('show');
+        }
+    });
+
+    menu.classList.toggle('show');
+}
+
+// Gestionnaire de clic global
+window.onclick = function(event) {
+    if (!event.target.closest('.dropdown')) {
+        document.querySelectorAll('.dropdown-menu').forEach(m => {
+            m.classList.remove('show');
+        });
+    }
+};
 </script>
 </body>
 </html>
