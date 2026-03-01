@@ -6,45 +6,75 @@
     <title>Moniteo Umbrella - Historique Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/auth-check.js"></script>
-    <script>
-    // On utilise protectPage qui vient de auth-check.js
-    protectPage((user) => {
-        console.log("Accès autorisé pour :", user.email);
-        fetchStaffData(); 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<script src="js/supabase-config.js"></script>
+
+<script src="js/auth-check.js"></script>
+<script src="js/settings-manager.js"></script>
+<script src="js/common.js"></script>
+
+<script>
+    // Sécurité : On attend que le DOM et _db soient prêts
+    document.addEventListener('DOMContentLoaded', () => {
+        initPage();
     });
 
-    async function fetchStaffData() {
+    async function initPage() {
+        if (!window._db) {
+            console.warn("⏳ Attente de Supabase...");
+            setTimeout(initPage, 100);
+            return;
+        }
+
+        // On utilise protectPage qui vient de auth-check.js
+        protectPage((user) => {
+            console.log("✅ Accès autorisé :", user.email);
+            fetchStaffData(user.id); 
+        });
+    }
+
+    async function fetchStaffData(userId) {
         try {
-            // Utilisation de _db (défini dans auth-check.js)
-            const { data, error } = await _db
-                .from('sales') // Ou 'staff' selon ce que tu veux afficher ici
+            // CORRECTION : On utilise window._db et on vérifie la table
+            // J'enlève le .order() car 'date' ou 'created_at' font planter si absents
+            const { data, error } = await window._db
+                .from('staff') // Table correcte pour le personnel
                 .select('*')
-                .eq('user_id', currentUser.id)
-                .order('date', { ascending: false });
+                .eq('user_id', userId);
 
             if (error) throw error;
 
             if (data) {
-                console.log("Données reçues :", data);
-                // Si tu as une variable globale pour stocker les données
-                if (typeof salesData !== 'undefined') salesData = data;
+                console.log("📊 Données reçues :", data.length);
                 
-                // Appelle ta fonction de rendu du tableau
-                if (typeof renderTable === 'function') {
-                    renderTable();
-                } else if (typeof renderStaff === 'function') {
+                // On stocke dans la variable globale attendue par tes fonctions de rendu
+                window.staffData = data;
+                
+                // Exécution du rendu
+                if (typeof renderStaff === 'function') {
                     renderStaff();
+                } else if (typeof renderTable === 'function') {
+                    renderTable();
+                }
+
+                // Mise à jour des stats si le manager est chargé
+                if (typeof updateKPIs === 'function') {
+                    updateKPIs();
                 }
             }
         } catch (err) {
-            console.error("Erreur critique lors du chargement :", err.message);
+            console.error("❌ Erreur de chargement :", err.message);
+            const tbody = document.getElementById('staffTable');
+            if(tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red;">Erreur : ${err.message}</td></tr>`;
         }
     }
 </script>
-    <link rel="stylesheet" href="UI/style.css">
-    <script src="js/common.js"></script>
+
+<script src="js/stats-manager.js"></script>
+<link rel="stylesheet" href="UI/style.css">
     </head>
 <body>
 
@@ -71,38 +101,101 @@
     </div>
 </nav>
 
-    <main class="main-content">
-        <header class="header-flex">
-            <h2>Journal Historique</h2>
-            <button class="btn-success" onclick="exportExcel()">Exporter Excel</button>
-        </header>
-
-        <div class="summary-banner">
-            <div><small>Chiffre d'Affaire</small><p id="caTotal">0 $</p></div>
-            <div><small>Bénéfice Net</small><p id="profitTotal">0 $</p></div>
-            <div><small>Volume Articles</small><p id="qtyTotal">0</p></div>
-            <div><small>Transactions</small><p id="transCount">0</p></div>
-        </div>
-
-        <div class="action-bar">
-            <input type="text" id="searchProd" class="filter-input" placeholder="Rechercher un produit..." oninput="applyFilters()" style="flex:1;">
-            
-            <div class="date-range">
-                <small style="color:var(--text-light)">Du</small>
-                <input type="date" id="dateStart" class="filter-input" style="border:none" onchange="applyFilters()">
-                <small style="color:var(--text-light)">Au</small>
-                <input type="date" id="dateEnd" class="filter-input" style="border:none" onchange="applyFilters()">
+   <main class="main-content">
+    <header class="header-flex" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); margin-bottom: 25px;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <div id="dynamicLogoContainer" style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px;">
             </div>
-
-            <select id="marketFilter" class="filter-input" onchange="applyFilters()">
-                <option value="all">Tous Marchés</option>
-                <option value="local">Local</option>
-                <option value="export">Export</option>
-            </select>
-            
-            <button class="btn-danger" onclick="resetFilters()">Réinitialiser</button>
+        
+        <div style="border-left: 2px solid var(--border-soft); padding-left: 15px; display: flex; flex-direction: column; justify-content: center; min-height: 45px;">
+            <h2 id="pageTitle" style="margin: 0; font-size: 1.25rem; font-weight: 700; line-height: 1.2; color: var(--text-main);">JOURNAL HISTORIQUE
+                </h2>
+            <div style="display: flex; flex-direction: column; margin-top: 2px;">
+                <span id="companySubtitle" style="color: var(--secondary); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.8px; line-height: 1.4;"></span>
+                <span id="dateDisplay" style="color: var(--text-light); font-size: 0.75rem; font-weight: 500;"></span>
+            </div>
         </div>
+    </div>
 
+    <div class="header-actions">
+        <button class="btn-outline" onclick="window.print()" style="padding: 8px; border-radius: 8px; cursor: pointer;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        </button>
+    </div>
+</header>
+
+   <div class="summary-banner" style="display: grid; grid-gap: 20px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 25px;">
+    
+    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #3b82f6; display: flex; align-items: center; gap: 15px;">
+        <div style="background: #eff6ff; padding: 10px; border-radius: 10px; color: #3b82f6;">
+            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        </div>
+        <div>
+            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Chiffre d'Affaire</small>
+            <p style="margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text-main);">
+                <span id="caTotal">0</span> <small style="font-size: 0.9rem; color: var(--text-light);">$</small>
+            </p>
+        </div>
+    </div>
+
+    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #10b981; display: flex; align-items: center; gap: 15px;">
+        <div style="background: #ecfdf5; padding: 10px; border-radius: 10px; color: #10b981;">
+            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+        </div>
+        <div>
+            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Bénéfice Net</small>
+            <p style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #10b981;">
+                <span id="profitTotal">0</span> <small style="font-size: 0.9rem; color: #10b981;">$</small>
+            </p>
+        </div>
+    </div>
+
+    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #f59e0b; display: flex; align-items: center; gap: 15px;">
+        <div style="background: #fffbeb; padding: 10px; border-radius: 10px; color: #f59e0b;">
+            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><line x1="3" y1="6" x2="21" y2="6"></line></svg>
+        </div>
+        <div>
+            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Volume Articles</small>
+            <p id="qtyTotal" style="margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text-main);">0</p>
+        </div>
+    </div>
+
+    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #8b5cf6; display: flex; align-items: center; gap: 15px;">
+        <div style="background: #f5f3ff; padding: 10px; border-radius: 10px; color: #8b5cf6;">
+            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        </div>
+        <div>
+            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Transactions</small>
+            <p id="transCount" style="margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text-main);">0</p>
+        </div>
+    </div>
+</div>
+
+    <div class="action-bar" style="display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap;">
+    <div style="flex: 3; min-width: 250px; position: relative;">
+        <input type="text" id="searchProd" class="search-input" placeholder="Rechercher un produit..." oninput="applyFilters()" style="width: 100%; margin: 0; height: 100%;">
+    </div>
+    
+    <div class="date-range" style="display: flex; align-items: center; gap: 8px; background: var(--bg-body); padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border-soft); flex: 2;">
+        <small style="color:var(--text-light); font-weight: bold; white-space: nowrap;">PÉRIODE</small>
+        <input type="date" id="dateStart" onchange="applyFilters()" style="background:transparent; border:none; color:var(--text-main); font-size: 0.85rem; width: 110px;">
+        <span style="color: var(--border-soft)">|</span>
+        <input type="date" id="dateEnd" onchange="applyFilters()" style="background:transparent; border:none; color:var(--text-main); font-size: 0.85rem; width: 110px;">
+    </div>
+
+    <select id="marketFilter" class="filter-input" onchange="applyFilters()" style="flex: 1; min-width: 130px; margin: 0;">
+        <option value="all">Tous Marchés</option>
+        <option value="local">Local</option>
+        <option value="export">Export</option>
+    </select>
+    
+    <button class="btn-outline" onclick="resetFilters()" style="color: var(--danger); border-color: var(--danger); padding: 0 15px; height: 45px; display: flex; align-items: center; gap: 5px;">
+        <svg style="width:16px; height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Réinitialiser
+    </button>
+</div>
+
+    <div class="card">
         <div class="table-wrapper">
             <table>
                 <thead>
@@ -111,19 +204,19 @@
                         <th>Produit</th>
                         <th>Marché</th>
                         <th>Qté</th>
-                        <th>P.U ($)</th>
-                        <th>Total ($)</th>
-                        <th>Bénéfice ($)</th>
-                        <th>Action</th>
+                        <th>P.U (<span class="currency-label">$</span>)</th>
+                        <th>Total (<span class="currency-label">$</span>)</th>
+                        <th>Bénéfice (<span class="currency-label">$</span>)</th>
+                        <th style="text-align: right;">Action</th>
                     </tr>
                 </thead>
-                <tbody id="historyBody"></tbody>
+                <tbody id="historyBody">
+                    </tbody>
             </table>
         </div>
-    </main>
+    </div>
+</main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
     let salesHistory = [];
@@ -134,17 +227,45 @@
         await fetchSalesHistory(); // Charger depuis Supabase
     });
 
-    function applyGlobalSettings() {
-        const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-        if (config.darkMode) document.body.classList.add('dark-mode');
+    // --- 3. APPLICATION DES RÉGLAGES (CACHE & UI) ---
+function applyGlobalSettings() {
+    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
+    
+    // 1. Variables Globales
+    if (typeof globalRate !== 'undefined') globalRate = config.rate || 2800;
+    if (typeof currentCurrency !== 'undefined') currentCurrency = config.currency || "FC";
 
-        currentCurrency = config.currency || "FC";
+    // 2. Mode Sombre
+    if (config.darkMode) {
+        document.body.classList.add('dark-mode');
+    } else {
+        document.body.classList.remove('dark-mode');
+    }
 
-        const brandName = document.querySelector('.header-flex h2');
-        if (brandName && config.name) {
-            brandName.innerHTML = `Historique <small style="font-size: 0.6em; color: var(--secondary)">| ${config.name}</small>`;
+    // 3. Titre et Nom de l'entreprise
+    const title = document.getElementById('companyTitle');
+    if (title && config.name) {
+        title.innerHTML = `Tableau de Bord <small style="font-size:0.6em; color:var(--secondary)">| ${config.name}</small>`;
+    }
+
+    // 4. Logo Dynamique
+    const logoCont = document.getElementById('dynamicLogoContainer');
+    if (logoCont) {
+        if (config.logo) {
+            logoCont.innerHTML = `<img src="${config.logo}" style="height: 40px; width: auto; border-radius: 4px; object-fit: contain;">`;
+        } else {
+            logoCont.innerHTML = ""; // Vide si pas de logo
         }
     }
+
+    // 5. Affichages spécifiques (Matricule, etc.)
+    const displayMat = document.getElementById('displayMatricule');
+    if (displayMat && config.matricule) displayMat.innerText = config.matricule;
+
+    const displayComp = document.getElementById('company-display');
+    if (displayComp && config.name) displayComp.innerText = config.name;
+}
+
 
     // --- 3. RÉCUPÉRATION SUPABASE ---
     async function fetchSalesHistory() {
