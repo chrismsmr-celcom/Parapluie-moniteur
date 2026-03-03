@@ -99,12 +99,14 @@
         </div>
     </div>
 
-    <div class="header-actions">
-        <button class="btn-outline" onclick="window.print()" style="padding: 8px; border-radius: 8px; cursor: pointer;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-        </button>
+    <div style="display: flex; align-items: center; gap: 20px;">
+    <div id="loading-state" style="display: none; align-items: center; gap: 8px;">
+        <svg class="loader-icon-spin" viewBox="0 0 24 24" style="width: 20px; height: 20px; color: var(--primary); animation: spin 1s linear infinite;">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle>
+        </svg>
+        <span style="font-size: 0.8rem; color: var(--text-light); font-weight: 500;">Récupération...</span>
     </div>
-</header>
+    </header>
     <section class="dashboard-grid">
         <div class="card kpi-card">
             <h3>Chiffre d'Affaires</h3>
@@ -114,10 +116,19 @@
             <h3>Bénéfice Réel</h3>
             <p id="totalProfit" style="color: var(--success);">0 $</p>
         </div>
-        <div class="card kpi-card">
-            <h3>Stock & Staff</h3>
-            <p id="totalStock">0</p>
-        </div>
+        <div class="card kpi-card profit-projection">
+    <h3 style="display: flex; justify-content: space-between; align-items: center;">
+        Profit Prévisionnel
+            </h3>
+    <p id="totalPotentialProfit" class="profit-main-value">0 </p>
+    
+    <div class="kpi-sub-details" style="margin-top: 5px; display: flex; flex-direction: column; gap: 4px;">
+        <span id="marginRate" class="margin-rate-badge">Marge: --%</span>
+        <small class="investment-info" style="color: var(--text-light); font-size: 0.75rem;">
+            Capital: <strong id="totalInvestment">0</strong>
+        </small>
+    </div>
+</div>
         <div class="card kpi-card">
             <h3>Total Charges</h3>
             <p id="totalExpenses" style="color: var(--danger);">0 $</p>
@@ -313,7 +324,9 @@ function toggleSidebar() {
 
 // --- 5. LOGIQUE MÉTIER (DASHBOARD) ---
 async function initDashboard() {
-    console.log("📊 Chargement des KPIs...");
+    const loader = document.getElementById('loading-state');
+    if (loader) loader.style.display = 'flex';
+
     try {
         const userId = currentUser.id;
         const [rSales, rInventory, rExpenses, rStaff] = await Promise.all([
@@ -328,24 +341,59 @@ async function initDashboard() {
         const expenses = rExpenses.data || [];
         const staff = rStaff.data || [];
 
-        // Calculs
+        // --- CALCULS CLASSIQUES ---
         let totalCA = sales.reduce((sum, s) => sum + (parseFloat(s.sell_price || 0) * (parseInt(s.qty) || 0)), 0);
-        let grossProfit = sales.reduce((sum, s) => sum + ((parseFloat(s.sell_price || 0) - parseFloat(s.buy_price || 0)) * (parseInt(s.qty) || 0)), 0);
         let totalCharges = expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0) + 
                            staff.reduce((sum, st) => sum + (parseFloat(String(st.salary || 0).replace(/[^\d.-]/g, '')) || 0), 0);
 
+        // --- CALCULS PROFIT PRÉVISIONNEL (Directement ici !) ---
+        let totalPotentialProfit = 0;
+        let totalInvestment = 0;
+
+        inventory.forEach(item => {
+            // ATTENTION : Vérifie bien si c'est .qty ou .quantity ici
+            const q = parseInt(item.qty || item.quantity) || 0;
+            const buy = parseFloat(item.buy_price || item.purchase_price) || 0;
+            const sell = parseFloat(item.sell_price) || 0;
+
+            if (q > 0) {
+                totalInvestment += (buy * q);
+                totalPotentialProfit += ((sell - buy) * q);
+            }
+        });
+
+        const marginRate = totalInvestment > 0 ? Math.round((totalPotentialProfit / totalInvestment) * 100) : 0;
+
+        // --- MISE À JOUR UI ---
+        const currency = window.currentCurrency || "FC";
+        
         updateKPI('totalCA', totalCA);
         updateKPI('totalExpenses', totalCharges);
-        updateKPI('totalProfit', (grossProfit - totalCharges), true);
+        
+        // Mise à jour de la carte Profit Prévisionnel
+        if(document.getElementById('totalPotentialProfit')) {
+            document.getElementById('totalPotentialProfit').textContent = `${totalPotentialProfit.toLocaleString()} ${currency}`;
+        }
+        if(document.getElementById('marginRate')) {
+            document.getElementById('marginRate').textContent = `Marge: ${marginRate}%`;
+        }
+        if(document.getElementById('totalInvestment')) {
+            document.getElementById('totalInvestment').textContent = `${totalInvestment.toLocaleString()} ${currency}`;
+        }
 
-        // UI : Staff & Stocks
+        // Le profit net réel (CA - Charges)
+        let grossProfitRealized = sales.reduce((sum, s) => sum + ((parseFloat(s.sell_price || 0) - parseFloat(s.buy_price || 0)) * (parseInt(s.qty) || 0)), 0);
+        updateKPI('totalProfit', (grossProfitRealized - totalCharges), true);
+
         renderStaffAvatars(staff);
         renderStockAlerts(inventory);
-
-        // Graphiques
         renderCharts(sales, inventory);
 
-    } catch (err) { console.error("Erreur Dashboard:", err); }
+    } catch (err) { 
+        console.error("Erreur Dashboard:", err); 
+    } finally {
+        if (loader) loader.style.display = 'none';
+    }
 }
 
 function updateKPI(id, value, isProfit = false) {
@@ -488,6 +536,45 @@ function renderStockAlerts(inventory) {
         `;
     }).join('');
 }
+async function updateProfitKPI() {
+    try {
+        const { data: inventory, error } = await _db.from('inventory').select('qty, buy_price, sell_price');
+        
+        if (error) throw error;
+
+        let totalPotentialProfit = 0;
+        let totalInvestment = 0;
+
+        (inventory || []).forEach(item => {
+            const q = parseInt(item.qty) || 0;
+            const buy = parseFloat(item.buy_price) || 0;
+            const sell = parseFloat(item.sell_price) || 0;
+
+            if (q > 0) {
+                totalInvestment += (buy * q);
+                totalPotentialProfit += ((sell - buy) * q);
+            }
+        });
+
+        // Calcul du taux de marge moyen sur le stock
+        const marginRate = totalInvestment > 0 ? Math.round((totalPotentialProfit / totalInvestment) * 100) : 0;
+
+        // Mise à jour de l'affichage
+        const currency = window.currentCurrency || "FC";
+        
+        document.getElementById('totalPotentialProfit').innerText = 
+            `${totalPotentialProfit.toLocaleString()} ${currency}`;
+            
+        document.getElementById('totalInvestment').innerText = 
+            `${totalInvestment.toLocaleString()} ${currency}`;
+            
+        document.getElementById('marginRate').innerText = 
+            `Marge moyenne: +${marginRate}%`;
+
+    } catch (err) {
+        console.error("Erreur KPI Profit:", err);
+    }
+}
 </script>
 </body>
-</html>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+</html>
