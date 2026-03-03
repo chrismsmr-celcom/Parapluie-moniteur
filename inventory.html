@@ -91,25 +91,34 @@
     </nav>
 
     <main class="main-content">
-    <header class="header-flex" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); margin-bottom: 25px;">
+   <header class="header-flex" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); margin-bottom: 25px;">
+    
     <div style="display: flex; align-items: center; gap: 15px;">
-        <div id="dynamicLogoContainer" style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px;">
-            </div>
+        <div id="dynamicLogoContainer" style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px;"></div>
         
         <div style="border-left: 2px solid var(--border-soft); padding-left: 15px; display: flex; flex-direction: column; justify-content: center; min-height: 45px;">
-            <h2 id="pageTitle" style="margin: 0; font-size: 1.25rem; font-weight: 700; line-height: 1.2; color: var(--text-main);">GESTION DE L'INVENTAIRE
-                </h2>
+            <h2 id="pageTitle" style="margin: 0; font-size: 1.25rem; font-weight: 700; line-height: 1.2; color: var(--text-main);">GESTION DE L'INVENTAIRE</h2>
             <div style="display: flex; flex-direction: column; margin-top: 2px;">
                 <span id="companySubtitle" style="color: var(--secondary); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.8px; line-height: 1.4;"></span>
                 <span id="dateDisplay" style="color: var(--text-light); font-size: 0.75rem; font-weight: 500;"></span>
             </div>
         </div>
     </div>
-        <div id="saveStatus" class="save-indicator">
-            ● Enregistré
-        </div>
-    </header>
 
+    <div style="display: flex; align-items: center; gap: 20px;">
+        <div id="loading-state" style="display: none; align-items: center; gap: 8px;">
+            <svg class="loader-icon-spin" viewBox="0 0 24 24" style="width: 20px; height: 20px; color: var(--primary); animation: spin 1s linear infinite;">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle>
+            </svg>
+            <span style="font-size: 0.8rem; color: var(--text-light); font-weight: 500;">Récupération...</span>
+        </div>
+
+        <div id="saveStatus" class="save-status-container status-saved">
+            <span class="status-dot"></span>
+            <span id="saveStatusText">Enregistré</span>
+        </div>
+    </div>
+</header>
     <div class="summary-banner" style="display: grid; grid-gap: 20px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 25px;">
     
     <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #6366f1; display: flex; align-items: center; gap: 15px;">
@@ -153,7 +162,7 @@
         <div>
             <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Marge Est. (Gains)</small>
             <p style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #10b981;">
-                <span id="profitValue">0</span> <small style="font-size: 0.9rem; color: #10b981;">$</small>
+                <span id="profitValue">0</span> <small style="font-size: 0.9rem; color: #10b981;"></small>
             </p>
         </div>
     </div>
@@ -277,7 +286,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateBannerUI_Live(); 
             
             // Sauvegarde différée (Debounce)
-            showSavingStatus();
+            updateSaveStatus('syncing');
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(saveInventory, 1500);
         });
@@ -305,20 +314,38 @@ function applyGlobalSettings() {
 
 // --- 2. CHARGEMENT & RENDU ---
 async function loadInventory() {
-    const { data, error } = await _db.from('inventory').select('*').order('product', { ascending: true });
-    if (!error) { 
-        inventoryData = data; 
-        renderInventory(); 
+    const loader = document.getElementById('loading-state');
+    
+    try {
+        if (loader) loader.style.display = 'flex';
+
+        const { data, error } = await _db
+            .from('inventory')
+            .select('*')
+            .order('product', { ascending: true });
+
+        if (error) {
+            console.error("Erreur chargement inventaire:", error.message);
+            return;
+        }
+
+        inventoryData = data || [];
+        renderInventory(); // On appelle le rendu
+
+    } catch (err) {
+        console.error("Erreur critique inventaire:", err);
+    } finally {
+        // Le loader se cache ICI, une seule fois, après tout le processus
+        if (loader) loader.style.display = 'none';
     }
 }
-
 function renderInventory(dataToRender = inventoryData) {
     const tbody = document.getElementById('inventoryTable');
     const alertList = document.getElementById('alertList');
-    if(!tbody) return;
+    if (!tbody) return;
 
     tbody.innerHTML = '';
-    if(alertList) alertList.innerHTML = ''; 
+    if (alertList) alertList.innerHTML = ''; 
 
     dataToRender.forEach((item, index) => {
         const qty = parseInt(item.qty) || 0;
@@ -326,31 +353,34 @@ function renderInventory(dataToRender = inventoryData) {
         const sell = parseFloat(item.sell_price) || 0;
         const margin = sell - buy;
 
-        // Alertes
-        if(alertList) {
-            if(qty <= 0) alertList.innerHTML += `<li style="color: #ef4444;">🔴 Rupture : <strong>${item.product}</strong></li>`;
-            else if(qty <= 5) alertList.innerHTML += `<li style="color: #f59e0b;">🟠 Faible : <strong>${item.product}</strong> (${qty})</li>`;
+        // Gestion des alertes
+        if (alertList) {
+            if (qty <= 0) {
+                alertList.innerHTML += `<li style="color: #ef4444;">🔴 Rupture : <strong>${item.product}</strong></li>`;
+            } else if (qty <= 5) {
+                alertList.innerHTML += `<li style="color: #f59e0b;">🟠 Faible : <strong>${item.product}</strong> (${qty})</li>`;
+            }
         }
 
         const tr = document.createElement('tr');
         tr.setAttribute('data-id', item.id);
-        if(qty <= 0) tr.style.background = "rgba(239, 68, 68, 0.05)";
+        if (qty <= 0) tr.style.background = "rgba(239, 68, 68, 0.05)";
 
         tr.innerHTML = `
             <td><input type="checkbox" data-index="${index}"></td>
             <td contenteditable="true" class="edit-cell" style="font-weight:600">${item.product || ''}</td>
             <td contenteditable="true" class="edit-cell" style="font-weight:bold; color: ${qty <= 5 ? '#ef4444' : 'inherit'};">${qty}</td>
-            <td contenteditable="true" class="edit-cell">${buy}</td>
-            <td contenteditable="true" class="edit-cell">${sell}</td>
+            <td contenteditable="true" class="edit-cell">${buy.toLocaleString()}</td>
+            <td contenteditable="true" class="edit-cell">${sell.toLocaleString()}</td>
             <td style="font-weight:600; color: ${margin >= 0 ? '#10b981' : '#ef4444'}">
-                ${margin.toLocaleString()} ${window.currentCurrency}
+                ${margin.toLocaleString()} ${window.currentCurrency || 'FC'}
             </td>
         `;
         tbody.appendChild(tr);
     });
+    
     updateBannerUI();
 }
-
 // --- 3. CALCULS BANNIÈRE ---
 function updateBannerUI() {
     let tQty = 0, tBuyTotal = 0, tSellTotal = 0;
@@ -404,6 +434,9 @@ async function saveInventory() {
     const rows = document.querySelectorAll('#inventoryTable tr');
     const updates = [];
     
+    // On passe en mode synchronisation
+    updateSaveStatus('syncing');
+
     rows.forEach(tr => {
         const id = tr.getAttribute('data-id');
         const name = tr.cells[1].innerText.trim();
@@ -411,20 +444,24 @@ async function saveInventory() {
             updates.push({ 
                 id: id, 
                 product: name, 
-                qty: parseInt(tr.cells[2].innerText) || 0, 
-                buy_price: parseFloat(tr.cells[3].innerText.replace(',', '.')) || 0,
-                sell_price: parseFloat(tr.cells[4].innerText.replace(',', '.')) || 0 
+                qty: parseInt(tr.cells[2].innerText.replace(/\s/g, '')) || 0, 
+                buy_price: parseFloat(tr.cells[3].innerText.replace(/\s/g, '').replace(',', '.')) || 0,
+                sell_price: parseFloat(tr.cells[4].innerText.replace(/\s/g, '').replace(',', '.')) || 0 
             });
         }
     });
 
-    const { error } = await _db.from('inventory').upsert(updates);
-    if(!error) {
+    try {
+        const { error } = await _db.from('inventory').upsert(updates);
+        if (error) throw error;
+
         inventoryData = updates;
-        hideSavingStatus();
+        updateSaveStatus('saved'); // Succès : Vert
+    } catch (err) {
+        console.error("Erreur sauvegarde:", err);
+        updateSaveStatus('error'); // Échec : Rouge
     }
 }
-
 async function addRow() {
     const { error } = await _db.from('inventory').insert([{ product: "Nouveau Produit", qty: 0, buy_price: 0, sell_price: 0 }]);
     if(!error) await loadInventory();
@@ -504,17 +541,41 @@ function validateNumericInput(cell) {
     }
 }
 
-function showSavingStatus() { 
-    const s = document.getElementById('saveStatus'); 
-    if(s) { s.style.opacity = "1"; s.innerHTML = "⏳ Synchronisation..."; s.style.color = "orange"; } 
+/**
+ * Gère l'état visuel de la synchronisation (Pro version)
+ * @param {'syncing' | 'saved' | 'error'} state 
+ */
+function updateSaveStatus(state) {
+    const container = document.getElementById('saveStatus');
+    const text = document.getElementById('saveStatusText');
+    
+    if (!container || !text) return;
+
+    // 1. On s'assure que le conteneur est visible
+    container.style.opacity = "1";
+
+    // 2. Reset des classes (on enlève tout avant de remettre la bonne)
+    container.classList.remove('status-saved', 'status-syncing', 'status-error');
+
+    // 3. Application du nouvel état
+    switch (state) {
+        case 'syncing':
+            container.classList.add('status-syncing');
+            text.innerText = "Synchronisation...";
+            break;
+        case 'error':
+            container.classList.add('status-error');
+            text.innerText = "Erreur de connexion";
+            break;
+        case 'saved':
+        default:
+            container.classList.add('status-saved');
+            text.innerText = "Enregistré";
+            // Optionnel : On peut cacher l'indicateur après 3 secondes de succès
+            // setTimeout(() => { container.style.opacity = "0.7"; }, 3000);
+            break;
+    }
 }
-
-function hideSavingStatus() { 
-    const s = document.getElementById('saveStatus'); 
-    if(s) { s.innerHTML = "● Synchronisé"; s.style.color = "#10b981"; setTimeout(() => s.style.opacity = "0", 2000); } 
-}
-
-
 async function logout() { 
     if(confirm("Se déconnecter ?")) { 
         await _db.auth.signOut(); 
