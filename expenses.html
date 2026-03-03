@@ -103,10 +103,12 @@
         </div>
     </div>
 
-    <div class="header-actions">
-        <button class="btn-outline" onclick="window.print()" style="padding: 8px; border-radius: 8px; cursor: pointer;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-        </button>
+    <div style="display: flex; align-items: center; gap: 20px;">
+    <div id="loading-state" style="display: none; align-items: center; gap: 8px;">
+        <svg class="loader-icon-spin" viewBox="0 0 24 24" style="width: 20px; height: 20px; color: var(--primary); animation: spin 1s linear infinite;">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle>
+        </svg>
+        <span style="font-size: 0.8rem; color: var(--text-light); font-weight: 500;">Récupération...</span>
     </div>
 </header>
 
@@ -264,18 +266,26 @@ function applyGlobalSettings() {
 
     // --- 4. CHARGEMENT & ACTIONS SUPABASE ---
     async function fetchExpenses() {
-    const { data: { user } } = await _db.auth.getUser();
-    if (!user) return;
+    const loader = document.getElementById('loading-state');
+    try {
+        const { data: { user } } = await _db.auth.getUser();
+        if (!user) return;
 
-    const { data, error } = await _db
-        .from('expenses')
-        .select('*')
-        .eq('user_id', user.id) // Filtrer pour ne voir que SES dépenses
-        .order('date', { ascending: false });
+        if (loader) loader.style.display = 'flex';
 
-    if (!error) {
+        const { data, error } = await _db
+            .from('expenses')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('date', { ascending: false });
+
+        if (error) throw error;
         expenses = data || [];
         renderExpenses();
+    } catch (err) {
+        console.error("Erreur:", err.message);
+    } finally {
+        if (loader) loader.style.display = 'none';
     }
 }
 
