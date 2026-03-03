@@ -15,6 +15,10 @@
 <script src="js/auth-check.js"></script>
 <script src="js/settings-manager.js"></script>
 <script src="js/common.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+<script src="js/exportPDF.js"></script>
 
 <script>
     // Sécurité : On attend que le DOM et _db soient prêts
@@ -107,7 +111,7 @@
     <div style="display: flex; align-items: center; gap: 15px;">
         <div id="dynamicLogoContainer" style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px;"></div>
         <div style="border-left: 2px solid var(--border-soft); padding-left: 15px;">
-            <h2 id="pageTitle" style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">RAPPORT ET ANALYSE</h2>
+            <h2 id="pageTitle" style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">HISTORIQUE DE TRANSACTION</h2>
             <div id="dateDisplay" style="color: var(--text-light); font-size: 0.75rem;"></div>
         </div>
     </div>
@@ -120,7 +124,7 @@
             <span style="font-size: 0.8rem; color: var(--text-light); font-weight: 500;">Récupération...</span>
         </div>
 
-        <button onclick="generateInventoryPDF()" class="pdf-action" style="display: flex; align-items: center; gap: 8px; padding: 10px 15px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; cursor: pointer; font-weight: 600;">
+        <button onclick="generateHistoryPDF()" class="pdf-action" style="display: flex; align-items: center; gap: 8px; padding: 10px 15px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; cursor: pointer; font-weight: 600;">
             <svg viewBox="0 0 24 24" width="18" height="18" stroke="#ef4444" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
             Générer PDF
         </button>
@@ -443,6 +447,67 @@ window.addEventListener('DOMContentLoaded', () => {
         sidebar.classList.add('collapsed');
     }
 });
+async function generateHistoryPDF() {
+    const btn = document.querySelector('.pdf-action');
+    
+    // 1. VERIFICATIONS STANDARDS
+    if (!window.MoniteoPDF) {
+        console.error("Le module MoniteoPDF n'est pas chargé.");
+        alert("Erreur système : Module d'exportation introuvable.");
+        return;
+    }
+
+    if (!window.jspdf) {
+        alert("Erreur : La bibliothèque jsPDF est manquante.");
+        return;
+    }
+
+    // 2. CAPTURE DES DONNÉES DU TABLEAU (On exclut la colonne "Action")
+    const rows = [];
+    const tableBody = document.getElementById('historyBody');
+    if (tableBody) {
+        tableBody.querySelectorAll('tr').forEach(tr => {
+            const cells = Array.from(tr.querySelectorAll('td'));
+            // On prend tout sauf la dernière colonne (le bouton supprimer)
+            const rowData = cells.slice(0, -1).map(td => td.innerText);
+            rows.push(rowData);
+        });
+    }
+
+    // 3. RECUPERATION DES VALEURS KPI (Pour le sous-titre ou l'en-tête)
+    const totalCA = document.getElementById('caTotal')?.innerText || "0";
+    const totalProfit = document.getElementById('profitTotal')?.innerText || "0";
+    const totalTrans = document.getElementById('transCount')?.innerText || "0";
+
+    // 4. CONFIGURATION DU PDF
+    const pdfOptions = {
+        title: "HISTORIQUE DES TRANSACTIONS",
+        subtitle: `Volume: ${totalTrans} transactions | CA Total: ${totalCA} | Profit: ${totalProfit}`,
+        tables: [{
+            headers: ["Date", "Produit", "Marché", "Qté", "P.U", "Total", "Bénéfice"],
+            rows: rows,
+            color: [31, 60, 99], // Ton Bleu Marine Pro
+            fontSize: 9 // Un peu plus petit pour faire tenir 7 colonnes proprement
+        }]
+    };
+
+    // 5. EXECUTION
+    try {
+        btn.innerHTML = "Génération...";
+        btn.disabled = true;
+
+        // Note : On ne passe pas de 'charts' ici car la page historique 
+        // est principalement basée sur les données tabulaires.
+        await window.MoniteoPDF.generate(pdfOptions);
+
+    } catch (err) {
+        console.error("Erreur durant la génération :", err);
+        alert("Erreur lors de la création du PDF : " + err.message);
+    } finally {
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="#ef4444" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> Générer PDF`;
+        btn.disabled = false;
+    }
+}
 </script>
 </body>
 </html>
