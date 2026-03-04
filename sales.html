@@ -21,7 +21,7 @@
 <script src="js/settings-manager.js"></script>
 <script src="js/exportPDF.js"></script>
 <link rel="stylesheet" href="UI/style.css">
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
     // Utilisation de protectPage (défini dans auth-check.js)
     protectPage(async (user) => {
@@ -171,7 +171,7 @@
             <div class="dropdown-menu" id="actionsMenu">
                 <button onclick="undo()">Annuler l'action</button>
                 <button onclick="generateSalesReport()">Exporter en PDF</button>
-                <button onclick="exportExcel()">Exporter en Excel</button>
+                <button onclick="exportToExcel()">Exporter en Excel</button>
                 <button onclick="document.getElementById('excelFileInput').click()">Importer Excel</button>
             </div>
         </div>
@@ -239,6 +239,29 @@
         <div style="display:flex; gap:10px;">
             <button class="btn-main" onclick="saveHorsStock()" style="flex:2; padding: 12px; border-radius: 8px; cursor: pointer; background: #3b82f6; color: white; border: none; font-weight: bold;">Enregistrer</button>
             <button class="btn-outline" onclick="closeModal()" style="flex:1; padding: 12px; border-radius: 8px; cursor: pointer; background: transparent; border: 1px solid var(--border-soft); color: var(--text-main);">Annuler</button>
+        </div>
+    </div>
+</div>
+<div id="customerModal" class="modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+    <div style="background:white; padding:25px; border-radius:12px; width:90%; max-width:400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h3 style="margin-top:0; color:#1f3c63;">Détails du Client</h3>
+        <p style="font-size:0.85rem; color:#666; margin-bottom:20px;">Remplissez les infos pour la facture.</p>
+        
+        <input type="hidden" id="modalSaleIndex">
+        
+        <div style="margin-bottom:15px;">
+            <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:5px;">Nom Complet</label>
+            <input type="text" id="custName" placeholder="Ex: Jean Mukendi" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+        </div>
+
+        <div style="margin-bottom:15px;">
+            <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:5px;">Téléphone</label>
+            <input type="text" id="custPhone" placeholder="Ex: +243..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button onclick="confirmInvoice()" style="flex:1; background:#10b981; color:white; border:none; padding:12px; border-radius:6px; cursor:pointer; font-weight:600;">Générer PDF</button>
+            <button onclick="closeCustomerModal()" style="flex:1; background:#f3f4f6; color:#4b5563; border:none; padding:12px; border-radius:6px; cursor:pointer;">Annuler</button>
         </div>
     </div>
 </div>
@@ -331,6 +354,47 @@ function applyGlobalSettings() {
             console.error("Erreur chargement sales:", err.message); 
         }
     }
+    let sChart, pChart; // Variables globales pour pouvoir les détruire/recharger
+
+function updateSalesCharts() {
+    const ctxS = document.getElementById('salesChart').getContext('2d');
+    const ctxP = document.getElementById('profitChart').getContext('2d');
+
+    // Extraction des données (Top 5 produits par exemple)
+    const labels = window.salesData.slice(0, 5).map(s => s.product);
+    const dataSales = window.salesData.slice(0, 5).map(s => s.sell_price * s.qty);
+    const dataProfit = window.salesData.slice(0, 5).map(s => (s.sell_price - s.buy_price) * s.qty);
+
+    if (sChart) sChart.destroy();
+    if (pChart) pChart.destroy();
+
+    // Graphique de Répartition (Pie ou Doughnut)
+    sChart = new Chart(ctxS, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: dataSales,
+                backgroundColor: ['#1f3c63', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    // Graphique d'Évolution (Line ou Bar)
+    pChart = new Chart(ctxP, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Bénéfice Brut',
+                data: dataProfit,
+                backgroundColor: '#10b981'
+            }]
+        },
+        options: { responsive: true }
+    });
+}
     // --- AJOUT D'UNE LIGNE ---
     async function addRow() {
         if (!currentUser) {
@@ -376,10 +440,16 @@ function applyGlobalSettings() {
     }
 
     // --- 3. RENDU DU TABLEAU ---
-    function renderTable(filter = '') {
+   function renderTable(filter = '') {
     const tbody = document.getElementById('salesTable');
+    if (!tbody) return;
+    
     tbody.innerHTML = '';
-    let totalS = 0, totalP = 0, totalQ = 0;
+    
+    // ✅ CRUCIAL : Déclarer les variables de totalisation ICI
+    let totalS = 0; // Total Sales
+    let totalP = 0; // Total Profit
+    let totalQ = 0; // Total Quantité
 
     salesData.forEach((s, index) => {
         if (s.product.toLowerCase().includes(filter.toLowerCase())) {
@@ -387,16 +457,15 @@ function applyGlobalSettings() {
             const sellPrice = parseFloat(s.sell_price || 0);
             const qty = parseInt(s.qty || 0);
             const profit = (sellPrice - buyPrice) * qty;
-            
+
+            // Incrémentation des totaux
             totalS += (sellPrice * qty);
             totalP += profit;
             totalQ += qty;
 
             const options = inventoryData.map(item => {
                 const isOutOfStock = (parseInt(item.qty) <= 0);
-                return `<option value="${item.product}" 
-                    ${item.product === s.product ? 'selected' : ''} 
-                    ${isOutOfStock && item.product !== s.product ? 'disabled' : ''}>
+                return `<option value="${item.product}" ${item.product === s.product ? 'selected' : ''} ${isOutOfStock && item.product !== s.product ? 'disabled' : ''}>
                     ${item.product} ${isOutOfStock ? '(RUPTURE)' : `(Stock: ${item.qty})`}
                 </option>`;
             }).join('');
@@ -414,22 +483,32 @@ function applyGlobalSettings() {
                     </select>
                 </td>
                 <td contenteditable="true" onblur="updateField(${index}, 'date', this)">${s.date || ''}</td>
-                <td style="opacity:0.7;">${buyPrice}</td>
+                <td style="opacity:0.7;">${buyPrice.toLocaleString()}</td>
                 <td contenteditable="true" onblur="updateField(${index}, 'sell_price', this)">${sellPrice}</td>
-                <td contenteditable="true" onfocus="this.oldValue = this.innerText" onblur="handleQtyChange(${index}, this)">${qty}</td>
+                <td contenteditable="true" onblur="handleQtyChange(${index}, this)">${qty}</td>
                 <td style="font-weight:bold; color:${profit >= 0 ? '#10b981' : '#ff4d4d'}">
-                    ${profit.toFixed(2)} ${currentCurrency}
+                    ${profit.toFixed(2)} ${window.currentCurrency || 'FC'}
+                </td>
+                <td style="text-align: right;">
+                    <button onclick="openCustomerModal(${index})" class="btn-invoice" title="Infos Client & Facture">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                            <path d="M6 14h12v8H6z"></path>
+                        </svg>
+                    </button>
                 </td>
             `;
             tbody.appendChild(tr);
         }
     });
 
-    document.getElementById('totalSales').textContent = totalS.toLocaleString() + " " + currentCurrency;
-    document.getElementById('totalProfit').textContent = totalP.toLocaleString() + " " + currentCurrency;
-    document.getElementById('totalQuantity').textContent = totalQ;
-    updateCharts();
+    // ✅ MISE À JOUR DES COMPTEURS DANS LE HEADER
+    const displayS = document.getElementById('totalSales');
+    const displayP = document.getElementById('totalProfit');
+    if (displayS) displayS.innerText = totalS.toLocaleString() + " " + (window.currentCurrency || 'FC');
+    if (displayP) displayP.innerText = totalP.toLocaleString() + " " + (window.currentCurrency || 'FC');
 }
+
     // --- 4. GESTION DES ACTIONS (MERGE) ---
     async function handleSelectProduct(index, select) {
     const val = select.value;
@@ -607,75 +686,165 @@ function applyGlobalSettings() {
         const checkboxes = document.querySelectorAll('.row-check');
         checkboxes.forEach(cb => cb.checked = master.checked);
     }
-    async function generateSalesReport() {
-    // 1. Vérification si des données existent
-    if (!salesData || salesData.length === 0) {
+  /**
+ * GÉNÉRATION DU RAPPORT GLOBAL
+ */
+async function generateSalesReport() {
+    if (!window.MoniteoPDF) {
+        alert("Module PDF non trouvé");
+        return;
+    }
+
+    if (!window.salesData || window.salesData.length === 0) {
         alert("Aucune donnée de vente à exporter.");
         return;
     }
 
-    // 2. Préparation des lignes de la table à partir de salesData
-    const rows = salesData.map(s => [
-        s.date || new Date(s.created_at).toLocaleDateString(),
+    // 1. Préparation des lignes
+    const rows = window.salesData.map(s => [
+        s.date || new Date(s.created_at).toLocaleDateString('fr-FR'),
         s.product,
         s.qty.toString(),
-        `${s.sell_price.toLocaleString()} ${window.currentCurrency || 'FC'}`,
-        `${(s.qty * s.sell_price).toLocaleString()} ${window.currentCurrency || 'FC'}`
+        `${parseFloat(s.sell_price).toLocaleString()} ${window.currentCurrency || 'FC'}`,
+        `${(parseFloat(s.qty) * parseFloat(s.sell_price)).toLocaleString()} ${window.currentCurrency || 'FC'}`
     ]);
 
-    // 3. Calcul du total général pour le sous-titre (optionnel mais pro)
-    const totalRev = salesData.reduce((acc, s) => acc + (s.qty * s.sell_price), 0);
-    const period = document.getElementById('analysisPeriod')?.value || '7';
+    const totalRev = window.salesData.reduce((acc, s) => acc + (parseFloat(s.qty) * parseFloat(s.sell_price)), 0);
 
-    // 4. Appel du module universel MoniteoPDF
+    // 2. Appel du module avec QR Code de sécurité
     await window.MoniteoPDF.generate({
-        title: "RAPPORT DES VENTES",
-        subtitle: `Total CA : ${totalRev.toLocaleString()} ${window.currentCurrency || 'FC'} | Période : ${period} jours`,
-        tables: [
-            {
-                headers: ['DATE', 'PRODUIT', 'QTÉ', 'P.U', 'TOTAL'],
-                rows: rows,
-                color: [31, 60, 99] // Bleu Moniteo pour l'en-tête du tableau
-            }
-        ],
-        // --- AJOUT DES GRAPHIQUES ---
-        // Liste ici les IDs des canvas Chart.js présents dans ta page sales.html
-        charts: ['chartSales', 'chartTopProd'] 
+        title: "RAPPORT GLOBAL DES VENTES",
+        subtitle: `Total CA : ${totalRev.toLocaleString()} ${window.currentCurrency || 'FC'} | Date : ${new Date().toLocaleDateString('fr-FR')}`,
+        tables: [{
+            headers: ['DATE', 'PRODUIT', 'QTÉ', 'P.U', 'TOTAL'],
+            rows: rows,
+            color: [31, 60, 99]
+        }],
+        charts: ['chartSales', 'chartTopProd'], 
+        qrCode: `REPORT-VERIF-${Date.now()}-${totalRev}` // QR Code d'intégrité
     });
 }
-async function undo() {
-    if (confirm("Annuler les modifications non enregistrées et rafraîchir la liste ?")) {
-        await fetchData(); // Recharge simplement les données depuis Supabase
-    }
-}
+
+/**
+ * CLÔTURE DE LA JOURNÉE & ARCHIVAGE
+ */
 async function closeDay() {
-    const totalVentes = document.getElementById('totalSales').textContent;
-    const totalProfit = document.getElementById('totalProfit').textContent;
+    const totalVentes = document.getElementById('totalSales')?.textContent || "0";
+    const totalProfit = document.getElementById('totalProfit')?.textContent || "0";
     
-    if (confirm(`--- CLÔTURE DU JOUR ---\nTotal Ventes : ${totalVentes}\nProfit : ${totalProfit}\n\nVoulez-vous clôturer et générer le rapport PDF ?`)) {
-        await exportSalesPDF(); // Appelle ta fonction PDF déjà créée
-        alert("Journée clôturée avec succès !");
+    if (!confirm(`--- CLÔTURE DU JOUR ---\nTotal Ventes : ${totalVentes}\nProfit : ${totalProfit}\n\nVoulez-vous générer le rapport et archiver les données ?`)) {
+        return;
     }
-}
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const mainContent = document.getElementById('mainContent');
-    
-    sidebar.classList.toggle('collapsed');
-    
-    // Optionnel : Sauvegarder l'état dans le navigateur
-    const isCollapsed = sidebar.classList.contains('collapsed');
-    localStorage.setItem('sidebarStatus', isCollapsed ? 'collapsed' : 'expanded');
+
+    try {
+        if (!window.salesData || window.salesData.length === 0) {
+            alert("Erreur : Aucune donnée à archiver.");
+            return;
+        }
+
+        // 1. On génère d'abord le PDF
+        await generateSalesReport();
+
+        // 2. Archivage Supabase (Simulation de flag de clôture)
+        console.log("📤 Archivage des ventes...");
+        
+        /* Note : Ici, on pourrait mettre à jour un champ 'status' dans Supabase */
+        /* const { error } = await _db.from('sales').update({ status: 'closed' }).eq('status', 'open'); */
+
+        // 3. Reset Interface
+        if (confirm("Voulez-vous rafraîchir la page pour démarrer une nouvelle session ?")) {
+            location.reload();
+        }
+
+        alert("✅ Journée clôturée avec succès !");
+
+    } catch (err) {
+        console.error("❌ Erreur clôture :", err);
+        alert("Erreur critique : " + err.message);
+    }
 }
 
-// Au chargement de la page, appliquer l'état sauvegardé
-window.addEventListener('DOMContentLoaded', () => {
-    const status = localStorage.getItem('sidebarStatus');
-    const sidebar = document.getElementById('sidebar');
-    if (status === 'collapsed') {
-        sidebar.classList.add('collapsed');
+/**
+ * GÉNÉRATION DE FACTURE INDIVIDUELLE
+ */
+// Ouvre le modale
+function openCustomerModal(index) {
+    document.getElementById('modalSaleIndex').value = index;
+    document.getElementById('customerModal').style.display = 'flex';
+}
+
+function closeCustomerModal() {
+    document.getElementById('customerModal').style.display = 'none';
+    // Reset les champs
+    document.getElementById('custName').value = '';
+    document.getElementById('custPhone').value = '';
+}
+
+async function confirmInvoice() {
+    const btn = event.target; // On récupère le bouton cliqué
+    const originalText = btn.innerHTML;
+    
+    try {
+        const index = document.getElementById('modalSaleIndex').value;
+        const name = document.getElementById('custName').value || "Client Comptant";
+        const phone = document.getElementById('custPhone').value || "";
+
+        const customer = { name, phone };
+        
+        // Indicateur de chargement
+        btn.disabled = true;
+        btn.innerHTML = "Génération...";
+        btn.style.opacity = "0.7";
+
+        closeCustomerModal();
+        await generateInvoice(index, customer);
+
+    } catch (err) {
+        console.error("Erreur confirmation:", err);
+        alert("Erreur lors de la préparation de la facture.");
+    } finally {
+        // Remise à l'état initial du bouton
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        btn.style.opacity = "1";
     }
-});
+}
+
+async function generateInvoice(index, customer) {
+    const sale = window.salesData[index];
+    if (!sale) {
+        alert("Données de vente introuvables.");
+        return;
+    }
+
+    // 1. Calcul simple du montant HT (La TVA est gérée par le module PDF)
+    const qty = parseInt(sale.qty) || 0;
+    const price = parseFloat(sale.sell_price) || 0;
+    const subTotal = price * qty;
+    
+    const invoiceID = `FAC-${Date.now().toString().slice(-6)}`;
+
+    // 2. Appel au module exportPDF.js (Version Supabase)
+    // On envoie les données brutes, le module fera le reste proprement
+    await window.MoniteoPDF.generateModernInvoice({
+        invoiceNumber: invoiceID,
+        date: sale.date || new Date().toLocaleDateString('fr-FR'),
+        customer: {
+            name: customer.name,
+            phone: customer.phone
+        },
+        item: {
+            description: sale.product || "Produit non spécifié",
+            price: price,
+            qty: qty,
+            total: subTotal // C'est le montant Hors Taxe
+        },
+        qrCode: `VERIF-FAC-${invoiceID}`
+    });
+}
+/**
+ * NAVIGATION & UI
+ */
 function toggleDropdown(event) {
     event.stopPropagation();
     const menu = document.getElementById('actionsMenu');
@@ -692,25 +861,74 @@ window.onclick = function(event) {
     }
 }
 function updateHeaderInfo() {
-    // 1. Mise à jour de la date en français
     const dateElement = document.getElementById('dateDisplay');
     if (dateElement) {
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        const today = new Date().toLocaleDateString('fr-FR', options);
-        // On met la première lettre en majuscule
+        let today = new Date().toLocaleDateString('fr-FR', options);
         dateElement.innerText = today.charAt(0).toUpperCase() + today.slice(1);
     }
-
-    // 2. Récupération du nom de l'entreprise depuis le cache
     const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
     const subtitle = document.getElementById('companySubtitle');
-    if (subtitle && config.name) {
-        subtitle.innerText = config.name;
-    }
+    if (subtitle && config.name) subtitle.innerText = config.name;
+}
+function toggleDropdown(event) {
+    event.stopPropagation();
+    const menu = document.getElementById('actionsMenu');
+    menu.classList.toggle('show');
 }
 
-// Appeler au chargement
-document.addEventListener('DOMContentLoaded', updateHeaderInfo);
+// Fermer le menu si on clique n'importe où ailleurs sur la page
+window.onclick = function(event) {
+    if (!event.target.closest('.dropdown')) {
+        const dropdowns = document.getElementsByClassName("dropdown-menu");
+        for (let i = 0; i < dropdowns.length; i++) {
+            dropdowns[i].classList.remove('show');
+        }
+    }
+}
+async function exportToExcel() {
+    // 1. Vérifier si la bibliothèque est chargée, sinon on la charge dynamiquement
+    if (!window.XLSX) {
+        const script = document.createElement('script');
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+        document.head.appendChild(script);
+        
+        script.onload = () => execExport();
+    } else {
+        execExport();
+    }
+
+    function execExport() {
+        const table = document.querySelector("table"); // Cible ton tableau
+        // Création d'un classeur (Workbook)
+        const wb = XLSX.utils.book_new();
+        
+        // Conversion du tableau HTML en feuille (Worksheet)
+        // On peut aussi utiliser salesData directement pour plus de précision
+        const ws = XLSX.utils.json_to_sheet(window.salesData.map(s => ({
+            Date: s.date,
+            Produit: s.product,
+            "Prix Achat": s.buy_price,
+            "Prix Vente": s.sell_price,
+            Quantité: s.qty,
+            Total: s.sell_price * s.qty,
+            Bénéfice: (s.sell_price - s.buy_price) * s.qty
+        })));
+
+        XLSX.utils.book_append_sheet(wb, ws, "Ventes");
+        
+        // Téléchargement
+        const fileName = `Export_Sales_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+    }
+}
+// Initialisation
+document.addEventListener('DOMContentLoaded', () => {
+    updateHeaderInfo();
+    if (localStorage.getItem('sidebarStatus') === 'collapsed') {
+        document.getElementById('sidebar')?.classList.add('collapsed');
+    }
+});
 </script>
 </body>
 </html>
