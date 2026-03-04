@@ -110,7 +110,13 @@
         </svg>
         <span style="font-size: 0.8rem; color: var(--text-light); font-weight: 500;">Récupération...</span>
     </div>
+ <button onclick="exportExpensesPDF()" style="display: flex; align-items: center; gap: 8px; padding: 10px 15px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; cursor: pointer; font-weight: 600;">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="#ef4444" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+  Générer PDF
+</button>
+    </div>
 </header>
+
 
     <div class="card">
         <div class="modal-grid" style="align-items: flex-end;">
@@ -303,13 +309,15 @@ function applyGlobalSettings() {
 
     if(!label || isNaN(amount)) return alert("Veuillez remplir le libellé et le montant.");
 
-    const { error } = await _db.from('expenses').insert([{ 
-        user_id: user.id,
+    const { error } = await _db
+    .from('expenses')
+    .insert([{ 
+        label: label, 
+        amount: amount, 
+        category: category, 
         date: date,
-        label: label,      // Maintenant reconnu grâce au SQL ci-dessus
-        amount: amount,
-        currency: specificCurrency, // Enregistre FC ou USD selon ton choix
-        category: category
+        currency: window.currentCurrency, // ON ENREGISTRE LA DEVISE GLOBALE ACTUELLE
+        user_id: user.id 
     }]);
 
     if (error) {
@@ -340,35 +348,38 @@ function applyGlobalSettings() {
     table.innerHTML = '';
     let totalGlobal = 0;
 
-    expenses.forEach(e => {
-        // 1. RÉCUPÉRATION DU LIBELLÉ (Vérifie 'label' puis 'description')
-        const displayLabel = e.label || e.description || 'Sans nom';
+   expenses.forEach(e => {
+    const displayLabel = e.label || e.description || 'Sans nom';
 
-        // 2. GESTION DE LA DEVISE LIGNE PAR LIGNE
-        const expenseCurrency = e.currency || "FC"; 
-        const convertedAmount = convertCurrency(e.amount, expenseCurrency, targetCurrency);
-        totalGlobal += convertedAmount;
+    // AU LIEU DE LIRE e.currency, ON UTILISE LA DEVISE GLOBALE DU SYSTÈME
+    // targetCurrency est déjà défini au début de ta fonction via applyGlobalSettings
+    const expenseAmount = e.amount || 0;
+    
+    // On considère que ce qui est en base est déjà dans la bonne devise
+    // ou on force la devise globale
+    const currentSystemCurrency = window.currentCurrency || "FC"; 
 
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${e.date ? new Date(e.date).toLocaleDateString('fr-FR') : '-'}</td>
-            <td style="font-weight:600">${displayLabel}</td>
-            <td><span class="badge-cat">${e.category || 'Général'}</span></td>
-            <td style="color:var(--text-light); font-size:0.9em;">
-                ${(e.amount || 0).toLocaleString()} ${expenseCurrency}
-            </td>
-            <td style="font-weight:700; color:var(--danger)">
-                - ${convertedAmount.toLocaleString(undefined, {minimumFractionDigits:2})} ${targetCurrency}
-            </td>
-            <td style="text-align: right;">
-                <button onclick="deleteExpense('${e.id}')" class="btn-delete">
-                    <svg style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
-            </td>
-        `;
-        table.appendChild(row);
-    });
+    totalGlobal += expenseAmount;
 
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td>${e.date ? new Date(e.date).toLocaleDateString('fr-FR') : '-'}</td>
+        <td style="font-weight:600">${displayLabel}</td>
+        <td><span class="badge-cat">${e.category || 'Général'}</span></td>
+        <td style="color:var(--text-light); font-size:0.9em;">
+            ${expenseAmount.toLocaleString()} ${currentSystemCurrency}
+        </td>
+        <td style="font-weight:700; color:var(--danger)">
+            - ${expenseAmount.toLocaleString(undefined, {minimumFractionDigits:2})} ${currentSystemCurrency}
+        </td>
+        <td style="text-align: right;">
+            <button onclick="deleteExpense('${e.id}')" class="btn-delete">
+                <svg style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+        </td>
+    `;
+    table.appendChild(row);
+});
     if(totalDisplay) {
         totalDisplay.textContent = totalGlobal.toLocaleString(undefined, {
             minimumFractionDigits: 2,
@@ -516,6 +527,106 @@ window.onclick = function(event) {
         });
     }
 };
+async function exportExpensesPDF() {
+    // 1. Vérification des données
+    if (!expenses || expenses.length === 0) {
+        alert("Aucune dépense à exporter.");
+        return;
+    }
+
+    // On récupère la devise globale (ex: $) définie dans applyGlobalSettings
+    const targetCurrency = window.currentCurrency || "FC";
+
+    // 2. Préparation des lignes
+    const rows = expenses.map(exp => {
+        // On considère que le montant en base est dans la devise du système
+        const amount = Number(exp.amount) || 0;
+        
+        return [
+            exp.date ? new Date(exp.date).toLocaleDateString('fr-FR') : '-',
+            exp.label || exp.description || 'Sans libellé',
+            exp.category || 'Général',
+            // On affiche directement le montant avec la devise globale
+            `${amount.toLocaleString(undefined, {minimumFractionDigits:2})} ${targetCurrency}`
+        ];
+    });
+
+    // 3. Calcul du total simple (puisqu'on ne convertit plus ligne par ligne)
+    const totalAmount = expenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
+
+    // 4. Génération du PDF via ton module MoniteoPDF
+    try {
+        await window.MoniteoPDF.generate({
+            title: "RAPPORT DES DÉPENSES",
+            subtitle: `Généré le : ${new Date().toLocaleDateString('fr-FR')} | Devise : ${targetCurrency}`,
+            tables: [
+                {
+                    // Attention : tes headers doivent correspondre au nombre de colonnes dans 'rows' (ici 4 colonnes)
+                    headers: ['DATE', 'LIBELLÉ', 'CATÉGORIE', 'MONTANT'],
+                    rows: rows,
+                    foot: [['', '', 'TOTAL GÉNÉRAL', `${totalAmount.toLocaleString(undefined, {minimumFractionDigits:2})} ${targetCurrency}`]],
+                    color: [220, 53, 69] // Rouge
+                }
+            ]
+        });
+    } catch (err) {
+        console.error("Erreur PDF:", err);
+        alert("Impossible de générer le PDF.");
+    }
+}
+async function addExpense() {
+    try {
+        // RÉCUPÉRATION AVEC TES VRAIS IDs DU HTML
+        const labelEl = document.getElementById('expenseLabel');
+        const amountEl = document.getElementById('expenseAmount');
+        const catEl = document.getElementById('expenseCategory');
+        const dateEl = document.getElementById('expenseDate');
+
+        // Vérification de sécurité sur les éléments existants
+        if (!labelEl || !amountEl || !catEl) {
+            console.error("Éléments HTML introuvables. Vérifiez les IDs expenseLabel, expenseAmount, expenseCategory.");
+            return;
+        }
+
+        const label = labelEl.value.trim();
+        const amount = parseFloat(amountEl.value);
+        const category = catEl.value;
+        const date = dateEl ? dateEl.value : new Date().toISOString().split('T')[0];
+
+        if (!label || isNaN(amount)) {
+            alert("Veuillez remplir le libellé et un montant valide.");
+            return;
+        }
+
+        const { data: { user } } = await _db.auth.getUser();
+        if (!user) return alert("Session expirée");
+
+        // Insertion dans Supabase (On utilise 'label' car c'est le nom dans ton autre fonction)
+        const { error } = await _db
+            .from('expenses')
+            .insert([{ 
+                label: label, 
+                amount: amount, 
+                category: category, 
+                date: date,
+                user_id: user.id 
+            }]);
+
+        if (error) throw error;
+
+        // Reset rapide sans recharger toute la page
+        labelEl.value = '';
+        amountEl.value = '';
+        alert("Dépense ajoutée !");
+        
+        // On relance le chargement des données pour mettre à jour le tableau
+        if (typeof fetchExpenses === 'function') fetchExpenses();
+
+    } catch (err) {
+        console.error("Erreur lors de l'ajout:", err.message);
+        alert("Erreur lors de l'enregistrement.");
+    }
+}
 </script>
 </body>
 </html>
