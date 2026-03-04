@@ -582,6 +582,35 @@ async function logout() {
         window.location.replace("index.html"); 
     } 
 }
+/**
+ * Gère l'affichage des menus déroulants (Dropdowns)
+ * @param {string} id - L'ID de l'élément à afficher/masquer
+ */
+function toggleDropdown(id) {
+    // Fermer tous les autres dropdowns ouverts pour éviter les superpositions
+    const allDropdowns = document.querySelectorAll('.dropdown-content, .menu-dropdown');
+    allDropdowns.forEach(dropdown => {
+        if (dropdown.id !== id) {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    const element = document.getElementById(id);
+    if (element) {
+        const isHidden = element.style.display === 'none' || element.style.display === '';
+        element.style.display = isHidden ? 'block' : 'none';
+    }
+}
+
+// Optionnel : Fermer le menu si on clique n'importe où ailleurs sur la page
+window.onclick = function(event) {
+    if (!event.target.matches('.dropbtn') && !event.target.closest('.dropdown')) {
+        const dropdowns = document.getElementsByClassName("dropdown-content");
+        for (let i = 0; i < dropdowns.length; i++) {
+            dropdowns[i].style.display = "none";
+        }
+    }
+}
 </script>
 </body>
 </html>
