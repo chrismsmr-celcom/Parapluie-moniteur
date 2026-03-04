@@ -1233,27 +1233,87 @@ table td {
    STYLES SPÉCIFIQUES : PARAMÈTRES & PROFIL (CORRIGÉ)
    ========================================================================== */
 
-/* 1. Grille principale */
+/* 1. Grille principale - Optimisée pour la réactivité */
 .settings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 2rem;
     align-items: start;
+    padding: 10px 0;
 }
 
-/* 2. Titres des Cartes */
+/* 2. Titres des Cartes - Plus d'emphase sur l'identité */
 .card h3 {
     display: flex;
     align-items: center;
     gap: 12px;
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: 700;
     color: var(--primary);
     margin-bottom: 1.5rem;
-    padding-bottom: 10px;
+    padding-bottom: 12px;
     border-bottom: 2px solid var(--bg-body);
 }
 
+.card h3 .icon {
+    width: 20px;
+    height: 20px;
+    stroke: var(--secondary);
+    stroke-width: 2.5;
+}
+
+/* 3. Nouveaux Styles pour les informations Légales */
+/* Conteneur pour mettre RCCM/ID NAT côte à côte */
+.legal-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+/* Style spécifique pour les petits labels techniques */
+.form-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-dark);
+}
+
+.form-group input, 
+.form-group textarea, 
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+.form-group input:focus {
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 3px rgba(31, 60, 99, 0.05);
+    outline: none;
+}
+
+/* Mode Sombre - Ajustement pour les inputs */
+body.dark-mode .form-group input,
+body.dark-mode .form-group textarea {
+    background: #252a33;
+    border-color: #3d4450;
+    color: white;
+}
+
+/* Animation au survol des cartes de paramètres */
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
 .dark-mode .card h3 {
     color: var(--secondary) !important;
     border-bottom-color: var(--border-soft) !important;
@@ -1492,4 +1552,3 @@ input:checked + .slider:before { transform: translateX(20px); }
         page-break-before: auto;
     }
 }
-
