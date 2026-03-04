@@ -75,7 +75,7 @@
     </div>
 </nav>
 
-    <main class="main-content">
+  <main class="main-content">
     <header class="header-flex">
         <div>
             <h2>Paramètres & Profil</h2>
@@ -89,54 +89,112 @@
         </div>
     </header>
 
-    <div class="settings-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+    <div class="settings-grid">
         
         <div class="card">
-            <h3 class="card-title"><svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Profil Administrateur</h3>
+    <h3>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+        </svg> 
+        Profil Administrateur
+    </h3>
+    
+    <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1.5rem;">
+        <div class="avatar-upload" style="position: relative; cursor: pointer; transition: transform 0.2s;" 
+             onclick="document.getElementById('avatarInput').click()"
+             onmouseover="this.style.transform='scale(1.05)'" 
+             onmouseout="this.style.transform='scale(1)'">
             
-            <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1.5rem;">
-                <div class="avatar-upload" style="position: relative; cursor: pointer;" onclick="document.getElementById('avatarInput').click()">
-                    <img id="avatarPreview" src="https://ui-avatars.com/api/?name=Admin&background=1f3c63&color=fff" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid var(--bg-body); box-shadow: var(--shadow-sm);">
-                    <div style="position: absolute; bottom: 5px; right: 5px; background: var(--secondary); border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid white;">
-                        <svg style="width:16px; height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                    </div>
-                </div>
-                <input type="file" id="avatarInput" hidden accept="image/*" onchange="previewAvatar()">
-            </div>
-
-            <div class="form-group">
-                <label>Nom Complet</label>
-                <input type="text" id="adminFullName" placeholder="Jean Dupont">
-            </div>
-            <div class="form-group">
-                <label>Rôle</label>
-                <input type="text" id="adminRole" value="Administrateur Principal" readonly style="background: var(--bg-body); cursor: not-allowed;">
+            <img id="avatarPreview" 
+                 src="https://ui-avatars.com/api/?name=Admin&background=1f3c63&color=fff" 
+                 style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid var(--bg-body); box-shadow: var(--shadow-sm);">
+            
+            <div style="position: absolute; bottom: 5px; right: 5px; background: var(--secondary); border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid white;">
+                <svg style="width:16px; height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                </svg>
             </div>
         </div>
+        <input type="file" id="avatarInput" hidden accept="image/*" onchange="previewAvatar()">
+        <small style="margin-top: 10px; color: var(--text-light); font-size: 0.75rem;">Cliquez pour changer la photo</small>
+    </div>
 
+    <div class="form-group">
+        <label for="adminFullName">Nom Complet</label>
+        <input type="text" id="adminFullName" placeholder="Ex: Jean Dupont">
+    </div>
+
+    <div class="form-group">
+        <label>Email de connexion</label>
+        <input type="email" id="adminEmail" readonly 
+               style="background: #f8f9fa; color: #6c757d; cursor: not-allowed; font-size: 0.9rem;" 
+               placeholder="chargement...">
+    </div>
+
+    <div class="legal-row">
+        <div class="form-group">
+            <label>Téléphone Perso</label>
+            <input type="text" id="adminPhone" placeholder="+243 ...">
+        </div>
+        <div class="form-group">
+            <label>Rôle</label>
+            <input type="text" value="Super Admin" readonly 
+                   style="background: #f8f9fa; color: #1f3c63; font-weight: bold; cursor: not-allowed; border-style: dashed; text-align: center;">
+        </div>
+    </div>
+</div>
         <div class="card">
-            <h3 class="card-title"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line></svg> Entreprise</h3>
+            <h3><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line></svg> Entreprise & Identité</h3>
             
             <div class="form-group">
                 <label>Nom du Business</label>
-                <input type="text" id="bizName" placeholder="Moniteo Umbrella Ltd">
+                <input type="text" id="bizName" placeholder="Ex: Makmus Corporate SA">
             </div>
             <div class="form-group">
                 <label>Adresse physique</label>
-                <textarea id="bizAddress" rows="2" placeholder="Kinshasa, Gombe..."></textarea>
+                <textarea id="bizAddress" rows="2" placeholder="Kinshasa, Gombe, Av. Equateur..."></textarea>
             </div>
+            <div class="form-group">
+                <label>Téléphone Officiel</label>
+                <input type="text" id="bizPhone" placeholder="+243 810 000 000">
+            </div>
+
+            <div class="legal-row" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-soft);">
+                <div class="form-group">
+                    <label style="color: var(--secondary);">RCCM</label>
+                    <input type="text" id="bizRCCM" placeholder="CD/KNG/RCCM/...">
+                </div>
+                <div class="form-group">
+                    <label style="color: var(--secondary);">ID NAT</label>
+                    <input type="text" id="bizIDNAT" placeholder="01-123-N12345X">
+                </div>
+            </div>
+            
+            <div class="legal-row">
+                <div class="form-group">
+                    <label style="color: var(--secondary);">Numéro Impôt (NIF)</label>
+                    <input type="text" id="bizNIF" placeholder="A1234567Z">
+                </div>
+                <div class="form-group">
+                    <label style="color: var(--secondary);">TVA (%)</label>
+                    <input type="number" id="bizTVA" value="16">
+                </div>
+            </div>
+
             <div class="form-group">
                 <label>Logo (En-tête des PDF)</label>
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <button class="btn-outline" onclick="document.getElementById('bizLogoInput').click()" style="margin: 0;">Choisir logo</button>
-                    <img id="logoPreview" src="" style="max-height: 45px; border-radius: 4px; border: 1px solid var(--border-soft); display: none;">
+                    <button class="btn-outline" onclick="document.getElementById('bizLogoInput').click()" style="margin: 0; padding: 5px 15px; font-size: 0.8rem;">Modifier le logo</button>
+                    <img id="logoPreview" src="" style="max-height: 40px; border-radius: 4px; border: 1px solid var(--border-soft); display: none;">
                 </div>
                 <input type="file" id="bizLogoInput" hidden accept="image/*" onchange="previewLogo()">
             </div>
         </div>
 
         <div class="card">
-            <h3 class="card-title"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Système</h3>
+            <h3><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Système</h3>
             <div class="form-group">
                 <label>Devise par défaut</label>
                 <select id="baseCurrency">
@@ -151,7 +209,7 @@
                     <span style="font-weight: bold; color: var(--secondary);">FC</span>
                 </div>
             </div>
-            <div class="toggle-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
+            <div class="toggle-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid var(--bg-body); margin-top: 10px;">
                 <span>Interface Sombre</span>
                 <label class="switch">
                     <input type="checkbox" id="darkToggle" onchange="toggleDarkModeUI()">
@@ -162,13 +220,12 @@
 
         <div class="card" style="border: 1px dashed var(--danger); background: rgba(239, 68, 68, 0.02);">
             <h3 style="color: var(--danger);">Zone de Danger</h3>
-            <p style="font-size: 0.75rem; color: var(--text-light); margin-bottom: 15px;">Attention : la réinitialisation effacera toutes vos ventes et dépenses localement.</p>
-            <button class="btn-outline" onclick="resetApp()" style="width: 100%; border-color: #fca5a5; color: var(--danger); margin-bottom: 10px;">Réinitialiser les données</button>
+            <p style="font-size: 0.75rem; color: var(--text-light); margin-bottom: 15px;">Attention : la réinitialisation effacera toutes vos préférences locales.</p>
+            <button class="btn-outline" onclick="resetApp()" style="width: 100%; border-color: #fca5a5; color: var(--danger); margin-bottom: 10px;">Réinitialiser les préférences</button>
             <button class="btn-danger" onclick="logout()" style="width: 100%; justify-content: center;">Déconnexion</button>
         </div>
     </div>
 </main>
-
 
 <script>
     // --- VARIABLES GLOBALES ---
@@ -178,10 +235,8 @@
 
     // --- INITIALISATION ---
     window.addEventListener('DOMContentLoaded', async () => {
-        // Attendre un court instant pour s'assurer que _db est prêt
         setTimeout(async () => {
             try {
-                // 1. Récupérer l'utilisateur connecté
                 const { data: { user } } = await _db.auth.getUser();
                 if (!user) { 
                     window.location.href = "index.html"; 
@@ -189,8 +244,8 @@
                 }
                 currentUser = user;
                 document.getElementById('userEmailDisplay').textContent = "Connecté : " + user.email;
+                if(document.getElementById('adminEmail')) document.getElementById('adminEmail').value = user.email;
 
-                // 2. Charger les données du Profil et des Settings
                 await loadAllData();
             } catch (err) {
                 console.error("Erreur d'initialisation:", err.message);
@@ -200,168 +255,148 @@
 
     async function loadAllData() {
         try {
-            // A. Charger les données du Profil (Table: profiles)
+            // 1. Charger le Profil
             const { data: profile } = await _db.from('profiles').select('*').eq('id', currentUser.id).single();
             if (profile) {
-                document.getElementById('adminFullName').value = profile.full_name || "";
-                if (profile.avatar_url) {
+                if (document.getElementById('adminFullName')) document.getElementById('adminFullName').value = profile.full_name || "";
+                if (document.getElementById('adminPhone')) document.getElementById('adminPhone').value = profile.phone || "";
+                if (profile.avatar_url && document.getElementById('avatarPreview')) {
                     document.getElementById('avatarPreview').src = profile.avatar_url;
                     base64Avatar = profile.avatar_url;
                 }
             }
 
-            // B. Charger les Settings (Table: settings)
-            const { data: settings } = await _db.from('settings').select('*').eq('user_id', currentUser.id).maybeSingle();
-            if (settings) {
-                document.getElementById('bizName').value = settings.company_name || "";
-                document.getElementById('bizAddress').value = settings.address || "";
-                document.getElementById('baseCurrency').value = settings.currency || "$";
-                document.getElementById('exchangeRate').value = settings.rate || "";
-                document.getElementById('darkToggle').checked = settings.dark_mode;
-                
-                if (settings.logo_url) {
-                    const preview = document.getElementById('logoPreview');
-                    preview.src = settings.logo_url;
-                    preview.style.display = 'block';
-                    base64Logo = settings.logo_url;
+            // 2. Charger les Settings (Méthode directe et robuste de l'ancienne version)
+            const { data: s } = await _db.from('settings').select('*').eq('user_id', currentUser.id).maybeSingle();
+            if (s) {
+                // Remplissage manuel (plus sûr que uiMap)
+                if(document.getElementById('bizName')) document.getElementById('bizName').value = s.company_name || "";
+                if(document.getElementById('bizAddress')) document.getElementById('bizAddress').value = s.address || "";
+                if(document.getElementById('bizPhone')) document.getElementById('bizPhone').value = s.phone || "";
+                if(document.getElementById('bizRCCM')) document.getElementById('bizRCCM').value = s.rccm || "";
+                if(document.getElementById('bizIDNAT')) document.getElementById('bizIDNAT').value = s.id_nat || "";
+                if(document.getElementById('bizNIF')) document.getElementById('bizNIF').value = s.nif || "";
+                if(document.getElementById('bizTVA')) document.getElementById('bizTVA').value = s.tva || "16";
+                if(document.getElementById('baseCurrency')) document.getElementById('baseCurrency').value = s.currency || "$";
+                if(document.getElementById('exchangeRate')) document.getElementById('exchangeRate').value = s.rate || "";
+                if(document.getElementById('darkToggle')) document.getElementById('darkToggle').checked = s.dark_mode || false;
+
+                if (s.logo_url) {
+                    base64Logo = s.logo_url;
+                    const lp = document.getElementById('logoPreview');
+                    if(lp) { lp.src = s.logo_url; lp.style.display = 'block'; }
                 }
-                
-                // Appliquer le mode sombre visuellement
-                if (settings.dark_mode) document.body.classList.add('dark-mode');
+
+                // Appliquer le mode sombre
+                document.body.classList.toggle('dark-mode', s.dark_mode);
+
+                // 3. SYNCHRO PDF : On prépare l'objet complet pour exportPDF.js
+                const configForPDF = {
+                    name: s.company_name || "MONITEO PRO",
+                    companyName: s.company_name || "MONITEO PRO",
+                    address: s.address || "",
+                    phone: s.phone || "",
+                    rccm: s.rccm || "",
+                    id_nat: s.id_nat || "",
+                    nif: s.nif || "",
+                    currency: s.currency || "$",
+                    logo: s.logo_url || null
+                };
+                localStorage.setItem('moniteo_config', JSON.stringify(configForPDF));
             }
         } catch (err) {
-            console.error("Erreur lors du chargement des données:", err.message);
+            console.error("Erreur de chargement:", err.message);
         }
     }
 
-    // --- GESTION DES IMAGES (PREVIEWS) ---
+    // --- GESTION DES IMAGES ---
     function previewAvatar() {
         const file = document.getElementById('avatarInput').files[0];
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            base64Avatar = reader.result;
-            document.getElementById('avatarPreview').src = base64Avatar;
-        };
-        if (file) reader.readAsDataURL(file);
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                base64Avatar = e.target.result;
+                document.getElementById('avatarPreview').src = base64Avatar;
+            };
+            reader.readAsDataURL(file);
+        }
     }
 
     function previewLogo() {
         const file = document.getElementById('bizLogoInput').files[0];
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            base64Logo = reader.result;
-            const preview = document.getElementById('logoPreview');
-            preview.src = base64Logo;
-            preview.style.display = 'block';
-        };
-        if (file) reader.readAsDataURL(file);
-    }
-
-    // --- SAUVEGARDE GLOBALE ---
-    // --- SAUVEGARDE GLOBALE ---
-async function saveAllData() {
-    try {
-        // 1. Récupération des valeurs avec les bons IDs de ton HTML
-        const config = {
-            fullName: document.getElementById('adminFullName')?.value || "",
-            companyName: document.getElementById('bizName')?.value || "",
-            address: document.getElementById('bizAddress')?.value || "",
-            currency: document.getElementById('baseCurrency')?.value || "$",
-            rate: document.getElementById('exchangeRate')?.value || "0",
-            darkMode: document.getElementById('darkToggle')?.checked || false,
-            logo: base64Logo,   // Variable globale définie dans tes previews
-            avatar: base64Avatar // Variable globale définie dans tes previews
-        };
-
-        // 2. Sauvegarde Locale (pour une réactivité immédiate)
-        localStorage.setItem('moniteo_config', JSON.stringify(config));
-
-        // 3. Sauvegarde Supabase (Tables : profiles et settings)
-        if (currentUser) {
-            // A. Mise à jour du Profil
-            const { error: profileError } = await _db
-                .from('profiles')
-                .upsert({ 
-                    id: currentUser.id, 
-                    full_name: config.fullName,
-                    avatar_url: config.avatar 
-                });
-
-            if (profileError) throw profileError;
-
-            // B. Mise à jour des Settings
-            const { error: settingsError } = await _db
-                .from('settings')
-                .upsert({ 
-                    user_id: currentUser.id, 
-                    company_name: config.companyName,
-                    address: config.address,
-                    currency: config.currency,
-                    rate: config.rate,
-                    dark_mode: config.darkMode,
-                    logo_url: config.logo
-                });
-
-            if (settingsError) throw settingsError;
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                base64Logo = e.target.result;
+                const lp = document.getElementById('logoPreview');
+                lp.src = e.target.result;
+                lp.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
         }
-
-        alert("✅ Tous les paramètres ont été enregistrés avec succès !");
-        
-        // Appliquer le mode sombre si changé
-        document.body.classList.toggle('dark-mode', config.darkMode);
-
-    } catch (error) {
-        console.error("Erreur lors de la sauvegarde :", error.message);
-        alert("❌ Erreur lors de l'enregistrement : " + error.message);
     }
-}
 
-    // --- INTERFACE & SIDEBAR ---
+    // --- SAUVEGARDE GLOBALE ---
+    async function saveAllData() {
+        try {
+            const config = {
+                name: document.getElementById('bizName')?.value || "",
+                companyName: document.getElementById('bizName')?.value || "",
+                address: document.getElementById('bizAddress')?.value || "",
+                phone: document.getElementById('bizPhone')?.value || "",
+                rccm: document.getElementById('bizRCCM')?.value || "",
+                id_nat: document.getElementById('bizIDNAT')?.value || "",
+                nif: document.getElementById('bizNIF')?.value || "",
+                tva: document.getElementById('bizTVA')?.value || "16",
+                currency: document.getElementById('baseCurrency')?.value || "$",
+                rate: document.getElementById('exchangeRate')?.value || "0",
+                darkMode: document.getElementById('darkToggle')?.checked || false,
+                logo: base64Logo,
+                avatar: base64Avatar
+            };
+
+            // Sauvegarde Supabase
+            await _db.from('profiles').upsert({ 
+                id: currentUser.id, 
+                full_name: document.getElementById('adminFullName')?.value || "",
+                phone: document.getElementById('adminPhone')?.value || "",
+                avatar_url: config.avatar 
+            });
+
+            await _db.from('settings').upsert({ 
+                user_id: currentUser.id, 
+                company_name: config.companyName,
+                address: config.address,
+                phone: config.phone,
+                rccm: config.rccm,
+                id_nat: config.id_nat,
+                nif: config.nif,
+                tva: config.tva,
+                currency: config.currency,
+                rate: config.rate,
+                dark_mode: config.darkMode,
+                logo_url: config.logo
+            });
+
+            // Sauvegarde Locale (essentielle pour le PDF)
+            localStorage.setItem('moniteo_config', JSON.stringify(config));
+            alert("✅ Enregistré avec succès !");
+            location.reload(); // Recharge pour valider la synchro
+        } catch (error) {
+            alert("❌ Erreur : " + error.message);
+        }
+    }
+
+    // --- FONCTIONS UI ---
     function toggleDarkModeUI() {
-        const isChecked = document.getElementById('darkToggle').checked;
-        document.body.classList.toggle('dark-mode', isChecked);
+        document.body.classList.toggle('dark-mode', document.getElementById('darkToggle').checked);
     }
-
-    function toggleSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        sidebar.classList.toggle('collapsed');
-        localStorage.setItem('sidebarStatus', sidebar.classList.contains('collapsed') ? 'collapsed' : 'expanded');
-    }
-
-    // Appliquer l'état de la sidebar au chargement
-    (function() {
-        const status = localStorage.getItem('sidebarStatus');
-        if (status === 'collapsed') {
-            document.getElementById('sidebar')?.classList.add('collapsed');
-        }
-    })();
-
-    // --- DECONNEXION ---
     async function logout() {
-        if (confirm("Voulez-vous vous déconnecter ?")) {
-            await _db.auth.signOut();
-            sessionStorage.clear();
-            window.location.href = "index.html";
-        }
+        if (confirm("Déconnexion ?")) { await _db.auth.signOut(); sessionStorage.clear(); window.location.href = "index.html"; }
     }
-
-    // --- ZONE DE DANGER ---
     function resetApp() {
-        if (confirm("⚠️ ATTENTION : Cela va effacer vos préférences locales. Les données Supabase resteront intactes. Continuer ?")) {
-            localStorage.clear();
-            location.reload();
-        }
+        if (confirm("Effacer les préférences locales ?")) { localStorage.clear(); location.reload(); }
     }
-function previewAvatar() {
-    const file = document.getElementById('avatarInput').files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            document.getElementById('avatarPreview').src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
-}
 </script>
 </body>
 </html>
