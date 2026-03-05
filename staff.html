@@ -20,7 +20,7 @@
 <script src="js/stats-manager.js"></script>
 <script src="js/settings-manager.js"></script>
 <script src="js/exportPDF.js"></script>
-
+<script src="js/offline-manager.js"></script>
 <script>
     // Variable globale pour stocker les données du staff
     let staffData = [];
@@ -388,31 +388,57 @@
 
     // --- 6. ACTIONS (CRUD) ---
     async function addEmployee() {
-        if (!currentUser) return;
-        const newEmp = { 
-            name: "Nouveau Collaborateur", 
-            role: "Poste", 
-            salary: 0, 
-            bonus: 0,
-            user_id: currentUser.id
+    if (!currentUser) return;
+
+    // 1. Préparation de l'objet complet (valeurs par défaut)
+    const newEmp = { 
+        name: "Nouveau Collaborateur", 
+        role: "Poste", 
+        salary: 0, 
+        bonus: 0,
+        user_id: currentUser.id,
+        contractType: "CDI",
+        status: "actif",
+        entryDate: new Date().toISOString().split('T')[0]
+    };
+
+    // 2. GESTION HORS-LIGNE
+    if (!navigator.onLine) {
+        const offlineItem = OfflineManager.saveLocally(OfflineManager.KEYS.STAFF, newEmp);
+        
+        // On l'ajoute temporairement en haut de notre liste locale pour l'affichage
+        // On lui donne un ID employee temporaire basé sur son ID offline
+        offlineItem.id_employee = "OFFLINE";
+        staffData.unshift(offlineItem);
+        
+        renderStaff();
+        // On ouvre la modal (index 0 car unshift met l'élément au début)
+        if (typeof openModal === 'function') openModal(0);
+        return;
+    }
+
+    // 3. GESTION EN LIGNE (SUPABASE)
+    const { data, error } = await _db.from('staff').insert([newEmp]).select();
+    
+    if (!error && data && data.length > 0) {
+        // On enrichit la donnée reçue pour l'affichage immédiat
+        const createdEmp = {
+            ...data[0],
+            id_employee: data[0].id.substring(0, 8).toUpperCase()
         };
 
-        const { data, error } = await _db.from('staff').insert([newEmp]).select();
+        staffData.unshift(createdEmp);
         
-        if (!error && data) {
-            staffData.unshift({
-                ...data[0],
-                contractType: "CDI",
-                status: "actif",
-                id_employee: data[0].id.substring(0, 8).toUpperCase(),
-                entryDate: new Date().toISOString().split('T')[0]
-            });
-            renderStaff();
-            openModal(0);
-        } else {
-            console.error("Erreur ajout:", error?.message);
-        }
+        // Tentative de synchronisation du reste si besoin
+        if (typeof OfflineManager !== 'undefined') OfflineManager.syncAll();
+
+        renderStaff();
+        openModal(0); // Ouvre la fiche pour éditer le nom/rôle immédiatement
+    } else {
+        console.error("Erreur ajout staff:", error?.message);
+        alert("Impossible d'ajouter l'employé : " + (error?.message || "Erreur réseau"));
     }
+}
 
     async function removeEmp(i) {
         if(!confirm("Supprimer ce dossier ?")) return;
@@ -436,83 +462,103 @@
     }
 
     // --- 8. RENDU ET AFFICHAGE ---
-  function renderStaff(filter = '') {
-    // 1. Protection contre les types non-string (le bug que tu avais)
+function renderStaff(filter = '') {
     const searchFilter = (typeof filter === 'string' ? filter : '').toLowerCase().trim();
-    
-    const tbody = document.getElementById('staffTable'); // Assure-toi que c'est l'ID du <tbody>
+    const tbody = document.getElementById('staffTable'); 
     if (!tbody) return;
     tbody.innerHTML = '';
     
+    // --- GESTION OFFLINE ---
+    const pendingStaff = typeof OfflineManager !== 'undefined' ? OfflineManager.getQueue(OfflineManager.KEYS.STAFF) : [];
+    const allStaff = [...pendingStaff, ...staffData];
+
+    // Variables pour les nouveaux KPIs
+    let totalSalaries = 0;
+    let alertsCount = 0;
+    let totalStaffCount = allStaff.length;
+
+    // Mise à jour du compteur global (badge)
+    const staffCountLabel = document.getElementById('staffCountLabel');
+    if (staffCountLabel) staffCountLabel.textContent = totalStaffCount;
+
+    // Icônes SVG
+    const iconSyncSmall = `<svg class="spin" style="width:12px;height:12px;color:#ffa500;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>`;
+    const iconWarning = `<svg style="width:14px;height:14px;color:#ef4444;vertical-align:middle;margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+
     const limit = new Date(); 
     limit.setDate(limit.getDate() + 30);
 
-    // 2. Filtrage et Rendu
-    staffData.forEach((e, i) => {
-        const nameMatch = e.name.toLowerCase().includes(searchFilter);
+    allStaff.forEach((e, i) => {
+        // --- CALCUL DES STATS (KPIs) ---
+        const salary = parseFloat(e.salary || 0);
+        totalSalaries += salary;
+
+        const isWarning = (e.expiryDate && e.status === 'actif' && new Date(e.expiryDate) <= limit);
+        if (isWarning) alertsCount++;
+
+        // --- FILTRAGE ---
+        const nameMatch = (e.name || '').toLowerCase().includes(searchFilter);
         const roleMatch = (e.role || '').toLowerCase().includes(searchFilter);
         const idMatch = (e.id_employee || '').toLowerCase().includes(searchFilter);
 
         if (nameMatch || roleMatch || idMatch) {
-            let isWarning = (e.expiryDate && e.status === 'actif' && new Date(e.expiryDate) <= limit);
-
-            // Gestion du surlignage (Highlight)
-            let highlightedName = e.name;
+            let highlightedName = e.name || 'Inconnu';
             if (searchFilter) {
                 const regex = new RegExp(`(${searchFilter})`, 'gi');
-                highlightedName = e.name.replace(regex, '<mark style="background:#fef08a; padding:0; border-radius:2px;">$1</mark>');
+                highlightedName = highlightedName.replace(regex, '<mark style="background:#fef08a; padding:0; border-radius:2px;">$1</mark>');
             }
 
             const tr = document.createElement('tr');
+            if (e.isOffline) tr.style.opacity = "0.7";
             if (isWarning) tr.classList.add('expiry-warning');
 
             tr.innerHTML = `
                 <td>
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <img src="${e.photo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(e.name) + '&background=random'}" 
-                             style="width:35px; height:35px; border-radius:50%; object-fit:cover;">
+                        <div style="position:relative; width:35px; height:35px; flex-shrink:0;">
+                            <img src="${e.photo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(e.name || '?') + '&background=random'}" 
+                                 style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                            ${e.isOffline ? 
+                                `<div style="position:absolute; bottom:-2px; right:-2px; background:white; border-radius:50%; padding:2px; display:flex; box-shadow:0 2px 4px rgba(0,0,0,0.1);">${iconSyncSmall}</div>` 
+                                : ''
+                            }
+                        </div>
                         <div>
-                            <div style="font-weight:600; cursor:pointer; color:var(--primary)" onclick="openModal(${i})">
-                                ${isWarning ? '⚠️ ' : ''}${highlightedName}
+                            <div style="font-weight:600; cursor:pointer; color:var(--primary)" onclick="${e.isOffline ? '' : `openModal(${i})`}">
+                                ${isWarning ? iconWarning : ''}${highlightedName}
                             </div>
-                            <span class="contract-badge">${e.contractType || 'CDI'}</span>
+                            <span class="contract-badge" style="font-size:0.65rem; opacity:0.8;">${e.contractType || 'CDI'}</span>
                         </div>
                     </div>
                 </td>
-                <td contenteditable="true" onblur="updateField(${i},'role',this.textContent)">${e.role}</td>
-                <td><code style="background:#f1f5f9; padding:2px 5px; border-radius:4px;">${e.id_employee}</code></td>
+                <td contenteditable="${!e.isOffline}" onblur="updateField(${i},'role',this.textContent)">${e.role || '-'}</td>
+                <td><code style="background:#f1f5f9; padding:2px 5px; border-radius:4px; font-size:0.75rem;">${e.id_employee || 'TEMP'}</code></td>
                 <td style="font-size:0.75rem; line-height:1.2;">
-                    <span style="color:var(--text-soft)">In:</span> ${e.entryDate}<br>
+                    <span style="color:var(--text-soft)">In:</span> ${e.entryDate || '-'}<br>
                     <span style="color:var(--danger)">${e.expiryDate ? 'Out: ' + e.expiryDate : ''}</span>
                 </td>
                 <td>
                     <span class="status-badge ${e.status === 'actif' ? 'active-bg' : 'inactive-bg'}" 
-                          onclick="toggleStatus(${i})" style="cursor:pointer;">
+                          onclick="${e.isOffline ? '' : `toggleStatus(${i})`}" style="cursor:pointer;">
                         ${e.status}
                     </span>
                 </td>
-                <td contenteditable="true" onblur="updateField(${i},'salary',this.textContent)" style="font-weight:600">
-                    ${parseMoney(e.salary).toLocaleString()} ${window.currentCurrency || 'FC'}
+                <td style="font-weight:600">
+                    ${salary.toLocaleString()} ${window.currentCurrency || 'FC'}
                 </td>
-                <td contenteditable="true" onblur="updateField(${i},'bonus',this.textContent)" style="color:var(--success); font-weight:600">
-                    ${parseMoney(e.bonus).toLocaleString()} ${window.currentCurrency || 'FC'}
+                <td style="color:var(--success); font-weight:600">
+                    ${parseFloat(e.bonus || 0).toLocaleString()} ${window.currentCurrency || 'FC'}
                 </td>
                 <td>
-                    <div style="display:flex; gap:8px; align-items:center;">
+                    <div style="display:flex; gap:8px; align-items:center; justify-content: flex-end;">
+                        ${e.isOffline ? '' : `
                         <button class="btn-icon" onclick="showPayslip(${i})" title="Fiche de paie">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--secondary);">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                            </svg>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
                         </button>
                         <button class="btn-icon" onclick="removeEmp(${i})" title="Supprimer">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--danger);">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--danger)"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         </button>
+                        `}
                     </div>
                 </td>
             `;
@@ -520,9 +566,23 @@
         }
     });
 
-    updateKPIs(); 
-}
+    // --- MISE À JOUR DES CARTES DE STATISTIQUES (KPIs) ---
+    
+    // 1. Fin de contrats (statAlerts)
+    const displayAlerts = document.getElementById('statAlerts');
+    if (displayAlerts) {
+        displayAlerts.innerText = alertsCount;
+    }
 
+    // 2. Salaire Moyen (statMoyenne)
+    const displayMoyenne = document.getElementById('statMoyenne');
+    if (displayMoyenne) {
+        const moyenne = totalStaffCount > 0 ? (totalSalaries / totalStaffCount) : 0;
+        displayMoyenne.innerText = `${Math.round(moyenne).toLocaleString()} ${window.currentCurrency || 'FC'}`;
+    }
+
+    if (typeof updateKPIs === 'function') updateKPIs(); 
+}
     function updateField(i, k, v) {
         staffData[i][k] = (k === 'salary' || k === 'bonus') ? parseMoney(v) : v.trim();
         saveChange(i);
