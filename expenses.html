@@ -20,7 +20,7 @@
 <script src="js/stats-manager.js"></script>
 <script src="js/settings-manager.js"></script>
 <script src="js/exportPDF.js"></script>
-
+<script src="js/offline.js"></script>
 <script>
     // protectPage vient de auth-check.js
     protectPage(async (user) => {
@@ -103,19 +103,24 @@
         </div>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 20px;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+    <div class="form-group">
+        <label>Reçu :</label>
+        <input type="file" id="expenseReceipt" accept="image/*" class="form-control">
+    </div>
+
     <div id="loading-state" style="display: none; align-items: center; gap: 8px;">
-        <svg class="loader-icon-spin" viewBox="0 0 24 24" style="width: 20px; height: 20px; color: var(--primary); animation: spin 1s linear infinite;">
+        <svg class="loader-icon-spin" viewBox="0 0 24 24" style="width: 18px; height: 18px; color: var(--primary); animation: spin 1s linear infinite;">
             <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle>
         </svg>
-        <span style="font-size: 0.8rem; color: var(--text-light); font-weight: 500;">Récupération...</span>
     </div>
- <button onclick="exportExpensesPDF()" style="display: flex; align-items: center; gap: 8px; padding: 10px 15px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; cursor: pointer; font-weight: 600;">
-            <svg viewBox="0 0 24 24" width="18" height="18" stroke="#ef4444" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-  Générer PDF
-</button>
-    </div>
-</header>
+
+    <button onclick="exportExpensesPDF()" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; cursor: pointer; font-weight: 600; font-size: 0.8rem;">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="#ef4444" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        PDF
+    </button>
+</div>
+    </header>
 
 
     <div class="card">
@@ -201,21 +206,35 @@
 
     // --- 2. INITIALISATION ---
     document.addEventListener('DOMContentLoaded', async () => {
-        applyGlobalSettings();
-        
-        if(document.getElementById('expenseDate')) {
-            document.getElementById('expenseDate').valueAsDate = new Date();
-        }
-        
-        // Charger les données depuis Supabase
-        fetchExpenses();
+    // 1. Appliquer les réglages (Mode sombre, devise, etc.)
+    applyGlobalSettings();
 
-        const currencySelector = document.getElementById('expenseCurrency');
-        if(currencySelector) {
-            currencySelector.addEventListener('change', renderExpenses);
-        }
-    });
+    // 2. Initialiser la date du jour
+    const dateInput = document.getElementById('expenseDate');
+    if (dateInput) {
+        dateInput.valueAsDate = new Date();
+    }
 
+    // 3. SAUVEGARDE DE L'ID UTILISATEUR (Pour le mode hors-ligne)
+    try {
+        const { data: { user } } = await _db.auth.getUser();
+        if (user) {
+            localStorage.setItem('moniteo_user_id', user.id);
+            console.log("✅ ID Utilisateur synchronisé pour le mode hors-ligne");
+        }
+    } catch (err) {
+        console.warn("⚠️ Impossible de récupérer l'ID (Hors-ligne ?)");
+    }
+
+    // 4. Charger les données (Si on a internet, fetchExpenses s'en occupe)
+    fetchExpenses();
+
+    // 5. Écouteur pour le changement de devise globale
+    const currencySelector = document.getElementById('expenseCurrency');
+    if (currencySelector) {
+        currencySelector.addEventListener('change', renderExpenses);
+    }
+});
     // --- 3. APPLICATION DES RÉGLAGES (CACHE & UI) ---
 function applyGlobalSettings() {
     const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
@@ -339,48 +358,74 @@ function applyGlobalSettings() {
     // --- 5. RENDU DU TABLEAU (CORRIGÉ POUR L'ERREUR VALUE) ---
     function renderExpenses() {
     const table = document.getElementById('expensesTable');
-    if(!table) return;
+    if (!table) return;
 
     const currencySelector = document.getElementById('expenseCurrency');
-    const targetCurrency = currencySelector ? currencySelector.value : currentCurrency;
-    
+    const targetCurrency = currencySelector ? currencySelector.value : (window.currentCurrency || "FC");
     const totalDisplay = document.getElementById('expensesTotal');
+    
+    const pending = typeof OfflineManager !== 'undefined' ? OfflineManager.getQueue() : [];
+    const allExpenses = [...pending, ...expenses]; 
+
     table.innerHTML = '';
     let totalGlobal = 0;
 
-   expenses.forEach(e => {
-    const displayLabel = e.label || e.description || 'Sans nom';
+    allExpenses.forEach(e => {
+        const displayLabel = e.label || e.description || 'Sans nom';
+        const expenseAmount = e.amount || 0;
+        const currentSystemCurrency = window.currentCurrency || "FC"; 
+        totalGlobal += expenseAmount;
 
-    // AU LIEU DE LIRE e.currency, ON UTILISE LA DEVISE GLOBALE DU SYSTÈME
-    // targetCurrency est déjà défini au début de ta fonction via applyGlobalSettings
-    const expenseAmount = e.amount || 0;
-    
-    // On considère que ce qui est en base est déjà dans la bonne devise
-    // ou on force la devise globale
-    const currentSystemCurrency = window.currentCurrency || "FC"; 
+        // --- ICONE SYNC ---
+        const iconSync = e.isOffline 
+            ? `<svg title="En attente" style="width:18px;height:18px;color:#ffa500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19L19 21L22 18M16 10c.279 0 .55.033.81.094a5.96 5.96 0 0 1 1.625-1.587c.042-.028.085-.053.128-.078c.036-.022.072-.044.11-.064c.28-.148.58-.27.89-.364C19.13 5.43 16.81 3 14 3c-2.598 0-4.785 1.944-5.133 4.468C7.035 7.18 5.12 8.16 4 10c-2.21 0-4 1.79-4 4s1.79 4 4 4h7"></path></svg>`
+            : `<svg title="Synchronisé" style="width:18px;height:18px;color:#28a745" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
 
-    totalGlobal += expenseAmount;
+        // --- BOUTON OEIL (VÉRIFICATION URL) ---
+        // On vérifie si l'URL existe et si elle n'est pas vide
+        let receiptBtn = '';
+        if (e.receipt_url && e.receipt_url.length > 10) {
+            receiptBtn = `
+                <a href="${e.receipt_url}" target="_blank" class="btn-view-receipt" title="Voir la facture originale">
+                    <svg style="width:18px;height:18px;color:#313c63" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                </a>`;
+        }
 
-    const row = document.createElement('tr');
-    row.innerHTML = `
-        <td>${e.date ? new Date(e.date).toLocaleDateString('fr-FR') : '-'}</td>
-        <td style="font-weight:600">${displayLabel}</td>
-        <td><span class="badge-cat">${e.category || 'Général'}</span></td>
-        <td style="color:var(--text-light); font-size:0.9em;">
-            ${expenseAmount.toLocaleString()} ${currentSystemCurrency}
-        </td>
-        <td style="font-weight:700; color:var(--danger)">
-            - ${expenseAmount.toLocaleString(undefined, {minimumFractionDigits:2})} ${currentSystemCurrency}
-        </td>
-        <td style="text-align: right;">
-            <button onclick="deleteExpense('${e.id}')" class="btn-delete">
-                <svg style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
-        </td>
-    `;
-    table.appendChild(row);
-});
-    if(totalDisplay) {
+        const row = document.createElement('tr');
+        if (e.isOffline) row.style.opacity = "0.7";
+
+        row.innerHTML = `
+            <td style="display: flex; align-items: center; gap: 8px;">
+                ${iconSync}
+                <span>${e.date ? new Date(e.date).toLocaleDateString('fr-FR') : '-'}</span>
+            </td>
+            <td style="font-weight:600">${displayLabel}</td>
+            <td><span class="badge-cat">${e.category || 'Général'}</span></td>
+            <td style="color:var(--text-light); font-size:0.9em;">
+                ${expenseAmount.toLocaleString()} ${currentSystemCurrency}
+            </td>
+            <td style="font-weight:700; color:var(--danger)">
+                - ${expenseAmount.toLocaleString(undefined, {minimumFractionDigits:2})} ${currentSystemCurrency}
+            </td>
+            <td style="text-align: right;">
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
+                    ${receiptBtn}
+                    ${e.isOffline ? 
+                        `<small style="color:#ffa500; font-style:italic;">En attente...</small>` : 
+                        `<button onclick="deleteExpense('${e.id}')" class="btn-delete" title="Supprimer">
+                            <svg style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>`
+                    }
+                </div>
+            </td>
+        `;
+        table.appendChild(row);
+    });
+
+    if (totalDisplay) {
         totalDisplay.textContent = totalGlobal.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
@@ -420,86 +465,89 @@ function applyGlobalSettings() {
     }
 }
     async function exportExpensesPDF() {
-    // Vérification de sécurité
+    // 1. Vérifications initiales
     if (!window.jspdf) return alert("Erreur: Bibliothèque jsPDF non trouvée.");
-    if (!window.jspdf.jsPDF.API.autoTable) return alert("Erreur: Plugin autoTable non trouvé. Vérifiez vos scripts imports.");
-
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // 1. Récupération de l'utilisateur
-    const { data: { user } } = await _db.auth.getUser();
-    if (!user) return alert("Session expirée");
+    // 2. Récupération des paramètres et données
+    const currencySelector = document.getElementById('expenseCurrency');
+    const targetCurrency = currencySelector ? currencySelector.value : (window.currentCurrency || "FC");
+    const totalGlobalText = document.getElementById('expensesTotal')?.textContent || "0";
 
-    // 2. Infos entreprise
-    const { data: settings } = await _db
-        .from('settings')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+    const { data: { user } } = await _db.auth.getUser();
+    const { data: settings } = await _db.from('settings').select('*').eq('user_id', user?.id).maybeSingle();
 
     const bizName = settings?.company_name || "MONITEO PRO";
     const bizLogo = settings?.logo_url || null;
-    const currencySelector = document.getElementById('expenseCurrency');
-    const targetCurrency = currencySelector ? currencySelector.value : currentCurrency;
 
     // --- EN-TÊTE ---
     if (bizLogo) {
-        try { doc.addImage(bizLogo, 'PNG', 14, 10, 25, 25); } catch (e) {}
+        try { doc.addImage(bizLogo, 'PNG', 14, 10, 20, 20); } catch (e) {}
     }
-    doc.setFontSize(18);
-    doc.setTextColor(31, 60, 99);
-    doc.text(bizName.toUpperCase(), bizLogo ? 45 : 14, 20);
-    doc.setFontSize(9);
-    doc.setTextColor(100);
-    doc.text(`Rapport des Dépenses - ${new Date().toLocaleDateString('fr-FR')}`, bizLogo ? 45 : 14, 26);
+    doc.setFontSize(16).setTextColor(31, 60, 99).setFont("helvetica", "bold");
+    doc.text(bizName.toUpperCase(), bizLogo ? 40 : 14, 20);
+    doc.setFontSize(9).setFont("helvetica", "normal").setTextColor(100);
+    doc.text(`Rapport de Dépenses - Généré le ${new Date().toLocaleDateString('fr-FR')}`, bizLogo ? 40 : 14, 26);
 
-    // --- TABLEAU ---
-    const totalGlobal = document.getElementById('expensesTotal')?.textContent || "0";
+    // --- PRÉPARATION DU TABLEAU ---
     const tableBody = expenses.map(e => {
         const expenseCurrency = e.currency || "FC";
-        const converted = convertCurrency(e.amount, expenseCurrency, targetCurrency);
+        const converted = typeof convertCurrency === 'function' 
+            ? convertCurrency(e.amount, expenseCurrency, targetCurrency) 
+            : e.amount;
+
         return [
             e.date ? new Date(e.date).toLocaleDateString('fr-FR') : '-',
             e.label || 'Sans nom',
             e.category || 'Général',
             `${(e.amount || 0).toLocaleString()} ${expenseCurrency}`,
-            `${converted.toLocaleString(undefined, {minimumFractionDigits:2})} ${targetCurrency}`
+            `${converted.toLocaleString(undefined, {minimumFractionDigits:2})} ${targetCurrency}`,
+            "" // Colonne "Preuve" vide pour le didDrawCell
         ];
     });
 
-    // Appel de autoTable
+    // --- GÉNÉRATION DU TABLEAU ---
     doc.autoTable({
-        startY: 40,
-        head: [['Date', 'Libellé', 'Catégorie', 'Montant Orig.', `Total (${targetCurrency})`]],
+        startY: 35,
+        head: [['Date', 'Libellé', 'Catégorie', 'Montant Orig.', `Total (${targetCurrency})`, 'Preuve']],
         body: tableBody,
-        headStyles: { fillColor: [31, 60, 99] },
-        foot: [[ '', '', '', 'TOTAL GÉNÉRAL', totalGlobal ]],
-        footStyles: { fillColor: [240, 240, 240], textColor: [0,0,0], fontStyle: 'bold' }
+        theme: 'striped',
+        headStyles: { fillColor: [31, 60, 99], fontSize: 9 },
+        styles: { fontSize: 8, cellPadding: 3 },
+        columnStyles: {
+            5: { cellWidth: 25, halign: 'center' }
+        },
+        // Ajout du pied de page pour le Total Général
+        foot: [[ '', '', '', 'TOTAL GÉNÉRAL', totalGlobalText, '' ]],
+        footStyles: { fillColor: [240, 240, 240], textColor: [0,0,0], fontStyle: 'bold' },
+
+        didDrawCell: (data) => {
+            if (data.section === 'body' && data.column.index === 5) {
+                const expense = expenses[data.row.index];
+                if (expense && expense.receipt_url) {
+                    doc.setFontSize(7);
+                    doc.setTextColor(0, 0, 255);
+                    
+                    const text = "VOIR REÇU";
+                    const textWidth = doc.getTextWidth(text);
+                    const x = data.cell.x + (data.cell.width - textWidth) / 2;
+                    const y = data.cell.y + (data.cell.height / 2) + 2;
+
+                    doc.text(text, x, y);
+                    doc.line(x, y + 0.5, x + textWidth, y + 0.5); // Soulignement fin
+                    doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: expense.receipt_url });
+                } else {
+                    doc.setTextColor(150);
+                    doc.text("-", data.cell.x + (data.cell.width / 2), data.cell.y + (data.cell.height / 2) + 2, { align: 'center' });
+                }
+            }
+        }
     });
 
-    doc.save(`Depenses_${bizName.replace(/\s+/g, '_')}.pdf`);
+    doc.save(`Rapport_Depenses_${bizName.replace(/\s+/g, '_')}.pdf`);
 }
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const mainContent = document.getElementById('mainContent');
-    
-    sidebar.classList.toggle('collapsed');
-    
-    // Optionnel : Sauvegarder l'état dans le navigateur
-    const isCollapsed = sidebar.classList.contains('collapsed');
-    localStorage.setItem('sidebarStatus', isCollapsed ? 'collapsed' : 'expanded');
-}
-
-// Au chargement de la page, appliquer l'état sauvegardé
-window.addEventListener('DOMContentLoaded', () => {
-    const status = localStorage.getItem('sidebarStatus');
-    const sidebar = document.getElementById('sidebar');
-    if (status === 'collapsed') {
-        sidebar.classList.add('collapsed');
-    }
-});
 // Assure-toi que cette fonction est bien isolée
 function toggleDropdown(event, menuId) {
     if (event) {
@@ -528,103 +576,178 @@ window.onclick = function(event) {
     }
 };
 async function exportExpensesPDF() {
-    // 1. Vérification des données
-    if (!expenses || expenses.length === 0) {
-        alert("Aucune dépense à exporter.");
-        return;
+    if (!window.jspdf) return alert("Erreur: Bibliothèque jsPDF non trouvée.");
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const currencySelector = document.getElementById('expenseCurrency');
+    const targetCurrency = currencySelector ? currencySelector.value : (window.currentCurrency || "FC");
+
+    // 1. Identification
+    const { data: { user } } = await _db.auth.getUser();
+    if (!user) return alert("Session expirée");
+
+    // 2. Infos Entreprise
+    const { data: settings } = await _db.from('settings').select('*').eq('user_id', user.id).maybeSingle();
+    const bizName = settings?.company_name || "MONITEO PRO";
+    const bizLogo = settings?.logo_url || null;
+
+    // --- EN-TÊTE ---
+    if (bizLogo) {
+        try { doc.addImage(bizLogo, 'PNG', 14, 10, 20, 20); } catch (e) {}
     }
+    doc.setFontSize(16);
+    doc.setTextColor(31, 60, 99);
+    doc.text(bizName.toUpperCase(), bizLogo ? 40 : 14, 20);
+    doc.setFontSize(9);
+    doc.text(`Rapport de Dépenses - Généré le ${new Date().toLocaleDateString('fr-FR')}`, bizLogo ? 40 : 14, 26);
 
-    // On récupère la devise globale (ex: $) définie dans applyGlobalSettings
-    const targetCurrency = window.currentCurrency || "FC";
+    // --- PRÉPARATION DES DONNÉES DU TABLEAU ---
+    const totalGlobal = document.getElementById('expensesTotal')?.textContent || "0";
+    
+    const tableBody = expenses.map(e => {
+        const expenseCurrency = e.currency || "FC";
+        // Utilise ta fonction de conversion si elle existe, sinon affiche tel quel
+        const converted = typeof convertCurrency === 'function' 
+            ? convertCurrency(e.amount, expenseCurrency, targetCurrency) 
+            : e.amount;
 
-    // 2. Préparation des lignes
-    const rows = expenses.map(exp => {
-        // On considère que le montant en base est dans la devise du système
-        const amount = Number(exp.amount) || 0;
-        
         return [
-            exp.date ? new Date(exp.date).toLocaleDateString('fr-FR') : '-',
-            exp.label || exp.description || 'Sans libellé',
-            exp.category || 'Général',
-            // On affiche directement le montant avec la devise globale
-            `${amount.toLocaleString(undefined, {minimumFractionDigits:2})} ${targetCurrency}`
+            e.date ? new Date(e.date).toLocaleDateString('fr-FR') : '-',
+            e.label || 'Sans nom',
+            e.category || 'Général',
+            `${(e.amount || 0).toLocaleString()} ${expenseCurrency}`,
+            `${converted.toLocaleString(undefined, {minimumFractionDigits:2})} ${targetCurrency}`,
+            e.receipt_url ? "" : "-" // Texte temporaire pour le lien
         ];
     });
 
-    // 3. Calcul du total simple (puisqu'on ne convertit plus ligne par ligne)
-    const totalAmount = expenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
-
-    // 4. Génération du PDF via ton module MoniteoPDF
-    try {
-        await window.MoniteoPDF.generate({
-            title: "RAPPORT DES DÉPENSES",
-            subtitle: `Généré le : ${new Date().toLocaleDateString('fr-FR')} | Devise : ${targetCurrency}`,
-            tables: [
-                {
-                    // Attention : tes headers doivent correspondre au nombre de colonnes dans 'rows' (ici 4 colonnes)
-                    headers: ['DATE', 'LIBELLÉ', 'CATÉGORIE', 'MONTANT'],
-                    rows: rows,
-                    foot: [['', '', 'TOTAL GÉNÉRAL', `${totalAmount.toLocaleString(undefined, {minimumFractionDigits:2})} ${targetCurrency}`]],
-                    color: [220, 53, 69] // Rouge
+    // --- GÉNÉRATION DU TABLEAU ---
+    doc.autoTable({
+        startY: 35,
+        head: [['Date', 'Libellé', 'Catégorie', 'Montant Orig.', `Total (${targetCurrency})`, 'Preuve']],
+        body: tableBody,
+        headStyles: { fillColor: [31, 60, 99], fontSize: 8 },
+        styles: { fontSize: 8, cellPadding: 3 },
+        foot: [[ '', '', '', 'TOTAL GÉNÉRAL', totalGlobal, '' ]],
+        footStyles: { fillColor: [240, 240, 240], textColor: [0,0,0], fontStyle: 'bold' },
+        
+        // LOGIQUE POUR RENDRE LE LIEN CLIQUABLE DANS LE PDF
+        didDrawCell: (data) => {
+            if (data.section === 'body' && data.column.index === 5) {
+                const expenseIndex = data.row.index;
+                const url = expenses[expenseIndex].receipt_url;
+                if (url) {
+                    doc.setTextColor(0, 0, 255); // Bleu lien
+                    doc.text("Lien Image", data.cell.x + 2, data.cell.y + 6);
+                    // Crée la zone cliquable
+                    doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: url });
                 }
-            ]
-        });
-    } catch (err) {
-        console.error("Erreur PDF:", err);
-        alert("Impossible de générer le PDF.");
-    }
+            }
+        }
+    });
+
+    doc.save(`Rapport_Depenses_${bizName.replace(/\s+/g, '_')}.pdf`);
 }
 async function addExpense() {
+    const labelEl = document.getElementById('expenseLabel');
+    const amountEl = document.getElementById('expenseAmount');
+    const catEl = document.getElementById('expenseCategory');
+    const dateEl = document.getElementById('expenseDate');
+    const fileEl = document.getElementById('expenseReceipt'); // Assurez-vous d'avoir cet ID dans le HTML
+
+    const label = labelEl.value.trim();
+    const amount = parseFloat(amountEl.value);
+    const category = catEl.value;
+    const date = dateEl.value;
+    const receiptFile = fileEl ? fileEl.files[0] : null;
+
+    if (!label || isNaN(amount)) return alert("Veuillez remplir le libellé et le montant.");
+
+    let userId = localStorage.getItem('moniteo_user_id');
+    
+    // Vérification de l'ID utilisateur (tentative de refresh si nul)
+    if (!userId) {
+        try {
+            const { data } = await _db.auth.getUser();
+            if (data?.user) {
+                userId = data.user.id;
+                localStorage.setItem('moniteo_user_id', userId);
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    if (!userId) return alert("Erreur d'identification. Reconnectez-vous.");
+
+    // Gestion de l'upload d'image (uniquement si en ligne)
+    let receiptUrl = null;
+    if (navigator.onLine && receiptFile) {
+        // Affiche un indicateur de chargement si nécessaire
+        receiptUrl = await uploadReceiptFile(receiptFile); 
+    }
+
+    const expenseData = {
+        label,
+        amount,
+        category,
+        date,
+        user_id: userId,
+        currency: window.currentCurrency || "FC",
+        receipt_url: receiptUrl // On stocke l'URL de l'image
+    };
+
+    if (!navigator.onLine) {
+        if (typeof OfflineManager !== 'undefined') {
+            OfflineManager.saveLocally(expenseData);
+            alert("📍 Enregistré localement (sans image - hors-ligne)");
+            resetForm();
+            renderExpenses();
+        }
+    } else {
+        try {
+            const { error } = await _db.from('expenses').insert([expenseData]);
+            if (error) throw error;
+            
+            alert("✅ Dépense enregistrée avec succès");
+            resetForm();
+            fetchExpenses();
+        } catch (err) {
+            console.error("Erreur serveur:", err);
+            OfflineManager.saveLocally(expenseData);
+            renderExpenses();
+        }
+    }
+
+    // Petite fonction interne pour vider le formulaire
+    function resetForm() {
+        labelEl.value = '';
+        amountEl.value = '';
+        if (fileEl) fileEl.value = '';
+    }
+}
+async function uploadReceiptFile(file) {
+    if (!file) return null;
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}_${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
     try {
-        // RÉCUPÉRATION AVEC TES VRAIS IDs DU HTML
-        const labelEl = document.getElementById('expenseLabel');
-        const amountEl = document.getElementById('expenseAmount');
-        const catEl = document.getElementById('expenseCategory');
-        const dateEl = document.getElementById('expenseDate');
-
-        // Vérification de sécurité sur les éléments existants
-        if (!labelEl || !amountEl || !catEl) {
-            console.error("Éléments HTML introuvables. Vérifiez les IDs expenseLabel, expenseAmount, expenseCategory.");
-            return;
-        }
-
-        const label = labelEl.value.trim();
-        const amount = parseFloat(amountEl.value);
-        const category = catEl.value;
-        const date = dateEl ? dateEl.value : new Date().toISOString().split('T')[0];
-
-        if (!label || isNaN(amount)) {
-            alert("Veuillez remplir le libellé et un montant valide.");
-            return;
-        }
-
-        const { data: { user } } = await _db.auth.getUser();
-        if (!user) return alert("Session expirée");
-
-        // Insertion dans Supabase (On utilise 'label' car c'est le nom dans ton autre fonction)
-        const { error } = await _db
-            .from('expenses')
-            .insert([{ 
-                label: label, 
-                amount: amount, 
-                category: category, 
-                date: date,
-                user_id: user.id 
-            }]);
+        const { data, error } = await _db.storage
+            .from('receipts')
+            .upload(filePath, file);
 
         if (error) throw error;
 
-        // Reset rapide sans recharger toute la page
-        labelEl.value = '';
-        amountEl.value = '';
-        alert("Dépense ajoutée !");
-        
-        // On relance le chargement des données pour mettre à jour le tableau
-        if (typeof fetchExpenses === 'function') fetchExpenses();
+        // Récupérer l'URL publique
+        const { data: { publicUrl } } = _db.storage
+            .from('receipts')
+            .getPublicUrl(filePath);
 
+        return publicUrl;
     } catch (err) {
-        console.error("Erreur lors de l'ajout:", err.message);
-        alert("Erreur lors de l'enregistrement.");
+        console.error("Erreur Upload:", err.message);
+        return null;
     }
 }
 </script>
