@@ -6,16 +6,7 @@
     <title>Moniteo Umbrella - Dépenses</title>
    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="UI/style.css">
-<link rel="icon" type="image/x-icon" href="assets/favicon.ico">
 
-<link rel="icon" type="image/png" sizes="16x16" href="assets/icon-16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
-
-<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
-
-<link rel="manifest" href="assets/manifest.webmanifest">
-
-<meta name="theme-color" content="#ffffff">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -97,40 +88,44 @@
 </nav>
 
 <main class="main-content">
-    <header class="header-flex" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); margin-bottom: 25px;">
+    <header class="header-flex" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); margin-bottom: 25px; flex-wrap: wrap; gap: 10px;">
+    
     <div style="display: flex; align-items: center; gap: 15px;">
-        <div id="dynamicLogoContainer" style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px;">
-            </div>
-        
-        <div style="border-left: 2px solid var(--border-soft); padding-left: 15px; display: flex; flex-direction: column; justify-content: center; min-height: 45px;">
-            <h2 id="pageTitle" style="margin: 0; font-size: 1.25rem; font-weight: 700; line-height: 1.2; color: var(--text-main);">GESTION DE DEPENSES
-                </h2>
-            <div style="display: flex; flex-direction: column; margin-top: 2px;">
-                <span id="companySubtitle" style="color: var(--secondary); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.8px; line-height: 1.4;"></span>
-                <span id="dateDisplay" style="color: var(--text-light); font-size: 0.75rem; font-weight: 500;"></span>
+        <div id="dynamicLogoContainer" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;"></div>
+        <div style="border-left: 2px solid var(--border-soft); padding-left: 15px; display: flex; flex-direction: column; justify-content: center;">
+            <h2 id="pageTitle" style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main); text-transform: uppercase;">GESTION DE DEPENSES</h2>
+            <div style="display: flex; flex-direction: column;">
+                <span id="companySubtitle" style="color: var(--secondary); font-weight: 600; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px;"></span>
+                <span id="dateDisplay" style="color: var(--text-light); font-size: 0.7rem;"></span>
             </div>
         </div>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 15px;">
-    <div class="form-group">
-        <label>Reçu :</label>
-        <input type="file" id="expenseReceipt" accept="image/*" class="form-control">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        
+        <div style="display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 4px 8px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <span style="font-size: 0.65rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Reçu</span>
+            <input type="file" id="expenseReceipt" accept="image/*" style="display: none;" onchange="updateFileLabel(this)">
+            <label for="expenseReceipt" id="fileLabel" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: white; border: 1.5px dashed #cbd5e1; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                <svg style="width: 16px; height: 16px; color: #64748b;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+            </label>
+        </div>
+
+        <div id="loading-state" style="display: none; align-items: center;">
+            <svg class="loader-icon-spin" viewBox="0 0 24 24" style="width: 18px; height: 18px; color: var(--primary); animation: spin 1s linear infinite;">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle>
+            </svg>
+        </div>
+
+        <button onclick="exportExpensesPDF()" style="display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; cursor: pointer; font-weight: 700; font-size: 0.75rem; color: var(--text-main);">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="#ef4444" stroke-width="2.5" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            PDF
+        </button>
     </div>
-
-    <div id="loading-state" style="display: none; align-items: center; gap: 8px;">
-        <svg class="loader-icon-spin" viewBox="0 0 24 24" style="width: 18px; height: 18px; color: var(--primary); animation: spin 1s linear infinite;">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle>
-        </svg>
-    </div>
-
-    <button onclick="exportExpensesPDF()" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; cursor: pointer; font-weight: 600; font-size: 0.8rem;">
-        <svg viewBox="0 0 24 24" width="16" height="16" stroke="#ef4444" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-        PDF
-    </button>
-</div>
-    </header>
-
+</header>
 
     <div class="card">
         <div class="modal-grid" style="align-items: flex-end;">
@@ -757,6 +752,16 @@ async function uploadReceiptFile(file) {
     } catch (err) {
         console.error("Erreur Upload:", err.message);
         return null;
+    }
+}
+// Petit script pour changer la couleur si un fichier est sélectionné
+function updateFileLabel(input) {
+    const label = document.getElementById('fileLabel');
+    if (input.files && input.files[0]) {
+        // Change l'apparence si un fichier est sélectionné
+        label.style.background = "#ecfdf5";
+        label.style.borderColor = "#10b981";
+        label.innerHTML = `<svg style="width: 16px; height: 16px; color: #10b981;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
     }
 }
 </script>
