@@ -1619,3 +1619,57 @@ input:checked + .slider:before { transform: translateX(20px); }
         page-break-before: auto;
     }
 }
+/* Conteneur principal des cartes */
+.charts-row {
+    display: flex;
+    flex-wrap: wrap; /* Permet le passage à la ligne sur mobile */
+    gap: 1.5rem;      /* Espace entre les deux cartes */
+    width: 100%;
+}
+
+/* Style des cartes pour qu'elles prennent la même place */
+.charts-row .card {
+    flex: 1;          /* Les cartes partagent l'espace équitablement */
+    min-width: 300px; /* Largeur minimale avant de passer l'une sous l'autre */
+    background: var(--bg-card, #ffffff);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm, 0 2px 8px rgba(0,0,0,0.05));
+    display: flex;
+    flex-direction: column;
+}
+
+/* Titres des cartes */
+.card-title {
+    margin-top: 0;
+    margin-bottom: 1.2rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-main, #1e293b);
+}
+
+/* Badge de compteur */
+.badge-count {
+    background: var(--primary, #2563eb);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+}
+
+/* Gestion du défilement interne si le contenu est trop large */
+.scroll-x {
+    overflow-x: auto;
+    width: 100%;
+}
+
+/* Adaptation pour les très petits écrans (mobiles) */
+@media (max-width: 640px) {
+    .charts-row {
+        gap: 1rem;
+    }
+    
+    .charts-row .card {
+        min-width: 100%; /* Force une seule colonne sur petit mobile */
+    }
+}
