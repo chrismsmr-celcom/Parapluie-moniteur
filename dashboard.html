@@ -479,13 +479,25 @@ async function logout() {
     // --- FONCTION : DESSINER LES AVATARS DU STAFF ---
 function renderStaffAvatars(staff) {
     const staffContainer = document.getElementById('staffListContainer');
+    const staffCountLabel = document.getElementById('staffCountLabel'); // On cible le badge
+    
     if (!staffContainer) return;
 
+    // 1. Mise à jour du compteur
+    if (staffCountLabel) {
+        staffCountLabel.textContent = staff.length;
+    }
+
+    // 2. Gestion si la liste est vide
     if (staff.length === 0) {
         staffContainer.innerHTML = '<p style="font-size:0.8rem; padding:10px;">Aucun membre enregistré.</p>';
         return;
     }
 
+    // 3. Rendu de la liste
+    staffContainer.style.display = 'flex'; // S'assurer que le container est en flex pour le scroll-x
+    staffContainer.style.gap = '10px';
+    
     staffContainer.innerHTML = staff.map(member => `
         <div style="min-width: 90px; text-align: center; flex-shrink: 0; padding: 5px;">
             <div style="width: 55px; height: 55px; border-radius: 50%; overflow: hidden; margin: 0 auto 8px; border: 2px solid var(--secondary); background: var(--secondary-soft);">
@@ -573,6 +585,26 @@ async function updateProfitKPI() {
 
     } catch (err) {
         console.error("Erreur KPI Profit:", err);
+    }
+}
+function updateStaffCount() {
+    const container = document.getElementById('staffListContainer');
+    const badge = document.getElementById('staffCountLabel');
+    
+    if (!container || !badge) return;
+
+    // On compte le nombre d'éléments avec la classe 'staff-card' 
+    // (Assure-toi que tes cartes d'employés ont cette classe)
+    const count = container.getElementsByClassName('staff-card').length;
+    
+    // Mise à jour du texte
+    badge.textContent = count;
+
+    // Optionnel : Petit effet visuel si le nombre change
+    if (count > 0) {
+        badge.style.display = 'inline-block';
+    } else {
+        badge.style.display = 'none'; // Cache le badge s'il n'y a personne
     }
 }
 </script>
