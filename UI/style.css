@@ -1673,3 +1673,73 @@ input:checked + .slider:before { transform: translateX(20px); }
         min-width: 100%; /* Force une seule colonne sur petit mobile */
     }
 }
+@media (max-width: 600px) {
+    /* On réduit la taille de la police et les paddings */
+    #expenseReceipt {
+        font-size: 0.8rem;
+        padding: 5px;
+        max-width: 150px; /* On limite la largeur */
+    }
+
+    .form-group label {
+        font-size: 0.7rem;
+        white-space: nowrap; /* Empêche le label de revenir à la ligne */
+    }
+}
+/* Conteneur de l'en-tête (Header) */
+.expense-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+/* Zone Logo + Titres */
+.header-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Zone du bouton Reçu (Appareil photo) */
+.receipt-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 65px;  /* Réduit selon ton souhait */
+    height: 65px; /* Réduit selon ton souhait */
+    background: #ffffff;
+    border: 2px dashed #cbd5e1;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.receipt-dropzone:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.receipt-dropzone small {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #64748b;
+    margin-bottom: 2px;
+}
+
+.receipt-dropzone svg {
+    width: 22px; /* Taille de l'icône réduite */
+    height: 22px;
+    color: #94a3b8;
+}
+
+/* État quand un fichier est sélectionné */
+.receipt-active {
+    background: #dcfce7 !important;
+    border-color: #22c55e !important;
+}
