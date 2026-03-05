@@ -19,7 +19,7 @@
 <script src="js/settings-manager.js"></script>
 <script src="js/exportPDF.js"></script>
 <link rel="stylesheet" href="UI/style.css">
-
+<script src="js/offline-manager.js"></script>
 <script>
     // protectPage (de auth-check.js) garantit que user est connecté
     protectPage(async (user) => {
@@ -347,31 +347,49 @@ function renderInventory(dataToRender = inventoryData) {
     tbody.innerHTML = '';
     if (alertList) alertList.innerHTML = ''; 
 
-    dataToRender.forEach((item, index) => {
+    // Icônes SVG réutilisables
+    const iconRupture = `<svg style="width:14px;height:14px;vertical-align:middle;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+    const iconWarning = `<svg style="width:14px;height:14px;vertical-align:middle;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+    const iconSync = `<svg class="spin" style="width:14px;height:14px;vertical-align:middle;margin-right:5px;color:#ffa500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>`;
+
+    // --- GESTION OFFLINE ---
+    const pendingInv = typeof OfflineManager !== 'undefined' ? OfflineManager.getQueue(OfflineManager.KEYS.INVENTORY) : [];
+    const allItems = [...pendingInv, ...dataToRender];
+
+    allItems.forEach((item, index) => {
         const qty = parseInt(item.qty) || 0;
         const buy = parseFloat(item.buy_price) || 0;
         const sell = parseFloat(item.sell_price) || 0;
         const margin = sell - buy;
 
-        // Gestion des alertes
+        // Gestion des alertes dans la liste latérale
         if (alertList) {
             if (qty <= 0) {
-                alertList.innerHTML += `<li style="color: #ef4444;">🔴 Rupture : <strong>${item.product}</strong></li>`;
+                alertList.innerHTML += `<li style="color: #ef4444; display:flex; align-items:center; margin-bottom:5px;">${iconRupture} <span>Rupture : <strong>${item.product}</strong></span></li>`;
             } else if (qty <= 5) {
-                alertList.innerHTML += `<li style="color: #f59e0b;">🟠 Faible : <strong>${item.product}</strong> (${qty})</li>`;
+                alertList.innerHTML += `<li style="color: #f59e0b; display:flex; align-items:center; margin-bottom:5px;">${iconWarning} <span>Faible : <strong>${item.product}</strong> (${qty})</span></li>`;
             }
         }
 
         const tr = document.createElement('tr');
         tr.setAttribute('data-id', item.id);
+        
+        // Styles de ligne
+        if (item.isOffline) tr.style.opacity = "0.7";
         if (qty <= 0) tr.style.background = "rgba(239, 68, 68, 0.05)";
 
         tr.innerHTML = `
             <td><input type="checkbox" data-index="${index}"></td>
-            <td contenteditable="true" class="edit-cell" style="font-weight:600">${item.product || ''}</td>
-            <td contenteditable="true" class="edit-cell" style="font-weight:bold; color: ${qty <= 5 ? '#ef4444' : 'inherit'};">${qty}</td>
-            <td contenteditable="true" class="edit-cell">${buy.toLocaleString()}</td>
-            <td contenteditable="true" class="edit-cell">${sell.toLocaleString()}</td>
+            <td contenteditable="${!item.isOffline}" class="edit-cell" style="font-weight:600; display:flex; align-items:center;">
+                ${item.isOffline ? iconSync : ''}
+                ${item.product || ''}
+            </td>
+            <td contenteditable="${!item.isOffline}" class="edit-cell" style="font-weight:bold; color: ${qty <= 5 ? '#ef4444' : 'inherit'};">
+                ${qty <= 0 ? iconRupture : (qty <= 5 ? iconWarning : '')}
+                ${qty}
+            </td>
+            <td contenteditable="${!item.isOffline}" class="edit-cell">${buy.toLocaleString()}</td>
+            <td contenteditable="${!item.isOffline}" class="edit-cell">${sell.toLocaleString()}</td>
             <td style="font-weight:600; color: ${margin >= 0 ? '#10b981' : '#ef4444'}">
                 ${margin.toLocaleString()} ${window.currentCurrency || 'FC'}
             </td>
@@ -379,7 +397,7 @@ function renderInventory(dataToRender = inventoryData) {
         tbody.appendChild(tr);
     });
     
-    updateBannerUI();
+    if (typeof updateBannerUI === 'function') updateBannerUI();
 }
 // --- 3. CALCULS BANNIÈRE ---
 function updateBannerUI() {
@@ -463,10 +481,39 @@ async function saveInventory() {
     }
 }
 async function addRow() {
-    const { error } = await _db.from('inventory').insert([{ product: "Nouveau Produit", qty: 0, buy_price: 0, sell_price: 0 }]);
-    if(!error) await loadInventory();
-}
+    // 1. Préparation des données par défaut
+    const newItem = { 
+        product: "Nouveau Produit", 
+        qty: 0, 
+        buy_price: 0, 
+        sell_price: 0,
+        user_id: currentUser?.id // Toujours inclure le user_id pour le RLS
+    };
 
+    // 2. Gestion Hors-ligne
+    if (!navigator.onLine) {
+        OfflineManager.saveLocally(OfflineManager.KEYS.INVENTORY, newItem);
+        
+        // On rafraîchit l'affichage local immédiatement
+        // Note : renderInventory() fusionne déjà inventoryData + Queue offline
+        renderInventory(); 
+        return;
+    }
+
+    // 3. Gestion En ligne (Supabase)
+    const { error } = await _db.from('inventory').insert([newItem]);
+
+    if (error) {
+        console.error("Erreur insertion inventaire:", error.message);
+        alert("Erreur lors de l'ajout : " + error.message);
+    } else {
+        // Tentative de synchro si des éléments étaient en attente
+        if (typeof OfflineManager !== 'undefined') OfflineManager.syncAll();
+        
+        // Rechargement des données depuis le serveur
+        await loadInventory();
+    }
+}
 async function deleteSelectedRow() {
     const checks = document.querySelectorAll('#inventoryTable input[type="checkbox"]:checked');
     if (checks.length === 0 || !confirm("Supprimer ces articles ?")) return;
