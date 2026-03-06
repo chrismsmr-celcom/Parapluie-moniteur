@@ -1,35 +1,38 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff">
     <title>Moniteo Umbrella - Inventaire</title>
+
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/icon-16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+    <link rel="manifest" href="assets/manifest.webmanifest">
 
-<link rel="icon" type="image/png" sizes="16x16" href="assets/icon-16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
+    <link rel="stylesheet" href="UI/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
 
-<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
 
-<link rel="manifest" href="assets/manifest.webmanifest">
-
-<meta name="theme-color" content="#ffffff">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-
-<script src="js/supabase-config.js"></script> 
-<script src="js/auth-check.js"></script>
-
-<script src="js/common.js"></script>
-<script src="js/stats-manager.js"></script>
-<script src="js/settings-manager.js"></script>
-<script src="js/exportPDF.js"></script>
-<link rel="stylesheet" href="UI/style.css">
-<script src="js/offline-manager.js"></script>
-<script>
+    <script src="js/auth-check.js"></script>        
+    <script src="js/supabase-config.js"></script>   
+    <script src="js/offline-manager.js"></script>   
+    <script src="js/settings-manager.js"></script>  
+    <script src="js/common.js"></script>            
+    <script src="js/stats-manager.js"></script>     
+    <script src="js/exportPDF.js"></script>         
+    <script src="js/copilot-manager.js"></script><script>
     // protectPage (de auth-check.js) garantit que user est connecté
     protectPage(async (user) => {
         console.log("📦 Accès Inventaire autorisé :", user.email);
@@ -77,27 +80,39 @@
 <body>
 
     <nav class="sidebar" id="sidebar">
-        <div class="logo-box">
-            <img src="https://i.postimg.cc/bJjy56Lq/Moniteo-1-removebg-preview.png" class="logo-full" alt="Moniteo">
-            <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
-        </div> 
-        <ul class="nav-links">
-            <li><a href="dashboard.html"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> <span>Accueil</span></a></li>
-            <li><a href="sales.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
-            <li><a href="inventory.html" class="active"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> <span>Inventaire</span></a></li>
-            <li><a href="expenses.html"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> <span>Dépenses</span></a></li>
-            <li><a href="staff.html"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> <span>Staff</span></a></li>
-            <li><a href="reporting.html"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> <span>Reporting</span></a></li>
-            <li><a href="history.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>Historique</span></a></li>
-            <li><a href="setting.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> <span>Paramètres</span></a></li>
-        </ul>
-        <div class="logout-box">
-            <a href="#" onclick="logout(); return false;" class="logout-btn">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                <span>Déconnexion</span>
+    <div class="logo-box">
+        <img src="https://i.postimg.cc/bJjy56Lq/Moniteo-1-removebg-preview.png" class="logo-full" alt="Moniteo">
+        <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
+    </div>   
+    <ul class="nav-links">
+        <li><a href="dashboard.html"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> <span>Accueil</span></a></li>
+        <li><a href="sales.html" ><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
+        <li><a href="inventory.html"class="active"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> <span>Inventaire</span></a></li>
+        <li><a href="expenses.html"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> <span>Dépenses</span></a></li>
+        <li><a href="staff.html"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> <span>Staff</span></a></li>
+        <li><a href="reporting.html"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> <span>Reporting</span></a></li>
+        <li><a href="history.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>Historique</span></a></li>
+        <li><a href="setting.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> <span>Paramètres</span></a></li>
+        
+        <li class="help-item">
+            <a href="#" onclick="startMoniteoCopilot(); return false;">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>Besoin d'aide ?</span>
             </a>
-        </div>
-    </nav>
+        </li>
+    </ul>    
+    <div class="logout-box">
+        <a href="#" onclick="logout(); return false;" class="logout-btn">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span>Déconnexion</span>
+        </a>
+    </div>
+</nav>
+
 
     <main class="main-content">
    <header class="header-flex" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); margin-bottom: 25px;">
