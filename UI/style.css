@@ -142,6 +142,16 @@ body {
     text-decoration: none;
     font-weight: 600;
 }
+/* Style spécifique pour le bouton d'aide si besoin */
+.help-item a {
+    opacity: 0.8;
+    font-size: 0.9rem; /* Un peu plus petit pour le différencier */
+}
+
+.help-item a svg {
+    width: 20px; /* Taille légèrement réduite */
+    height: 20px;
+}
 /* --- BOUTONS SPÉCIFIQUES --- */
 .btn-success {
     background: #10b981;
@@ -1365,14 +1375,88 @@ table td {
     outline: none;
 }
 
-/* Mode Sombre - Ajustement pour les inputs */
-body.dark-mode .form-group input,
-body.dark-mode .form-group textarea {
-    background: #252a33;
-    border-color: #3d4450;
-    color: white;
+/* --- MODE SOMBRE OPTIMISÉ --- */
+body.dark-mode {
+    --bg-body: #0f172a;
+    --bg-card: #1e293b;
+    --text-main: #f1f5f9;
+    --text-light: #94a3b8;
+    --border-soft: #334155;
+    --primary: #3b82f6; /* On peut éclaircir un peu le bleu pour le contraste */
 }
 
+/* Correction pour les éléments avec couleurs fixes */
+body.dark-mode .action-bar, 
+body.dark-mode .expense-header,
+body.dark-mode .card,
+body.dark-mode .modal-content,
+body.dark-mode .dropdown-menu {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-soft) !important;
+    color: var(--text-main);
+}
+
+body.dark-mode input, 
+body.dark-mode select, 
+body.dark-mode textarea {
+    background-color: #1e293b !important; /* Couleur sombre directe */
+    border-color: var(--border-soft) !important;
+    color: var(--text-main) !important;
+}
+
+body.dark-mode .dropdown-menu button:hover {
+    background-color: var(--border-soft) !important;
+    color: var(--secondary);
+}
+
+/* Fix pour les icônes SVG */
+body.dark-mode .icon {
+    stroke: var(--text-main);
+}
+
+/* Fix pour les tableaux */
+body.dark-mode th {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-light);
+}
+/* Force le fond des codes ID Paie */
+body.dark-mode code {
+    background-color: #334155 !important; /* Gris bleuté sombre */
+    color: #f1f5f9 !important;
+}
+
+/* Correction des textes grisés dans les cellules (In: / Out:) */
+body.dark-mode td span[style*="color:var(--text-soft)"],
+body.dark-mode td span[style*="opacity:0.8"] {
+    color: var(--text-light) !important;
+    opacity: 1 !important;
+}
+
+/* Correction du nom cliquable ( Benjamin KADIMA ) */
+body.dark-mode div[onclick][style*="color:var(--primary)"] {
+    color: #60a5fa !important; /* Un bleu plus clair pour le mode sombre */
+}
+
+/* Correction des boutons d'icônes dans le tableau */
+body.dark-mode .btn-icon {
+    background: transparent;
+    color: var(--text-main);
+    border: 1px solid var(--border-soft);
+}
+
+body.dark-mode .btn-icon:hover {
+    background: var(--border-soft);
+}
+
+/* Force les bordures de lignes du tableau */
+body.dark-mode tr {
+    border-bottom: 1px solid var(--border-soft) !important;
+}
+
+/* Si les avatars ont une bordure blanche gênante */
+body.dark-mode img[style*="border-radius:50%"] {
+    border: 2px solid var(--border-soft);
+}
 /* Animation au survol des cartes de paramètres */
 .card {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -1742,4 +1826,63 @@ input:checked + .slider:before { transform: translateX(20px); }
 .receipt-active {
     background: #dcfce7 !important;
     border-color: #22c55e !important;
+}
+/* Customisation du Copilot Moniteo */
+:root {
+    --driver-popover-bg: #ffffff;
+    --driver-popover-color: #1e293b;
+}
+
+.driver-popover {
+    padding: 20px !important;
+    border-radius: 12px !important;
+    border: 2px solid #3b82f6 !important; /* Couleur primaire */
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.driver-popover-title {
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    font-size: 1.1rem !important;
+    margin-bottom: 8px !important;
+}
+
+.driver-popover-description {
+    font-family: 'Inter', sans-serif !important;
+    color: #64748b !important;
+    font-size: 0.9rem !important;
+    line-height: 1.5 !important;
+}
+
+.driver-popover-btn {
+    text-shadow: none !important;
+    background-color: #f1f5f9 !important;
+    color: #1e293b !important;
+    border: 1px solid #e2e8f0 !important;
+    padding: 6px 12px !important;
+    font-weight: 600 !important;
+    font-size: 0.8rem !important;
+    border-radius: 6px !important;
+    transition: all 0.2s !important;
+}
+
+.driver-popover-btn:hover {
+    background-color: #e2e8f0 !important;
+}
+
+/* Le bouton "Suivant" et "Terminer" en couleur primaire */
+.driver-popover-next-btn, .driver-popover-done-btn {
+    background-color: #3b82f6 !important;
+    color: white !important;
+    border: none !important;
+}
+
+.driver-popover-next-btn:hover, .driver-popover-done-btn:hover {
+    background-color: #2563eb !important;
+}
+
+.driver-popover-progress-text {
+    color: #94a3b8 !important;
+    font-size: 0.75rem !important;
 }
