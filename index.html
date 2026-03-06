@@ -3,23 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff">
     <title>Moniteo Umbrella | Portail SaaS</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/icon-16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
     <link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png" />
-    
+    <link rel="manifest" href="assets/manifest.webmanifest">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js"></script>
+    
     <script src="https://unpkg.com/lucide@latest"></script>
-   <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
-
-<link rel="icon" type="image/png" sizes="16x16" href="assets/icon-16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
-
-<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
-
-<link rel="manifest" href="assets/manifest.webmanifest">
-
-<meta name="theme-color" content="#ffffff">
     <style>
         :root {
             --primary: #2563eb;
@@ -141,83 +140,7 @@
 
         .footer-note { text-align: center; margin-top: 1.5rem; font-size: 0.95rem; color: var(--text-muted); }
         .footer-note span { color: var(--primary); cursor: pointer; font-weight: 700; }
-        /* --- FOOTER INTEGRATION --- */
-.main-footer {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 41.66%; /* Correspond à la largeur de .form-side (flex: 1 sur un total de 2.4) */
-    padding: 1.5rem 2.5rem;
-    background: transparent;
-    z-index: 20;
-}
 
-.footer-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    border-top: 1px solid var(--border);
-    padding-top: 1rem;
-}
-
-.copyright {
-    font-size: 0.65rem;
-    color: var(--text-main);
-    opacity: 0.8;
-}
-
-.footer-links {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-}
-
-.footer-link {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-decoration: none;
-    transition: color 0.2s;
-    font-weight: 500;
-}
-
-.footer-link:hover {
-    color: var(--primary);
-}
-
-.separator {
-    color: var(--border);
-    font-size: 0.7rem;
-    user-select: none;
-}
-
-/* --- RESPONSIVE FOOTER --- */
-@media (max-width: 1024px) {
-    .main-footer {
-        position: relative;
-        width: 100%;
-        background: white;
-        padding: 2rem;
-        text-align: center;
-    }
-
-    .footer-content {
-        align-items: center;
-        border-top: 1px solid var(--border);
-    }
-
-    .footer-links {
-        justify-content: center;
-    }
-}
-
-@media (max-width: 640px) {
-    .separator { display: none; }
-    .footer-links {
-        flex-direction: column;
-        gap: 10px;
-    }
-}
         @media (max-width: 1024px) { 
             .vanta-side { display: none; } 
             .form-side { flex: 1; background: var(--bg-body); }
@@ -302,21 +225,6 @@
         </div>
     </div>
 </div>
-<footer class="main-footer">
-    <div class="footer-content">
-        <span class="copyright">&copy; 2026 <strong>Moniteo</strong> by Umbrella</span>
-        <div class="footer-links">
-            <a href="mentions.html" class="footer-link">Mentions légales & CGU</a>
-            <span class="separator">|</span>
-            <a href="confidentialite.html" class="footer-link">Confidentialité</a>
-            <span class="separator">|</span>
-            <a href="aide.html" class="footer-link">Centre d'aide</a>
-            <span class="separator">|</span>
-            <a href="mailto:support@umbrella-moniteo.com" class="footer-link">Support technique</a>
-        </div>
-    </div>
-</footer>
-
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
