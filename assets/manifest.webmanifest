@@ -1,0 +1,21 @@
+{
+  "name": "Umbrella moniteo",
+  "short_name": "Moniteo",
+  "description": "Système de gestion de stock et personnel",
+  "start_url": "https://chrismsmr-celcom.github.io/Parapluie-moniteur/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
