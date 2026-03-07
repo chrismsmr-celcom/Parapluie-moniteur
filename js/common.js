@@ -154,3 +154,11 @@ window.addEventListener('click', () => {
         menu.classList.remove('show');
     });
 });
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('✅ Service Worker enregistré !', reg))
+            .catch(err => console.log('❌ Échec enregistrement SW', err));
+    });
+}
