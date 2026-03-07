@@ -9,7 +9,7 @@ const ASSETS_TO_CACHE = [
     'reporting.html',
     'history.html',
     'setting.html',
-    'UI/style.css
+    'UI/style.css',
     'js/common.js',
     'js/auth-check',
     'js/offline-manager',
