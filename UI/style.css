@@ -1376,68 +1376,135 @@ table td {
 }
 
 /* --- MODE SOMBRE OPTIMISÉ --- */
+/* ============================= */
+/* VARIABLES DARK MODE */
+/* ============================= */
 body.dark-mode {
-    --bg-body: #0f172a;
+    --bg-body: #000;
     --bg-card: #1e293b;
+    --bg-input: #1e293b;
+
     --text-main: #f1f5f9;
     --text-light: #94a3b8;
+    --text-soft: #64748b;
+
     --border-soft: #334155;
-    --primary: #3b82f6; /* On peut éclaircir un peu le bleu pour le contraste */
+
+    --primary: #60a5fa;
+    --primary-hover: #3b82f6;
 }
 
-/* Correction pour les éléments avec couleurs fixes */
-body.dark-mode .action-bar, 
+/* ============================= */
+/* BACKGROUND GLOBAL */
+/* ============================= */
+
+body.dark-mode {
+    background: var(--bg-body);
+    color: var(--text-main);
+}
+
+/* ============================= */
+/* CARDS / BLOCS */
+/* ============================= */
+
+body.dark-mode .action-bar,
 body.dark-mode .expense-header,
 body.dark-mode .card,
 body.dark-mode .modal-content,
 body.dark-mode .dropdown-menu {
-    background-color: var(--bg-card) !important;
-    border-color: var(--border-soft) !important;
+    background: var(--bg-card);
+    border: 1px solid var(--border-soft);
     color: var(--text-main);
 }
 
-body.dark-mode input, 
-body.dark-mode select, 
+/* ============================= */
+/* INPUTS */
+/* ============================= */
+
+body.dark-mode input,
+body.dark-mode select,
 body.dark-mode textarea {
-    background-color: #1e293b !important; /* Couleur sombre directe */
-    border-color: var(--border-soft) !important;
-    color: var(--text-main) !important;
+    background: var(--bg-input);
+    border: 1px solid var(--border-soft);
+    color: var(--text-main);
 }
+
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+    color: var(--text-soft);
+}
+
+/* ============================= */
+/* DROPDOWN */
+/* ============================= */
 
 body.dark-mode .dropdown-menu button:hover {
-    background-color: var(--border-soft) !important;
-    color: var(--secondary);
+    background: var(--border-soft);
+    color: var(--text-main);
 }
 
-/* Fix pour les icônes SVG */
+/* ============================= */
+/* ICONES */
+/* ============================= */
+
 body.dark-mode .icon {
     stroke: var(--text-main);
 }
 
-/* Fix pour les tableaux */
+/* ============================= */
+/* TABLEAUX */
+/* ============================= */
+
+body.dark-mode table {
+    color: var(--text-main);
+}
+
 body.dark-mode th {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255,255,255,0.05);
     color: var(--text-light);
 }
-/* Force le fond des codes ID Paie */
-body.dark-mode code {
-    background-color: #334155 !important; /* Gris bleuté sombre */
-    color: #f1f5f9 !important;
+
+body.dark-mode tr {
+    border-bottom: 1px solid var(--border-soft);
 }
 
-/* Correction des textes grisés dans les cellules (In: / Out:) */
+body.dark-mode td {
+    color: var(--text-main);
+}
+
+/* ============================= */
+/* CODE (ID Paie) */
+/* ============================= */
+
+body.dark-mode code {
+    background: #334155;
+    color: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* ============================= */
+/* TEXTES GRISES */
+/* ============================= */
+
 body.dark-mode td span[style*="color:var(--text-soft)"],
 body.dark-mode td span[style*="opacity:0.8"] {
-    color: var(--text-light) !important;
-    opacity: 1 !important;
+    color: var(--text-light);
+    opacity: 1;
 }
 
-/* Correction du nom cliquable ( Benjamin KADIMA ) */
+/* ============================= */
+/* NOM CLIQUABLE */
+/* ============================= */
+
 body.dark-mode div[onclick][style*="color:var(--primary)"] {
-    color: #60a5fa !important; /* Un bleu plus clair pour le mode sombre */
+    color: var(--primary);
 }
 
-/* Correction des boutons d'icônes dans le tableau */
+/* ============================= */
+/* BOUTONS ICONES */
+/* ============================= */
+
 body.dark-mode .btn-icon {
     background: transparent;
     color: var(--text-main);
@@ -1448,14 +1515,15 @@ body.dark-mode .btn-icon:hover {
     background: var(--border-soft);
 }
 
-/* Force les bordures de lignes du tableau */
-body.dark-mode tr {
-    border-bottom: 1px solid var(--border-soft) !important;
-}
+/* ============================= */
+/* AVATARS */
+/* ============================= */
 
-/* Si les avatars ont une bordure blanche gênante */
 body.dark-mode img[style*="border-radius:50%"] {
     border: 2px solid var(--border-soft);
+}
+body {
+    transition: background 0.3s, color 0.3s;
 }
 /* Animation au survol des cartes de paramètres */
 .card {
