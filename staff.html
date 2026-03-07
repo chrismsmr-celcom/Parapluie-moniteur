@@ -245,15 +245,26 @@
 			</div>
 		</main>
 		<div id="employeeModal" class="modal">
-			<div class="modal-content">
-				<div style="text-align: center; margin-bottom: 15px;">
-					<img id="modalPhoto" class="modal-photo" src="https://via.placeholder.com/100" 
-						onclick="document.getElementById('uploadPhoto').click()" 
-						style="cursor:pointer; width:100px; height:100px; border-radius:50%; object-fit:cover; border: 2px solid var(--secondary);">
-					<input type="file" id="uploadPhoto" hidden accept="image/*" onchange="handlePhotoUpload(this)">
-					<p style="font-size: 0.7rem; color: var(--secondary); margin-top: 5px;">Cliquer pour changer la photo</p>
-				</div>
-				<h3 id="modalNameHeader" style="text-align:center; margin-bottom:20px;">Dossier Collaborateur</h3>
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        
+        <div style="text-align: center; margin-bottom: 15px;">
+    <div style="width: 100px; height: 100px; margin: 0 auto; cursor: pointer; position: relative;" onclick="document.getElementById('uploadPhoto').click()">
+        <img id="modalPhoto" 
+             src="https://ui-avatars.com/api/?name=User&background=64748b&color=fff" 
+             style="width:100%; height:100%; border-radius:50%; object-fit:cover; border: 2px solid var(--border-soft); background: var(--bg-body);">
+        
+        <div style="position: absolute; bottom: 0; right: 0; background: var(--primary); color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; border: 2px solid var(--bg-card);">+</div>
+    </div>
+    
+    <input type="file" id="uploadPhoto" hidden accept="image/*" onchange="handlePhotoUpload(this)">
+    
+    <p style="font-size: 0.7rem; color: var(--secondary); margin-top: 8px; cursor: pointer; font-weight: 600;" onclick="document.getElementById('uploadPhoto').click()">
+        CLIQUER POUR CHANGER LA PHOTO
+    </p>
+</div>				
+        
+        <h3 id="modalNameHeader" style="text-align:center; margin-bottom:20px;">Dossier Collaborateur</h3>
 				<div class="modal-grid">
 					<div><label>Nom complet</label><input type="text" id="editName"></div>
 					<div><label>Poste / Fonction</label><input type="text" id="editRole"></div>
@@ -354,37 +365,49 @@
     }
 
     // --- 4. RÉCUPÉRATION DES DONNÉES (FILTRÉES) ---
-    async function fetchStaffData() {
-        if (!currentUser) return;
-        // Au début de la récupération
-       document.getElementById('loading-state').style.display = 'flex';
-        try {
-            const { data, error } = await _db
-                .from('staff')
-                .select('*')
-                .eq('user_id', currentUser.id)
-                .order('name', { ascending: true });
-             // Après le succès (dans ton .then() ou après ton await)
-            document.getElementById('loading-state').style.display = 'none';
-            if (error) throw error;
-            
-            // On enrichit les données pour ton affichage local (contractType, id_employee...)
-            staffData = (data || []).map(emp => ({
-                ...emp,
-                contractType: emp.role?.includes("Stage") ? "Stage" : "CDI", // Exemple de logique
-                status: emp.status || "actif",
-                id_employee: emp.id ? emp.id.substring(0,8).toUpperCase() : "N/A",
-                entryDate: emp.created_at ? emp.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
-            }));
+   async function fetchStaffData() {
+    if (!currentUser) return;
 
-            renderStaff(); 
-        } catch (err) {
-            console.error("Erreur de chargement du personnel:", err.message);
-            // Fallback LocalStorage si erreur réseau
-            staffData = JSON.parse(localStorage.getItem('staffData')) || [];
-            renderStaff();
-        }
+    const loadingElement = document.getElementById('loading-state');
+    if (loadingElement) loadingElement.style.display = 'flex';
+
+    try {
+        const { data, error } = await _db
+            .from('staff')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .order('name', { ascending: true });
+
+        if (error) throw error;
+
+        // On enrichit les données
+        staffData = (data || []).map(emp => ({
+            ...emp,
+            // Logique de secours si les champs sont vides dans Supabase
+            contractType: emp.contractType || (emp.role?.toLowerCase().includes("stage") ? "Stage" : "CDI"),
+            status: emp.status || "actif",
+            id_employee: emp.id_employee || (emp.id ? emp.id.substring(0, 8).toUpperCase() : "N/A"),
+            entryDate: emp.entryDate || (emp.created_at ? emp.created_at.split('T')[0] : new Date().toISOString().split('T')[0])
+        }));
+
+        // ✅ Mise à jour du cache local pour le prochain chargement hors-ligne
+        localStorage.setItem('staffData', JSON.stringify(staffData));
+        
+        renderStaff(); 
+
+    } catch (err) {
+        console.error("Erreur de chargement du personnel:", err.message);
+        
+        // 🔄 Récupération du cache si Supabase est inaccessible
+        const cachedData = localStorage.getItem('staffData');
+        staffData = cachedData ? JSON.parse(cachedData) : [];
+        
+        renderStaff();
+    } finally {
+        // ✅ On cache le chargement quoi qu'il arrive
+        if (loadingElement) loadingElement.style.display = 'none';
     }
+}
 
     // --- 5. PERSISTENCE SUPABASE (MODIFICATION) ---
     async function saveChange(index) {
