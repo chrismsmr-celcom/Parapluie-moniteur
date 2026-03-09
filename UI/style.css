@@ -831,7 +831,7 @@ tr:hover td {
 
 /* --- 5. TABLES ET BADGES --- */
 .table-wrapper { overflow-x: auto; margin-top: 1rem; border-radius: 8px; border: 1px solid var(--border-soft); background: var(--bg-card); }
-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 850px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: AUTO; }
 th { background: rgba(0,0,0,0.02); color: var(--text-light); padding: 12px; text-align: left; border-bottom: 2px solid var(--border-soft); }
 td { padding: 12px 10px; border-bottom: 1px solid var(--border-soft); vertical-align: middle; }
 
@@ -1720,7 +1720,55 @@ input:checked + .slider:before { transform: translateX(20px); }
     #payslipModal { position: absolute !important; left: 0; top: 0; width: 100% !important; background: white !important; }
     .no-print, .sidebar { display: none !important; }
 }
+/* Style global du Modal de Paie */
+#payslipModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
 
+/* Le conteneur blanc interne */
+#payslipModal > div {
+    max-height: 95vh;
+    overflow-y: auto; /* Permet le scroll interne si besoin sans bouger le modal */
+    width: 100%;
+    max-width: 750px !important; /* Largeur fixe pour éviter les décalages */
+    box-sizing: border-box;
+}
+
+/* Style des inputs dans le tableau pour ne pas casser la mise en page */
+#inputAvance, #inputTax {
+    width: 100px !important;
+    padding: 5px 8px !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+    font-family: inherit;
+    font-size: 0.9rem !important;
+    transition: border-color 0.2s;
+    outline: none;
+}
+
+#inputAvance:focus, #inputTax:focus {
+    border-color: #3b82f6 !important;
+    background: #f0f7ff;
+}
+
+/* Forcer l'alignement stable du tableau */
+.ps-table-fixed {
+    table-layout: fixed; /* Très important : empêche les colonnes de bouger selon le contenu */
+    width: 100%;
+}
+
+.ps-table-fixed td {
+    overflow: hidden;
+    white-space: nowrap;
+}
 /* --- 8. RESPONSIVE --- */
 @media (max-width: 1024px) {
     :root { --sidebar-w: 80px; }
@@ -1901,19 +1949,36 @@ input:checked + .slider:before { transform: translateX(20px); }
     --driver-popover-color: #1e293b;
 }
 
+/* 1. FORCE LE POPOVER EN MODAL ET DEVANT TOUT */
 .driver-popover {
+    background: #000
     padding: 20px !important;
     border-radius: 12px !important;
-    border: 2px solid #3b82f6 !important; /* Couleur primaire */
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+    border: 2px solid #3b82f6 !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2) !important;
+    z-index: 1000000 !important; /* Augmenté pour être au-dessus de tout */
+    max-width: 350px !important;
+    min-width: 300px !important;
+    position: fixed !important; /* Aide à stabiliser la position */
 }
 
+/* 2. FORCE LE SURCHAMP (OVERLAY) ET LA ZONE MISE EN AVANT */
+.driver-stage {
+    z-index: 999999 !important;
+}
+
+.driver-overlay {
+    z-index: 999998 !important;
+}
+
+/* 3. TYPOGRAPHIE ET BOUTONS */
 .driver-popover-title {
     font-family: 'Inter', sans-serif !important;
     font-weight: 700 !important;
     color: #1e293b !important;
     font-size: 1.1rem !important;
     margin-bottom: 8px !important;
+    display: block !important;
 }
 
 .driver-popover-description {
@@ -1923,14 +1988,21 @@ input:checked + .slider:before { transform: translateX(20px); }
     line-height: 1.5 !important;
 }
 
+.driver-popover-footer {
+    margin-top: 15px !important;
+    display: flex !important;
+    gap: 10px !important;
+    justify-content: flex-end !important;
+}
+
 .driver-popover-btn {
     text-shadow: none !important;
     background-color: #f1f5f9 !important;
     color: #1e293b !important;
     border: 1px solid #e2e8f0 !important;
-    padding: 6px 12px !important;
+    padding: 8px 16px !important;
     font-weight: 600 !important;
-    font-size: 0.8rem !important;
+    font-size: 0.85rem !important;
     border-radius: 6px !important;
     transition: all 0.2s !important;
 }
@@ -1939,7 +2011,7 @@ input:checked + .slider:before { transform: translateX(20px); }
     background-color: #e2e8f0 !important;
 }
 
-/* Le bouton "Suivant" et "Terminer" en couleur primaire */
+/* Boutons d'action principaux */
 .driver-popover-next-btn, .driver-popover-done-btn {
     background-color: #3b82f6 !important;
     color: white !important;
@@ -1953,4 +2025,162 @@ input:checked + .slider:before { transform: translateX(20px); }
 .driver-popover-progress-text {
     color: #94a3b8 !important;
     font-size: 0.75rem !important;
+    float: left !important;
+    margin-top: 10px !important;
 }
+
+/* 4. CORRECTIFS DE STRUCTURE POUR HISTORY.HTML */
+/* Si tes cartes ou bannières utilisent des transforms ou des positions complexes */
+.summary-banner, .action-bar, .table-wrapper {
+    transform: none !important; /* Les transforms cassent le calcul de Driver.js */
+}
+
+/* Empêche le défilement horizontal parasite pendant le tour */
+body.driver-js-opened {
+    overflow: hidden !important;
+}
+/* 1. EMPECHE L'EFFET SIDEBAR - FORCE LE FORMAT BULLE */
+.driver-popover.moniteo-popover-custom {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+    min-width: 300px !important;
+    max-width: 380px !important; /* Empeche l'étalement en hauteur/largeur */
+    width: auto !important;
+    border-radius: 16px !important;
+    padding: 25px !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(59, 130, 246, 0.2) !important;
+    z-index: 1000000 !important;
+    opacity: 1 !important; /* Règle le problème de transparence */
+    visibility: visible !important;
+}
+
+/* 2. STYLE DES TEXTES */
+.driver-popover-title {
+    font-size: 1.2rem !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    margin-bottom: 10px !important;
+    display: block !important;
+}
+
+.driver-popover-description {
+    font-size: 0.95rem !important;
+    line-height: 1.6 !important;
+    color: #475569 !important;
+}
+
+/* 3. DESIGN DES BOUTONS */
+.driver-popover-footer {
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+    margin-top: 20px !important;
+}
+
+.driver-popover-btn {
+    padding: 8px 15px !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    transition: all 0.2s !important;
+}
+
+/* Bouton Suivant */
+.driver-popover-next-btn {
+    background-color: #3b82f6 !important;
+    color: white !important;
+    border: none !important;
+}
+
+/* Bouton Précédent */
+.driver-popover-prev-btn {
+    background-color: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+/* 4. FIX POUR LE SURCHAMP NOIR SUR HISTORY */
+.driver-stage {
+    background-color: transparent !important;
+    outline: 5000px solid rgba(5, 10, 21, 0.85) !important; /* Crée l'overlay manuellement si besoin */
+    z-index: 999999 !important;
+}
+/* L'arrière-plan sombre (Overlay) */
+.payslip-sidebar-overlay {
+    display: none; /* Caché par défaut */
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4); /* Fond semi-transparent */
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    justify-content: flex-end; /* Pousse la sidebar à droite */
+}
+
+/* La Sidebar proprement dite */
+.payslip-sidebar {
+    background: white;
+    width: 100%;
+    max-width: 500px; /* Largeur ajustable selon tes besoins */
+    height: 100vh; /* Toute la hauteur de l'écran */
+    box-shadow: -5px 0 25px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    
+    /* Animation de sortie/entrée */
+    transform: translateX(100%);
+    transition: transform 0.3s ease-out;
+}
+
+/* État quand la sidebar est ouverte */
+.payslip-sidebar-overlay.active {
+    display: flex;
+}
+
+.payslip-sidebar-overlay.active .payslip-sidebar {
+    transform: translateX(0);
+}
+
+/* Corps scrollable pour éviter que les boutons sortent de l'écran */
+.sidebar-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 30px;
+}
+
+/* Footer fixe en bas de la sidebar */
+.sidebar-footer {
+    padding: 20px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+/* Remplace ton ancien bloc .modal par celui-ci pour la sidebar */
+.payslip-sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    justify-content: flex-end; /* Pousse le contenu à DROITE */
+    transition: all 0.3s ease;
+}
+
+.payslip-sidebar {
+    background: var(--bg-card);
+    width: 100%;
+    max-width: 480px; /* Largeur idéale pour un bulletin */
+    height: 100vh;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%); /* Caché par défaut */
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Classe active pour l'animation JS */
+.payslip-sidebar-overlay.active { display: flex; }
+.payslip-sidebar-overlay.active .payslip-sidebar { transform: translateX(0); }
