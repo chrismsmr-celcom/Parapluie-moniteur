@@ -2184,3 +2184,180 @@ body.driver-js-opened {
 /* Classe active pour l'animation JS */
 .payslip-sidebar-overlay.active { display: flex; }
 .payslip-sidebar-overlay.active .payslip-sidebar { transform: translateX(0); }
+/* --- RESPONSIVE MOBILE POUR .CARD --- */
+@media (max-width: 768px) {
+    /* 1. Ajustement du conteneur parent (si tu utilises une grille) */
+    .dashboard-grid, .settings-grid, .summary-banner {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        padding: 10px;
+    }
+
+    /* 2. Style spécifique de la Carte */
+    .card {
+        width: 100% !important; /* Force la pleine largeur */
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding: 15px !important; /* Réduit un peu le padding interne */
+        border-radius: 12px; /* Adoucit les angles sur mobile */
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* Ombre plus légère */
+    }
+
+    /* 3. Ajustement du titre à l'intérieur de la carte */
+    .card h3 {
+        font-size: 1rem !important;
+        margin-bottom: 1rem !important;
+        flex-wrap: wrap; /* Évite que l'icône et le texte se chevauchent */
+    }
+
+    /* 4. Ajustement des boutons ou actions dans la carte */
+    .card .btn, .card button {
+        width: 100%; /* Les boutons prennent toute la largeur pour être plus cliquables (UX) */
+        padding: 12px;
+        margin-top: 10px;
+        justify-content: center;
+    }
+
+    /* 5. Gestion des lignes d'infos (labels + inputs) */
+    .legal-row, .form-row {
+        grid-template-columns: 1fr !important; /* Force le passage à la ligne */
+        gap: 10px;
+    }
+
+    /* 6. Optimisation des images/avatars dans les cartes */
+    .card img {
+        max-width: 100%;
+        height: auto;
+    }
+}
+/* --- Mise en page Pleine Largeur --- */
+.inv-main-layout {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 20px;
+    gap: 20px;
+}
+
+.inv-container-full {
+    width: 100%; /* Occupe tout l'espace libéré par l'ancienne section alerte */
+}
+
+.inv-card-main {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+/* --- Système de Pop-up (Toast) --- */
+.inv-toast-wrapper {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.inv-alert-toast {
+    background: var(--bg-card);
+    border-left: 4px solid var(--danger);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    padding: 15px 20px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    min-width: 300px;
+    animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: all 0.3s ease;
+}
+
+/* Animation d'entrée */
+@keyframes slideInRight {
+    from { transform: translateX(110%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.inv-alert-toast.fade-out {
+    transform: translateX(110%);
+    opacity: 0;
+}
+
+.dark-mode .inv-alert-toast {
+    background: #1e293b;
+    border-bottom: 1px solid var(--border-soft);
+}
+@media (max-width: 768px) {
+    /* --- RÉPARATION DU TABLEAU ÉTROIT --- */
+    
+    /* On cache l'en-tête du tableau (les titres de colonnes) */
+    #inventoryTable previousElementSibling, 
+    thead {
+        display: none;
+    }
+
+    /* Chaque ligne devient une "carte" individuelle */
+    tr {
+        display: block;
+        width: 100%;
+        background: var(--bg-card);
+        margin-bottom: 15px;
+        padding: 10px;
+        border-radius: 12px;
+        border: 1px solid var(--border-soft);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    /* Chaque cellule devient une ligne à l'intérieur de la carte */
+    td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: right;
+        padding: 8px 5px !important;
+        border-bottom: 1px solid rgba(0,0,0,0.03);
+        width: 100% !important;
+        font-size: 0.9rem;
+    }
+
+    td:last-child {
+        border-bottom: none;
+    }
+
+    /* On affiche le nom de la colonne avant la valeur grâce au data-label */
+    td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: var(--secondary);
+        text-align: left;
+        flex: 1;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+    }
+
+    /* Ajustement spécifique pour le bouton Action et le nom du produit */
+    .cell-product {
+        font-weight: bold;
+        color: var(--primary);
+        font-size: 1rem !important;
+    }
+
+    .btn-scan-action {
+        width: 50px !important; /* On évite que le bouton prenne toute la largeur ici */
+        margin-top: 0 !important;
+    }
+
+    /* --- AJUSTEMENTS DE LA CARTE PARENTE --- */
+    .inv-main-layout {
+        padding: 10px;
+    }
+
+    .card {
+        padding: 10px !important;
+        border: none !important;
+        background: transparent !important; /* On laisse les lignes-cartes faire le job */
+        box-shadow: none !important;
+    }
+}
