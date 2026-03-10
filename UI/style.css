@@ -2289,75 +2289,13 @@ body.driver-js-opened {
     background: #1e293b;
     border-bottom: 1px solid var(--border-soft);
 }
-@media (max-width: 768px) {
-    /* --- RÉPARATION DU TABLEAU ÉTROIT --- */
-    
-    /* On cache l'en-tête du tableau (les titres de colonnes) */
-    #inventoryTable previousElementSibling, 
-    thead {
-        display: none;
-    }
-
-    /* Chaque ligne devient une "carte" individuelle */
-    tr {
-        display: block;
-        width: 100%;
-        background: var(--bg-card);
-        margin-bottom: 15px;
-        padding: 10px;
-        border-radius: 12px;
-        border: 1px solid var(--border-soft);
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-
-    /* Chaque cellule devient une ligne à l'intérieur de la carte */
-    td {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        text-align: right;
-        padding: 8px 5px !important;
-        border-bottom: 1px solid rgba(0,0,0,0.03);
-        width: 100% !important;
-        font-size: 0.9rem;
-    }
-
-    td:last-child {
-        border-bottom: none;
-    }
-
-    /* On affiche le nom de la colonne avant la valeur grâce au data-label */
-    td::before {
-        content: attr(data-label);
-        font-weight: 700;
-        color: var(--secondary);
-        text-align: left;
-        flex: 1;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-    }
-
-    /* Ajustement spécifique pour le bouton Action et le nom du produit */
-    .cell-product {
-        font-weight: bold;
-        color: var(--primary);
-        font-size: 1rem !important;
-    }
-
-    .btn-scan-action {
-        width: 50px !important; /* On évite que le bouton prenne toute la largeur ici */
-        margin-top: 0 !important;
-    }
-
-    /* --- AJUSTEMENTS DE LA CARTE PARENTE --- */
-    .inv-main-layout {
-        padding: 10px;
-    }
-
-    .card {
-        padding: 10px !important;
-        border: none !important;
-        background: transparent !important; /* On laisse les lignes-cartes faire le job */
-        box-shadow: none !important;
-    }
+/* À ajouter dans ton CSS */
+.inv-toast-wrapper {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000; /* Supérieur au modal qui est à 9999 */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
