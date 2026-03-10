@@ -14,7 +14,7 @@
 
     <link rel="stylesheet" href="UI/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
-
+     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     
@@ -24,15 +24,18 @@
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/html5-qrcode.min.js"></script>
+   
     <script src="js/auth-check.js"></script>        
     <script src="js/supabase-config.js"></script>   
     <script src="js/offline-manager.js"></script>   
     <script src="js/settings-manager.js"></script> 
-     <script src="js/common.js"></script>            
+     <script src="js/common.js"></script>  
+     <script src="js/recherche.js"></script>          
      <script src="js/stats-manager.js"></script>     
      <script src="js/exportPDF.js"></script>         
     <script src="js/copilot-manager.js"></script><script>
+    
     // Utilisation de protectPage (défini dans auth-check.js)
     protectPage(async (user) => {
         console.log("✅ Accès Sales autorisé :", user.email);
@@ -177,6 +180,10 @@
             <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             Nouvelle Vente
         </button>
+        <button class="btn-outline" onclick="startScanner()" style="border-color: var(--primary); color: var(--primary);">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2m-10 0H5a2 2 0 0 1-2-2v-2M8 12h8"/></svg>
+            Scanner
+        </button>
         <button class="btn-success" onclick="closeDay()">
             <svg class="icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11"></polyline></svg>
             Clôturer
@@ -184,10 +191,15 @@
     </div>
 
     <div class="group">
+        <button class="btn-outline" onclick="processInvoice()" style="background: var(--primary); color: white; border: none;">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21v-13a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v13l-3-2-3 2-2-2-2 2-3-2-3 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
+            Facturer
+        </button>
+
         <div class="dropdown">
             <button class="btn-outline dropdown-trigger" onclick="toggleDropdown(event)">
                 <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
-               actions
+                actions
             </button>
             <div class="dropdown-menu" id="actionsMenu">
                 <button onclick="undo()">Annuler l'action</button>
@@ -196,34 +208,31 @@
                 <button onclick="document.getElementById('excelFileInput').click()">Importer Excel</button>
             </div>
         </div>
-        
         <button class="btn-danger" onclick="deleteSelectedRow()">Supprimer</button>
     </div>
+</div>        
 
-    <input type="file" id="excelFileInput" style="display:none" accept=".xlsx, .xls, .csv" onchange="importExcel(event)">
-</div>
-
-        <div class="card">
+<div class="card inv-container-full">
     <input type="text" id="filterProduct" oninput="renderTable(this.value)" placeholder="Rechercher une vente..." style="width:100%; padding: 12px; border: 1px solid var(--border-soft); border-radius: 10px; margin-bottom: 1rem; background: var(--bg-body); color: var(--text-main);">
     
     <div style="overflow-x: auto;">
-    <table>
-        <thead>
-            <tr>
-                <th><input type="checkbox" onclick="toggleSelectAll(this)"></th>
-                <th>Produit</th>
-                <th>Date</th>
-                <th>Achat</th>
-                <th>Vente</th>
-                <th>Qté</th>
-                <th>Bénéfice</th>
-                <th style="text-align: right;">Action</th> </tr>
-        </thead>
-        <tbody id="salesTable"></tbody>
-    </table>
+        <table id="salesTableMain">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" onclick="toggleSelectAll(this)"></th>
+                    <th>Produit</th>
+                    <th>Date</th>
+                    <th>Achat</th>
+                    <th>Vente</th>
+                    <th>Qté</th>
+                    <th>Bénéfice</th>
+                    <th style="text-align: right;">Action</th> 
+                </tr>
+            </thead>
+            <tbody id="salesTable"></tbody>
+        </table>
+    </div>
 </div>
-</div>
-
 <div class="charts-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
     <div class="card chart-wrapper">
         <h4 style="margin-bottom: 10px; opacity: 0.8;">Répartition des Ventes</h4>
@@ -262,29 +271,42 @@
         </div>
     </div>
 </div>
-<div id="customerModal" class="modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
-    <div style="background:white; padding:25px; border-radius:12px; width:90%; max-width:400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-        <h3 style="margin-top:0; color:#1f3c63;">Détails du Client</h3>
-        <p style="font-size:0.85rem; color:#666; margin-bottom:20px;">Remplissez les infos pour la facture.</p>
+<div id="customerModal" class="modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; backdrop-filter: blur(4px);">
+    <div style="background:white; padding:25px; border-radius:12px; width:95%; max-width:450px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); max-height: 90vh; overflow-y: auto;">
+        <h3 style="margin-top:0; color:#1f3c63; display:flex; align-items:center; gap:10px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Résumé de la Facture
+        </h3>
+
+        <div id="invoiceSummary" style="background:#f9fafb; border-radius:8px; padding:15px; margin-bottom:20px; border:1px solid #edf2f7;">
+            <div id="summaryItemsList" style="font-size:0.9rem; color:#4a5568; margin-bottom:10px;">
+                </div>
+            <div style="border-top:2px dashed #e2e8f0; padding-top:10px; display:flex; justify-content:space-between; font-weight:700; font-size:1.1rem; color:#1a202c;">
+                <span>Total à payer</span>
+                <span id="summaryTotalAmount">0.00 $</span>
+            </div>
+        </div>
         
-        <input type="hidden" id="modalSaleIndex">
+        <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
         
+        <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:#1f3c63;">Détails du Client (Optionnel)</h4>
         <div style="margin-bottom:15px;">
             <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:5px;">Nom Complet</label>
-            <input type="text" id="custName" placeholder="Ex: Jean Mukendi" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+            <input type="text" id="custName" placeholder="Ex: Jean Mukendi" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; outline:none; transition:border 0.2s;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='#ddd'">
         </div>
 
         <div style="margin-bottom:15px;">
             <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:5px;">Téléphone</label>
-            <input type="text" id="custPhone" placeholder="Ex: +243..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+            <input type="text" id="custPhone" placeholder="Ex: +243..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; outline:none;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='#ddd'">
         </div>
 
-        <div style="display:flex; gap:10px; margin-top:20px;">
-            <button onclick="confirmInvoice()" style="flex:1; background:#10b981; color:white; border:none; padding:12px; border-radius:6px; cursor:pointer; font-weight:600;">Générer PDF</button>
-            <button onclick="closeCustomerModal()" style="flex:1; background:#f3f4f6; color:#4b5563; border:none; padding:12px; border-radius:6px; cursor:pointer;">Annuler</button>
+        <div style="display:flex; gap:12px; margin-top:25px;">
+<button onclick="confirmInvoice()">Confirmer et Imprimer</button>            
+<button onclick="closeCustomerModal()" style="flex:1; background:#f3f4f6; color:#4b5563; border:none; padding:14px; border-radius:8px; cursor:pointer; font-weight:500;">Annuler</button>
         </div>
     </div>
 </div>
+<div id="reader" style="width: 100%; max-width: 500px; display: none; margin: 10px auto; border-radius: 12px; overflow: hidden;"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script src="js/auth-check.js"></script>
@@ -347,7 +369,21 @@ function applyGlobalSettings() {
     const displayComp = document.getElementById('company-display');
     if (displayComp && config.name) displayComp.innerText = config.name;
 }
-    
+    function showToast(message, type = 'success') {
+    console.log(`[Toast ${type}]: ${message}`);
+    const wrapper = document.querySelector('.inv-toast-wrapper');
+    if (!wrapper) return;
+
+    const toast = document.createElement('div');
+    toast.className = `inv-alert-toast ${type === 'error' ? 'toast-error' : ''}`;
+    toast.innerHTML = `<span>${message}</span>`;
+    wrapper.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('fade-out');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
     async function fetchData() {
         if (!currentUser) return;
         document.getElementById('loading-state').style.display = 'flex';
@@ -484,20 +520,17 @@ function updateSalesCharts() {
     }
 
     // --- 3. RENDU DU TABLEAU ---
- function renderTable(filter = '') {
+function renderTable(filter = '') {
     const tbody = document.getElementById('salesTable');
     if (!tbody) return;
     
-    // 1. Récupération des données fusionnées (Online + Offline)
     const pendingSales = typeof OfflineManager !== 'undefined' ? OfflineManager.getQueue(OfflineManager.KEYS.SALES) : [];
     const allSales = [...pendingSales, ...salesData]; 
 
-    // 2. Variables pour les totaux
     let totalS = 0; 
     let totalP = 0; 
     let totalQ = 0; 
 
-    // 3. Préparation des icônes et options (Optimisation)
     const iconSyncPending = `<svg class="spin" style="width:16px;height:16px;color:#ffa500;margin-right:8px;vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>`;
     const iconSyncDone = `<svg style="width:16px;height:16px;color:#10b981;margin-right:8px;vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 
@@ -508,10 +541,8 @@ function updateSalesCharts() {
         </option>`;
     }).join('');
 
-    // 4. Nettoyage du tableau avant rendu
     tbody.innerHTML = '';
 
-    // 5. Boucle unique de filtrage et de rendu
     allSales.forEach((s, index) => {
         if ((s.product || "").toLowerCase().includes(filter.toLowerCase())) {
             const buyPrice = parseFloat(s.buy_price || 0);
@@ -519,7 +550,6 @@ function updateSalesCharts() {
             const qty = parseInt(s.qty || 0);
             const profit = (sellPrice - buyPrice) * qty;
 
-            // Cumul des totaux pour les statistiques
             totalS += (sellPrice * qty);
             totalP += profit;
             totalQ += qty;
@@ -528,11 +558,12 @@ function updateSalesCharts() {
             const tr = document.createElement('tr');
             if (s.isOffline) tr.style.opacity = "0.7"; 
 
+            // Ajout des data-label pour le CSS mobile "étroit"
             tr.innerHTML = `
-                <td><input type="checkbox" class="row-check" data-id="${s.id}"></td>
-                <td style="display:flex; align-items:center;">
+                <td data-label="Sélection"><input type="checkbox" class="row-check" data-id="${s.id || index}"></td>
+                <td data-label="Produit" style="display:flex; align-items:center;">
                     ${syncIcon}
-                    <select onchange="handleSelectProduct(${index}, this)" style="width:100%; background:transparent; color:inherit; border:none; font-weight:600;">
+                    <select onchange="handleSelectProduct(${index}, this)" class="cell-product-select" style="width:100%; background:transparent; color:inherit; border:none; font-weight:600;">
                         <option value="">-- Choisir --</option>
                         <optgroup label="Inventaire">
                             ${inventoryOptions.replace(`value="${s.product}"`, `value="${s.product}" selected`)}
@@ -542,43 +573,37 @@ function updateSalesCharts() {
                         </option>
                     </select>
                 </td>
-                <td contenteditable="true" onblur="updateField(${index}, 'date', this)">${s.date || ''}</td>
-                <td style="opacity:0.7;">${buyPrice.toLocaleString()}</td>
-                <td contenteditable="true" onblur="updateField(${index}, 'sell_price', this)">${sellPrice}</td>
-                <td contenteditable="true" onblur="handleQtyChange(${index}, this)">${qty}</td>
-                <td style="font-weight:bold; color:${profit >= 0 ? '#10b981' : '#ff4d4d'}">
+                <td data-label="Date" contenteditable="true" onblur="updateField(${index}, 'date', this)">${s.date || ''}</td>
+                <td data-label="Prix Achat" style="opacity:0.7;">${buyPrice.toLocaleString()}</td>
+                <td data-label="Prix Vente" class="cell-price" contenteditable="true" onblur="updateField(${index}, 'sell_price', this)">${sellPrice}</td>
+                <td data-label="Quantité" class="cell-qty" contenteditable="true" onblur="handleQtyChange(${index}, this)">${qty}</td>
+                <td data-label="Bénéfice" style="font-weight:bold; color:${profit >= 0 ? '#10b981' : '#ff4d4d'}">
                     ${profit.toLocaleString(undefined, {minimumFractionDigits: 2})} ${window.currentCurrency || 'FC'}
                 </td>
-                <td style="text-align: right;">
-                    ${s.isOffline ? '' : `
-                    <button onclick="openCustomerModal(${index})" class="btn-invoice" title="Infos Client & Facture">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                            <path d="M6 14h12v8H6z"></path>
-                        </svg>
-                    </button>`}
+                <td data-label="Actions" style="text-align: right;">
+                    <div style="display:flex; justify-content: flex-end; gap:8px;">
+                        <button onclick="openCustomerModal(${index})" class="btn-invoice" title="Infos Client & Facture" style="background:none; border:none; color:var(--primary); cursor:pointer;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                <path d="M6 14h12v8H6z"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </td>
             `;
             tbody.appendChild(tr);
         }
     });
 
-    // 6. Mise à jour des afficheurs (KPIs)
+    // Mise à jour des KPIs
     const currency = window.currentCurrency || 'FC';
-    
-    // Total Ventes
     const displayS = document.getElementById('totalSales');
     if (displayS) displayS.innerText = `${totalS.toLocaleString()} ${currency}`;
-    
-    // Total Profit
     const displayP = document.getElementById('totalProfit');
     if (displayP) displayP.innerText = `${totalP.toLocaleString()} ${currency}`;
-
-    // Articles Vendus (Le compteur que tu as ajouté)
     const displayQ = document.getElementById('totalQuantity');
     if (displayQ) displayQ.innerText = totalQ.toLocaleString();
 }
-
     // --- 4. GESTION DES ACTIONS (MERGE) ---
     async function handleSelectProduct(index, select) {
     const val = select.value;
@@ -850,68 +875,163 @@ function closeCustomerModal() {
     document.getElementById('custPhone').value = '';
 }
 
+/**
+ * VALIDE LA FACTURE ET GÉNÈRE LE PDF RÉEL
+ */
 async function confirmInvoice() {
-    const btn = event.target; // On récupère le bouton cliqué
+    const btn = event?.target || document.querySelector('#customerModal button[onclick="confirmInvoice()"]');
     const originalText = btn.innerHTML;
     
-    try {
-        const index = document.getElementById('modalSaleIndex').value;
-        const name = document.getElementById('custName').value || "Client Comptant";
-        const phone = document.getElementById('custPhone').value || "";
+    // 1. Récupérer l'index de la vente qu'on veut facturer
+    const index = document.getElementById('modalSaleIndex').value;
+    const sale = window.salesData[index];
 
-        const customer = { name, phone };
-        
-        // Indicateur de chargement
+    const clientName = document.getElementById('custName').value || "Client Comptant";
+    const clientPhone = document.getElementById('custPhone').value || "N/A";
+
+    if (!sale) {
+        showToast("Erreur: Données de vente introuvables.", "error");
+        return;
+    }
+
+    try {
         btn.disabled = true;
         btn.innerHTML = "Génération...";
-        btn.style.opacity = "0.7";
 
+        if (!window.MoniteoPDF) throw new Error("Module PDF non chargé.");
+
+        const invoiceID = `FAC-${Date.now().toString().slice(-6)}`;
+        
+        // 2. On prépare l'item unique à partir de la ligne sélectionnée
+        const itemsToPrint = [{
+            description: sale.product || "Produit sans nom",
+            price: Number(sale.sell_price) || 0,
+            qty: Number(sale.qty) || 0,
+            total: (Number(sale.sell_price) || 0) * (Number(sale.qty) || 0)
+        }];
+
+        // 3. Appel du module
+        await window.MoniteoPDF.generateThermalReceipt({
+            invoiceNumber: invoiceID,
+            date: new Date().toLocaleDateString('fr-FR'),
+            customer: {
+                name: clientName,
+                phone: clientPhone
+            },
+            items: itemsToPrint
+        });
+
+        showToast(`Facture ${invoiceID} générée !`, "success");
         closeCustomerModal();
-        await generateInvoice(index, customer);
 
     } catch (err) {
-        console.error("Erreur confirmation:", err);
-        alert("Erreur lors de la préparation de la facture.");
+        console.error("ERREUR PDF:", err);
+        alert("Erreur critique : " + err.message);
     } finally {
-        // Remise à l'état initial du bouton
         btn.disabled = false;
         btn.innerHTML = originalText;
-        btn.style.opacity = "1";
     }
 }
+async function generateMultiItemInvoice(customer = { name: "Client Comptant", phone: "-" }) {
+    if (window.moniteoCart.length === 0) {
+        alert("Le panier est vide !");
+        return;
+    }
 
-async function generateInvoice(index, customer) {
+    try {
+        // Calcul du total général de la facture
+        const grandTotal = window.moniteoCart.reduce((sum, item) => sum + item.total, 0);
+        
+        const invoiceID = `FAC-${Date.now().toString().slice(-6)}`;
+
+        if (!window.MoniteoPDF) throw new Error("Module PDF introuvable.");
+
+        // Appel au module PDF avec la liste complète
+        await window.MoniteoPDF.generateThermalReceipt({
+            invoiceNumber: invoiceID,
+            date: new Date().toLocaleDateString('fr-FR'),
+            customer: customer,
+            // On envoie le tableau complet au lieu d'un seul item
+            items: window.moniteoCart, 
+            totalHT: grandTotal,
+            qrCode: `VERIF-POS-${invoiceID}`
+        });
+
+        // Une fois la facture générée, on vide le panier
+        window.moniteoCart = [];
+        alert("Vente enregistrée et facture générée !");
+
+    } catch (error) {
+        console.error("Erreur POS:", error);
+        alert("Erreur : " + error.message);
+    }
+}
+// Variable globale pour stocker les articles en cours
+window.moniteoCart = [];
+
+/**
+ * Ajoute un produit au panier avant facturation
+ */
+function addToCart(index) {
+    const product = window.salesData[index]; // Ou tes données de stock
+    if (!product) return;
+
+    // Vérifier si le produit est déjà dans le panier
+    const existingItem = window.moniteoCart.find(item => item.id === product.id);
+
+    if (existingItem) {
+        existingItem.qty += 1;
+        existingItem.total = existingItem.qty * existingItem.price;
+    } else {
+        window.moniteoCart.push({
+            id: product.id,
+            description: product.product || product.name,
+            price: parseFloat(product.sell_price) || 0,
+            qty: 1,
+            total: parseFloat(product.sell_price) || 0
+        });
+    }
+    
+    console.log("Panier mis à jour :", window.moniteoCart);
+    // Ici, tu peux appeler une fonction pour mettre à jour l'affichage de ton interface
+}
+// Remplace "async function generateInvoice..." par ceci :
+window.generateInvoice = async function(index, customer) {
     const sale = window.salesData[index];
     if (!sale) {
         alert("Données de vente introuvables.");
         return;
     }
 
-    // 1. Calcul simple du montant HT (La TVA est gérée par le module PDF)
-    const qty = parseInt(sale.qty) || 0;
-    const price = parseFloat(sale.sell_price) || 0;
-    const subTotal = price * qty;
-    
-    const invoiceID = `FAC-${Date.now().toString().slice(-6)}`;
+    try {
+        const qty = parseInt(sale.qty) || 0;
+        const price = parseFloat(sale.sell_price) || 0;
+        const subTotal = price * qty;
+        const invoiceID = `FAC-${Date.now().toString().slice(-6)}`;
 
-    // 2. Appel au module exportPDF.js (Version Supabase)
-    // On envoie les données brutes, le module fera le reste proprement
-    await window.MoniteoPDF.generateModernInvoice({
-        invoiceNumber: invoiceID,
-        date: sale.date || new Date().toLocaleDateString('fr-FR'),
-        customer: {
-            name: customer.name,
-            phone: customer.phone
-        },
-        item: {
-            description: sale.product || "Produit non spécifié",
-            price: price,
-            qty: qty,
-            total: subTotal // C'est le montant Hors Taxe
-        },
-        qrCode: `VERIF-FAC-${invoiceID}`
-    });
-}
+        if (!window.MoniteoPDF) throw new Error("Module PDF non chargé.");
+
+        await window.MoniteoPDF.generateThermalReceipt({
+            invoiceNumber: invoiceID,
+            date: sale.date || new Date().toLocaleDateString('fr-FR'),
+            customer: {
+                name: customer?.name || "Client Comptant",
+                phone: customer?.phone || "-"
+            },
+            // Note : Si tu as mis à jour exportPDF pour le panier, 
+            // transforme ceci en tableau [item] pour la compatibilité
+            items: [{
+                description: sale.product || "Produit",
+                price: price,
+                qty: qty,
+                total: subTotal
+            }]
+        });
+    } catch (error) {
+        console.error("Erreur Facturation:", error);
+        alert("Erreur: " + error.message);
+    }
+};
 /**
  * NAVIGATION & UI
  */
@@ -1015,6 +1135,265 @@ function updateQuantityDisplay(allSales) {
 
     // On affiche le résultat avec un formatage propre
     displayQ.innerText = totalQ.toLocaleString();
+}
+async function handleScannedCode(code) {
+    try {
+        // 1. Chercher le produit dans l'inventaire via son code-barres
+        const { data: product, error } = await _db
+            .from('inventory')
+            .select('*')
+            .eq('barcode', code)
+            .maybeSingle();
+
+        if (error) throw error;
+
+        if (product) {
+            // 2. Vérifier si le produit est en stock
+            if (product.qty <= 0) {
+                AudioFeedback.playError();
+                showToast(`Rupture de stock pour : ${product.product}`, "error");
+                return;
+            }
+
+            // 3. Ajouter la ligne au tableau de vente
+            addSaleRow(product);
+            AudioFeedback.playSuccess();
+            showToast(`${product.product} ajouté`, "success");
+            
+        } else {
+            // Produit inconnu dans la base
+            AudioFeedback.playError();
+            alert(`Le code [${code}] n'existe pas dans l'inventaire.`);
+        }
+    } catch (err) {
+        console.error("Erreur scan vente:", err);
+        showToast("Erreur lors de la recherche", "error");
+    }
+}
+
+// Fonction pour injecter proprement la ligne dans le tableau HTML
+function addSaleRow(product) {
+    const tbody = document.getElementById('salesTableBody'); // Assure-toi d'avoir cet ID
+    const tr = document.createElement('tr');
+    
+    // On génère un ID temporaire pour la ligne de vente
+    const tempId = 'sale_' + Date.now();
+    tr.setAttribute('data-id', tempId);
+    tr.setAttribute('data-product-id', product.id);
+
+    tr.innerHTML = `
+        <td><input type="checkbox"></td>
+        <td>${product.product}</td>
+        <td class="cell-price">${product.sell_price}</td>
+        <td contenteditable="true" class="cell-qty" oninput="calculateLineTotal(this)">1</td>
+        <td class="cell-total">${product.sell_price}</td>
+        <td>
+            <button onclick="this.closest('tr').remove(); updateGlobalTotal();" class="btn-icon-danger">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+        </td>
+    `;
+    
+    tbody.prepend(tr); // Ajoute en haut de liste
+    updateGlobalTotal(); // Met à jour le montant total de la vente
+}
+// Fonction appelée par le bouton "Scanner"
+/**
+ * Lance le scanner QR/Code-barres pour la page de vente.
+ * Transforme le mobile en douchette de caisse pour Makem Group.
+ */
+async function startScanner() {
+    console.log("Initialisation du scanner...");
+    
+    // 1. Vérification de sécurité : La bibliothèque est-elle présente ?
+    if (typeof Html5Qrcode === 'undefined') {
+        alert("Erreur : La bibliothèque de scan n'est pas chargée. Vérifiez votre connexion internet ou le lien du script.");
+        return;
+    }
+
+    const scannerElement = document.getElementById('reader');
+    
+    if (scannerElement) {
+        // 2. Affichage du conteneur avec un style fluide
+        scannerElement.style.display = 'block';
+        scannerElement.scrollIntoView({ behavior: 'smooth' });
+
+        const html5QrCode = new Html5Qrcode("reader");
+        
+        const config = { 
+            fps: 15, // Un peu plus fluide pour mobile
+            qrbox: { width: 250, height: 150 }, // Format rectangulaire mieux adapté aux codes-barres
+            aspectRatio: 1.0
+        };
+
+        try {
+            await html5QrCode.start(
+                { facingMode: "environment" }, 
+                config,
+                (decodedText) => {
+                    console.log(`Code détecté : ${decodedText}`);
+                    
+                    // 3. Action de vente immédiate
+                    if (typeof handleScannedCode === 'function') {
+                        handleScannedCode(decodedText);
+                    }
+
+                    // 4. Fermeture propre du scanner après détection
+                    html5QrCode.stop().then(() => {
+                        scannerElement.style.display = 'none';
+                    }).catch(err => console.warn("Erreur lors de l'arrêt :", err));
+                },
+                (errorMessage) => {
+                    // On ignore les logs de recherche continue pour ne pas polluer la console
+                }
+            );
+        } catch (err) {
+            console.error("Erreur caméra : ", err);
+            if (err.name === 'NotAllowedError') {
+                alert("Permission caméra refusée. Veuillez autoriser l'accès dans les paramètres de votre navigateur.");
+            } else {
+                alert("Impossible d'activer la caméra. Assurez-vous d'utiliser un protocole sécurisé (https ou http://127.0.0.1).");
+            }
+            scannerElement.style.display = 'none';
+        }
+    } else {
+        console.error("Erreur : Élément #reader introuvable. Ajoutez <div id='reader'></div> dans votre HTML.");
+    }
+}
+/**
+ * Procède à la facturation des articles sélectionnés dans le panier (tableau).
+ */
+let currentInvoiceData = { items: [], total: 0 }; // Stockage temporaire
+
+/**
+ * ÉTAPE 1 : On prépare les données depuis le tableau
+ */
+function processInvoice() {
+    console.log("Préparation de la facturation...");
+    
+    // On cible les lignes cochées
+    const checkboxes = document.querySelectorAll('#salesTable input[type="checkbox"]:checked');
+    
+    if (checkboxes.length === 0) {
+        showToast("Veuillez sélectionner au moins un produit.", "error");
+        return;
+    }
+
+    currentInvoiceData.items = [];
+    currentInvoiceData.total = 0;
+    let summaryHtml = "";
+
+    checkboxes.forEach(cb => {
+        const row = cb.closest('tr');
+        
+        // On récupère le nom : soit le texte de l'option sélectionnée, soit la cellule 1
+        const selectEl = row.querySelector('select');
+        const name = selectEl ? selectEl.options[selectEl.selectedIndex].text : row.cells[1].innerText;
+        
+        const price = parseFloat(row.querySelector('.cell-price')?.innerText) || 0;
+        const qty = parseFloat(row.querySelector('.cell-qty')?.innerText) || 1;
+        const lineTotal = price * qty;
+
+        currentInvoiceData.items.push({ 
+            description: name.replace('(RUPTURE)', '').trim(), // On nettoie le nom pour le PDF
+            price: price, 
+            qty: qty, 
+            total: lineTotal 
+        });
+        currentInvoiceData.total += lineTotal;
+
+        summaryHtml += `
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid #f0f0f0; padding-bottom:5px;">
+                <span style="font-weight:500;">${qty}x ${name}</span>
+                <span style="font-weight:700;">${lineTotal.toLocaleString()} ${window.currentCurrency || '$'}</span>
+            </div>`;
+    });
+
+    document.getElementById('summaryItemsList').innerHTML = summaryHtml;
+    document.getElementById('summaryTotalAmount').innerText = currentInvoiceData.total.toLocaleString() + " " + (window.currentCurrency || '$');
+
+    // On affiche le modal
+    document.getElementById('customerModal').style.display = 'flex';
+}
+
+/**
+ * ÉTAPE 2 : On lance la génération réelle du PDF
+ */
+async function confirmInvoice() {
+    const btn = event?.target;
+    if (btn) btn.disabled = true;
+
+    const clientName = document.getElementById('custName').value || "Client Comptant";
+    const clientPhone = document.getElementById('custPhone').value || "N/A";
+
+    try {
+        if (!window.MoniteoPDF) throw new Error("Module PDF (exportPDF.js) non trouvé.");
+
+        const invoiceID = `FAC-${Date.now().toString().slice(-6)}`;
+
+        // APPEL CRITIQUE AU MODULE PDF
+        await window.MoniteoPDF.generateThermalReceipt({
+            invoiceNumber: invoiceID,
+            date: new Date().toLocaleDateString('fr-FR'),
+            customer: {
+                name: clientName,
+                phone: clientPhone
+            },
+            items: currentInvoiceData.items // On envoie le tableau préparé dans processInvoice
+        });
+
+        showToast(`Facture ${invoiceID} générée !`, "success");
+        closeCustomerModal();
+
+    } catch (err) {
+        console.error("Erreur Facturation:", err);
+        alert("Erreur: " + err.message);
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+function closeCustomerModal() {
+    document.getElementById('customerModal').style.display = 'none';
+}
+
+/**
+ * Affiche une notification élégante à l'écran
+ */
+function showToast(message, type = 'info') {
+    // Vérifie si le wrapper existe, sinon le crée
+    let wrapper = document.querySelector('.inv-toast-wrapper');
+    if (!wrapper) {
+        wrapper = document.createElement('div');
+        wrapper.className = 'inv-toast-wrapper';
+        document.body.appendChild(wrapper);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `inv-alert-toast ${type}`;
+    
+    // Définition de la couleur selon le type
+    const colors = {
+        success: '#10b981',
+        error: '#ef4444',
+        info: '#3b82f6',
+        warning: '#f59e0b'
+    };
+
+    toast.style.borderLeft = `4px solid ${colors[type] || colors.info}`;
+    
+    toast.innerHTML = `
+        <div style="flex:1">${message}</div>
+        <button onclick="this.parentElement.remove()" style="background:none; border:none; color:#999; cursor:pointer;">&times;</button>
+    `;
+
+    wrapper.appendChild(toast);
+
+    // Auto-suppression après 4 secondes
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => toast.remove(), 500);
+    }, 4000);
 }
 </script>
 </body>
