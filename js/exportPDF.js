@@ -1,26 +1,30 @@
 /**
  * exportPDF.js - Module Moniteo PRO
- * Version : 2.1 - Correctif Header Légal & Alignement
+ * Version : 2.6 - Fusion Complète (Design Pro + Formatage 10.000 + QR Code)
  */
 
 window.MoniteoPDF = {
-    // 1. Nouvelle méthode asynchrone pour interroger Supabase
+    // 1. UTILITAIRE DE FORMATAGE (FORCÉ 10.000)
+    _formatNumber(val) {
+        if (val === null || val === undefined || val === "") return "0";
+        // Nettoie la chaîne (enlève $, FC, espaces) pour ne garder que le nombre
+        let num = parseFloat(val.toString().replace(/[^0-9.-]/g, ""));
+        if (isNaN(num)) return val;
+        // Format Allemand (de-DE) pour avoir le POINT comme séparateur de milliers
+        return new Intl.NumberFormat('de-DE', { 
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2 
+        }).format(num);
+    },
+
+    // 2. RÉCUPÉRATION CONFIGURATION (Supabase)
     async _getConfig() {
         try {
-            // Récupérer l'utilisateur actuel
             const { data: { user } } = await _db.auth.getUser();
             if (!user) throw new Error("Utilisateur non connecté");
-
-            // Interroger la table settings
-            const { data: s, error } = await _db
-                .from('settings')
-                .select('*')
-                .eq('user_id', user.id)
-                .maybeSingle();
-
+            const { data: s, error } = await _db.from('settings').select('*').eq('user_id', user.id).maybeSingle();
             if (error) throw error;
 
-            // Retourner les données formatées (avec fallback si vide)
             return {
                 companyName: s?.company_name || "MONITEO PRO",
                 address: s?.address || "Adresse non définie",
@@ -33,21 +37,28 @@ window.MoniteoPDF = {
                 logo: s?.logo_url || null
             };
         } catch (err) {
-            console.error("Erreur récupération config Supabase:", err);
-            // Backup minimal au cas où Supabase est injoignable
-            return { companyName: "MONITEO PRO", tva: "16", currency: "$" };
+            console.error("Erreur config:", err);
+            return { companyName: "MONITEO PRO", currency: "$", tva: "16" };
         }
     },
-    async _loadExternalImage(url) {
+
+    // 3. GÉNÉRATEUR D'IMAGE QR CODE
+    async _generateQRCodeImage(text) {
         return new Promise((resolve) => {
-            const img = new Image();
-            img.crossOrigin = "Anonymous";
-            img.onload = () => resolve(img);
-            img.onerror = () => resolve(null);
-            img.src = url;
+            const container = document.createElement("div");
+            new QRCode(container, {
+                text: text,
+                width: 128, height: 128,
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            setTimeout(() => {
+                const canvas = container.querySelector("canvas");
+                resolve(canvas ? canvas.toDataURL("image/png") : null);
+            }, 100);
         });
     },
 
+    // 4. GÉNÉRATION RAPPORT A4 (CORRIGÉ & DESIGN PRO)
     async generate(options) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -56,160 +67,188 @@ window.MoniteoPDF = {
         const config = await this._getConfig();
         const FONT = "courier"; 
 
-        // --- 1. HEADER LOGIC ---
+        // Header Logic
         let headerX = 14; 
         if (config.logo) {
-            try { 
-                doc.addImage(config.logo, 'PNG', 14, 10, 22, 22); 
-                headerX = 42; // Décale le texte seulement si le logo est là
-            } catch (e) { console.warn("Erreur Logo:", e); }
+            try { doc.addImage(config.logo, 'PNG', 14, 10, 22, 22); headerX = 42; } catch (e) {}
         }
 
-        // Nom Entreprise
+        // Infos Entreprise
         doc.setFont(FONT, "bold").setFontSize(14).setTextColor(31, 60, 99);
         doc.text(config.companyName.toUpperCase(), headerX, 18);
 
-        // Sous-titre (Période)
+        // Formatage du Total CA dans le sous-titre
+        let sub = options.subtitle || "";
+        if (sub.includes(":")) {
+            const parts = sub.split(":");
+            sub = `${parts[0]}: ${this._formatNumber(parts[1])} ${config.currency}`;
+        }
         doc.setFont(FONT, "normal").setFontSize(8).setTextColor(100);
-        doc.text(options.subtitle || "", headerX, 23);
-        
-        // Date d'émission
+        doc.text(sub, headerX, 23);
         doc.text(`DATE: ${new Date().toLocaleString('fr-FR')}`, headerX, 27);
 
-        // --- 2. INFOS LÉGALES (DANS LE HEADER) ---
+        // Infos Légales Header
         const legalParts = [];
         if (config.rccm && config.rccm !== "-") legalParts.push(`RCCM: ${config.rccm}`);
         if (config.id_nat && config.id_nat !== "-") legalParts.push(`ID NAT: ${config.id_nat}`);
         if (config.nif && config.nif !== "-") legalParts.push(`NIF: ${config.nif}`);
-        
         if (legalParts.length > 0) {
             doc.setFontSize(7).setTextColor(120);
             doc.text(legalParts.join("  |  "), headerX, 32);
         }
 
-        // Ligne de séparation
         doc.setDrawColor(31, 60, 99).setLineWidth(0.3).line(14, 38, pageWidth - 14, 38);
 
-        // --- 3. TITRE DU DOCUMENT ---
+        // Tableaux avec auto-formatage 10.000
         let currentY = 48;
-        doc.setFont(FONT, "bold").setFontSize(11).setTextColor(31, 60, 99);
-        doc.text(options.title || "DOCUMENT OFFICIEL", 14, currentY);
-        currentY += 8;
-
-        // --- 4. TABLEAUX ---
         if (options.tables) {
             options.tables.forEach((table) => {
+                const formattedRows = table.rows.map(row => 
+                    row.map(cell => (typeof cell === 'number' || !isNaN(parseFloat(cell))) ? this._formatNumber(cell) : cell)
+                );
+
                 doc.autoTable({
                     startY: currentY,
                     head: [table.headers],
-                    body: table.rows,
-                    foot: table.foot ? [table.foot] : null,
+                    body: formattedRows,
                     theme: 'grid',
-                    styles: { 
-                        font: FONT, 
-                        fontSize: 7.5, 
-                        cellPadding: 2,
-                        lineColor: [220, 220, 220],
-                        lineWidth: 0.1
-                    },
-                    headStyles: { 
-                        fillColor: [240, 240, 240], 
-                        textColor: [31, 60, 99], 
-                        fontStyle: 'bold', 
-                        halign: 'center' 
-                    },
-                    footStyles: table.footStyles || { 
-                        fillColor: [31, 60, 99], 
-                        textColor: [255, 255, 255], 
-                        fontStyle: 'bold' 
-                    },
+                    styles: { font: FONT, fontSize: 7.5, cellPadding: 2 },
+                    headStyles: { fillColor: [240, 240, 240], textColor: [31, 60, 99] },
                     margin: { left: 14, right: 14 }
                 });
                 currentY = doc.lastAutoTable.finalY + 12;
             });
         }
 
-        // Hook pour les signatures (onAfterGenerate)
-        if (typeof options.onAfterGenerate === 'function') {
-            options.onAfterGenerate(doc, currentY, FONT);
-        }
-
-        // --- 5. FOOTER (NUMÉROTATION) ---
-                const pageCount = doc.internal.getNumberOfPages();
+        // Footer avec numérotation et infos légales
+        const pageCount = doc.internal.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
             doc.setDrawColor(200).line(14, pageHeight - 25, pageWidth - 14, pageHeight - 25);
             doc.setFontSize(7).setTextColor(120);
-            const legalText = `RCCM: ${config.rccm} | ID NAT: ${config.id_nat} | NIF: ${config.nif} | Contact: ${config.phone}`;
-            doc.text(legalText, pageWidth / 2, pageHeight - 20, { align: 'center' });
+            const legalFooter = `RCCM: ${config.rccm} | ID NAT: ${config.id_nat} | NIF: ${config.nif}`;
+            doc.text(legalFooter, pageWidth / 2, pageHeight - 20, { align: 'center' });
             doc.text(`Page ${i} / ${pageCount}`, pageWidth / 2, pageHeight - 15, { align: 'center' });
         }
 
-        doc.save(`Moniteo_Rapport_${Date.now()}.pdf`);
-    },  
-
-    // 3. GÉNÉRATION DE FACTURE (Modern Design)
-    async generateModernInvoice(data) {
+        doc.save(`Rapport_${Date.now()}.pdf`);
+    },
+    
+    // 5. GÉNÉRATION TICKET THERMIQUE (80mm)
+    async generateThermalReceipt(data) {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
+        const itemHeight = data.items.length * 8;
+        const receiptHeight = 175 + itemHeight; 
+        const doc = new jsPDF({ unit: 'mm', format: [80, receiptHeight] });
+
+        const pageWidth = 80;
+        const margin = 5;
         const config = await this._getConfig();
+        let currentY = 10;
 
-        // Design Entête
-        doc.setFillColor(31, 60, 99); 
-        doc.rect(0, 0, pageWidth, 15, 'F'); 
-
+        // --- 1. LOGO ---
         if (config.logo) {
-            try { doc.addImage(config.logo, 'PNG', 14, 22, 25, 25); } catch(e){}
+            try {
+                doc.addImage(config.logo, 'PNG', (pageWidth / 2) - 10, currentY, 20, 20);
+                currentY += 25;
+            } catch (e) { currentY = 10; }
         }
 
-        doc.setFontSize(22).setTextColor(31, 60, 99).setFont("helvetica", "bold");
-        doc.text(config.companyName.toUpperCase(), config.logo ? 45 : 14, 32);
-        
-        doc.setFontSize(9).setFont("helvetica", "normal").setTextColor(100);
-        doc.text(config.address || "Adresse non définie", config.logo ? 45 : 14, 38);
-        doc.text(`Tél: ${config.phone || "N/A"}`, config.logo ? 45 : 14, 43);
+        // --- 2. EN-TÊTE ---
+        doc.setFont("helvetica", "bold").setFontSize(14).setTextColor(0);
+        doc.text(config.companyName.toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
+        currentY += 6;
+        doc.setFontSize(8).setFont("helvetica", "normal").setTextColor(60);
+        const details = [config.address, `Tél: ${config.phone}`, `RCCM: ${config.rccm} | NIF: ${config.nif}`, `ID NAT: ${config.id_nat}`];
+        details.forEach(line => { doc.text(line, pageWidth / 2, currentY, { align: 'center' }); currentY += 4; });
 
-        doc.setFontSize(26).setTextColor(230, 230, 230).setFont("helvetica", "bold");
-        doc.text("FACTURE", pageWidth - 14, 35, { align: "right" });
+        doc.setLineDash([1, 1], 0);
+        doc.line(margin, currentY + 2, pageWidth - margin, currentY + 2);
+        currentY += 8;
 
-        doc.setFontSize(10).setTextColor(50).setFont("helvetica", "bold");
-        doc.text(`N° ${data.invoiceNumber}`, pageWidth - 14, 42, { align: "right" });
+        // --- 3. INFOS TRANSACTION ---
+        doc.setFont("helvetica", "bold").setFontSize(9).setTextColor(0);
+        doc.text(`TICKET N°: ${data.invoiceNumber}`, margin, currentY);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Date: ${new Date().toLocaleString('fr-FR')}`, margin, currentY + 4);
+        doc.text(`Client: ${data.customer?.name || "Client Comptant"}`, margin, currentY + 8);
+        currentY += 14;
 
-        // Table Articles
-        const tableBody = data.items.map(item => [
-            item.description, 
-            item.qty, 
-            `${Number(item.price).toLocaleString()} ${config.currency}`, 
-            `${Number(item.total).toLocaleString()} ${config.currency}`
-        ]);
+        // --- 4. CORPS ---
+        doc.setFont("helvetica", "bold");
+        doc.text("ARTICLE", margin, currentY);
+        doc.text("QTÉ", 45, currentY);
+        doc.text("TOTAL", pageWidth - margin, currentY, { align: 'right' });
+        doc.line(margin, currentY + 2, pageWidth - margin, currentY + 2);
+        currentY += 7;
 
-        doc.autoTable({
-            startY: 70,
-            head: [['DESCRIPTION', 'QTE', 'PRIX UNITAIRE', 'MONTANT HT']],
-            body: tableBody,
-            theme: 'striped',
-            headStyles: { fillColor: [31, 60, 99], halign: 'center', fontSize: 9 },
-            styles: { fontSize: 8.5, cellPadding: 3 }
+        doc.setFont("helvetica", "normal").setFontSize(8);
+        data.items.forEach(item => {
+            const desc = item.description.length > 22 ? item.description.substring(0, 20) + ".." : item.description;
+            doc.text(desc, margin, currentY);
+            doc.text(item.qty.toString(), 45, currentY);
+            // Utilisation du formateur global _formatNumber
+            doc.text(`${this._formatNumber(item.total)} ${config.currency}`, pageWidth - margin, currentY, { align: 'right' });
+            currentY += 6;
         });
 
-        // Totaux
-        let finalY = doc.lastAutoTable.finalY + 10;
+        // --- 5. TOTALISATION & PAIEMENT ---
+        currentY += 4;
+        doc.setLineDash([]); 
+        doc.line(margin, currentY, pageWidth - margin, currentY);
+        currentY += 6;
+
         const subTotal = data.items.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
-        const tvaRate = parseFloat(config.tva) || 16;
+        const tvaRate = parseFloat(config.tva) || 0;
         const tvaAmount = subTotal * (tvaRate / 100);
         const grandTotal = subTotal + tvaAmount;
 
-        doc.setFontSize(10).setTextColor(100).setFont("helvetica", "normal");
-        doc.text(`Total HT: ${subTotal.toLocaleString()} ${config.currency}`, pageWidth - 14, finalY, { align: "right" });
-        doc.text(`TVA (${tvaRate}%): ${tvaAmount.toLocaleString()} ${config.currency}`, pageWidth - 14, finalY + 7, { align: "right" });
+        doc.text("Sous-total HT:", margin, currentY);
+        doc.text(`${this._formatNumber(subTotal)} ${config.currency}`, pageWidth - margin, currentY, { align: 'right' });
+        doc.text(`TVA (${tvaRate}%):`, margin, currentY + 4);
+        doc.text(`${this._formatNumber(tvaAmount)} ${config.currency}`, pageWidth - margin, currentY + 4, { align: 'right' });
 
-        doc.setFillColor(31, 60, 99);
-        doc.roundedRect(pageWidth - 90, finalY + 12, 76, 12, 1, 1, 'F');
-        doc.setFontSize(11).setTextColor(255).setFont("helvetica", "bold");
-        doc.text(`TOTAL À PAYER: ${grandTotal.toLocaleString()} ${config.currency}`, pageWidth - 18, finalY + 20, { align: "right" });
+        currentY += 12;
+        doc.setFillColor(0, 0, 0); 
+        doc.rect(margin, currentY - 5, pageWidth - (margin * 2), 8, 'F');
+        doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(255);
+        doc.text("TOTAL TTC:", margin + 2, currentY);
+        doc.text(`${this._formatNumber(grandTotal)} ${config.currency}`, pageWidth - margin - 2, currentY, { align: 'right' });
 
-        doc.save(`Facture_${data.invoiceNumber}.pdf`);
+        currentY += 8;
+        doc.setFont("helvetica", "bold").setFontSize(8).setTextColor(0);
+        const paymentMode = data.paymentMethod || "ESPÈCES";
+        doc.text(`MODE DE PAIEMENT : ${paymentMode.toUpperCase()}`, margin, currentY);
+
+        // --- 6. QR CODE ---
+        currentY += 10;
+        const qrData = `Facture:${data.invoiceNumber}|Total:${grandTotal}|Mode:${paymentMode}`;
+        const qrImage = await this._generateQRCodeImage(qrData);
+        if (qrImage) {
+            doc.addImage(qrImage, 'PNG', (pageWidth / 2) - 12.5, currentY, 25, 25);
+            currentY += 30;
+        }
+
+        // --- 7. FOOTER & POLITIQUES ---
+        doc.setLineDash([0.5, 0.5], 0);
+        doc.line(margin, currentY, pageWidth - margin, currentY);
+        currentY += 5;
+        doc.setFontSize(7).setTextColor(80).setFont("helvetica", "bold");
+        doc.text("POLITIQUE DE RETOUR & ÉCHANGE", pageWidth / 2, currentY, { align: 'center' });
+        currentY += 4;
+        doc.setFont("helvetica", "normal").setFontSize(6);
+        const policies = [
+            "- Présentation obligatoire de ce ticket.",
+            "- Échange possible sous 48h (articles non ouverts).",
+            "- Aucun remboursement en espèces.",
+            "- Les produits frais ne sont ni repris ni échangés."
+        ];
+        policies.forEach(line => { doc.text(line, margin, currentY); currentY += 3; });
+
+        currentY += 5;
+        doc.setFont("helvetica", "italic").setFontSize(8).setTextColor(0);
+        doc.text("Merci de votre visite !", pageWidth / 2, currentY, { align: 'center' });
+
+        doc.save(`Ticket_${data.invoiceNumber}.pdf`);
     }
 };
