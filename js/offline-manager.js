@@ -78,9 +78,9 @@ const OfflineManager = {
     },
 
     async _syncInventory(data) {
-        return await window._db.from('inventory').insert([data]);
-    },
-
+    // .select() permet de récupérer l'objet avec son nouvel ID UUID
+    return await window._db.from('inventory').insert([data]).select();
+},
     async _syncStaff(data) {
         return await window._db.from('staff').insert([data]);
     }
