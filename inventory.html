@@ -24,7 +24,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
-
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="js/auth-check.js"></script>        
     <script src="js/supabase-config.js"></script>   
     <script src="js/offline-manager.js"></script>   
@@ -129,7 +129,18 @@
         </div>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 20px;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <button onclick="startScanner()" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                <line x1="7" y1="12" x2="17" y2="12"></line>
+            </svg>
+            SCANNER
+        </button>
+
         <div id="loading-state" style="display: none; align-items: center; gap: 8px;">
             <svg class="loader-icon-spin" viewBox="0 0 24 24" style="width: 20px; height: 20px; color: var(--primary); animation: spin 1s linear infinite;">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle>
@@ -142,7 +153,15 @@
             <span id="saveStatusText">Enregistré</span>
         </div>
     </div>
+    
 </header>
+<div id="scannerModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; flex-direction:column; align-items:center; justify-content:center;">
+    <div style="background:white; padding:20px; border-radius:10px; width:90%; max-width:500px; position:relative;">
+        <h3 style="margin-top:0; color:#1f3c63;">Scanner un article</h3>
+        <div id="reader" style="width:100%;"></div>
+        <button onclick="stopScanner()" style="margin-top:15px; padding:10px; width:100%; background:#e74c3c; color:white; border:none; border-radius:5px; cursor:pointer;">Annuler</button>
+    </div>
+</div>
     <div class="summary-banner" style="display: grid; grid-gap: 20px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 25px;">
     
     <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #6366f1; display: flex; align-items: center; gap: 15px;">
@@ -240,34 +259,31 @@
     </div>
 
     <input type="file" id="importInventory" style="display:none" accept=".xlsx,.xls">
-</div>
-    <div class="card">
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 40px;"><input type="checkbox" onclick="toggleSelectAll(this)"></th>
-                        <th>Produit</th>
-                        <th>Quantité</th>
-                        <th>Prix Achat (u)</th>
-                        <th>Prix Vente (u)</th>
-                        <th>Marge (u)</th>
-                    </tr>
-                </thead>
-                <tbody id="inventoryTable"></tbody>
-            </table>
+
+<main class="inv-main-layout">
+    <div class="inv-container-full">
+        <div class="card inv-card-main">
+            <div class="table-wrapper">
+                <table class="inv-data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" onclick="toggleSelectAll(this)"></th>
+                            <th style="width: 100px;">Code</th>
+                            <th>Produit</th>
+                            <th>Quantité</th>
+                            <th>Prix Achat (u)</th>
+                            <th>Prix Vente (u)</th>
+                            <th>Marge (u)</th>
+                            <th style="width: 50px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTable"></tbody>
+                </table>
+            </div>
         </div>
     </div>
-        
-    <div class="card" style="border-left: 4px solid var(--danger);">
-        <h3 style="font-size: 0.9rem; color: var(--danger); display: flex; align-items: center; gap: 8px;">
-            <svg class="icon" style="stroke: var(--danger)" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-            Alertes de Stock
-        </h3>
-        <ul id="alertList" style="margin-top: 10px;"></ul>
-    </div>
+    <div id="inv-toast-container" class="inv-toast-wrapper"></div>
 </main>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // --- VARIABLES D'ÉTAT ---
@@ -275,48 +291,72 @@ let inventoryData = [];
 let saveTimeout;
 window.currentCurrency = "FC"; // Valeur par défaut
 
+// --- INITIALISATION ---
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Initialisation de la configuration
-    if (typeof applyGlobalSettings === 'function') {
-        applyGlobalSettings();
-    } else if (typeof applyGlobalConfig === 'function') {
-        applyGlobalConfig();
-    }
-
-    // 2. Connexion Base de données et chargement
+    // 1. Config
+    if (typeof applyGlobalSettings === 'function') applyGlobalSettings();
+    
+    // 2. Database
     if (window._db) {
         await loadInventory();
     } else {
         console.error("❌ Base de données non connectée.");
     }
 
-    // 3. Écouteurs pour la recherche
+    // 3. Recherche
     document.getElementById('searchBar')?.addEventListener('input', (e) => {
         filterTable(e.target.value.toLowerCase());
     });
 
-    // 4. ÉCOUTEUR PRINCIPAL : Sauvegarde automatique et Calculs Live
+    // 4. Écouteur Table
     const tbody = document.getElementById('inventoryTable');
     if (tbody) {
         tbody.addEventListener('input', (e) => {
             const cell = e.target;
-            
-            // Si c'est une cellule numérique (Quantité, Prix)
-            if (cell.cellIndex >= 2 && cell.cellIndex <= 4) {
+            if (cell.classList.contains('cell-qty') || cell.classList.contains('cell-buy') || cell.classList.contains('cell-sell')) {
                 validateNumericInput(cell);
             }
-
-            // Mise à jour visuelle immédiate (Bannière + Marges)
             updateBannerUI_Live(); 
-            
-            // Sauvegarde différée (Debounce)
             updateSaveStatus('syncing');
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(saveInventory, 1500);
         });
     }
 });
-
+function undo() {
+    console.log("Action annulée ou non supportée");
+}
+const AudioFeedback = {
+    // Un bip court et aigu pour le succès
+    playSuccess: () => {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(880, ctx.currentTime); // Note La (A5)
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.1);
+    },
+    // Un bip plus grave et double pour l'erreur ou produit inconnu
+    playError: () => {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const playBip = (freq, start) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.frequency.setValueAtTime(220, ctx.currentTime + start);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + start + 0.2);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + start);
+            osc.stop(ctx.currentTime + start + 0.2);
+        };
+        playBip(220, 0);
+        playBip(220, 0.25);
+    }
+};
 // --- 1. CONFIGURATION & TITRE ---
 function applyGlobalSettings() {
     const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
@@ -371,12 +411,6 @@ function renderInventory(dataToRender = inventoryData) {
     tbody.innerHTML = '';
     if (alertList) alertList.innerHTML = ''; 
 
-    // Icônes SVG réutilisables
-    const iconRupture = `<svg style="width:14px;height:14px;vertical-align:middle;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
-    const iconWarning = `<svg style="width:14px;height:14px;vertical-align:middle;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
-    const iconSync = `<svg class="spin" style="width:14px;height:14px;vertical-align:middle;margin-right:5px;color:#ffa500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>`;
-
-    // --- GESTION OFFLINE ---
     const pendingInv = typeof OfflineManager !== 'undefined' ? OfflineManager.getQueue(OfflineManager.KEYS.INVENTORY) : [];
     const allItems = [...pendingInv, ...dataToRender];
 
@@ -385,44 +419,57 @@ function renderInventory(dataToRender = inventoryData) {
         const buy = parseFloat(item.buy_price) || 0;
         const sell = parseFloat(item.sell_price) || 0;
         const margin = sell - buy;
+        const barcode = item.barcode || '—';
 
-        // Gestion des alertes dans la liste latérale
+        // Gestion des alertes
         if (alertList) {
             if (qty <= 0) {
-                alertList.innerHTML += `<li style="color: #ef4444; display:flex; align-items:center; margin-bottom:5px;">${iconRupture} <span>Rupture : <strong>${item.product}</strong></span></li>`;
+                alertList.innerHTML += `<li style="color: #ef4444;">⚠️ Rupture : <strong>${item.product}</strong></li>`;
             } else if (qty <= 5) {
-                alertList.innerHTML += `<li style="color: #f59e0b; display:flex; align-items:center; margin-bottom:5px;">${iconWarning} <span>Faible : <strong>${item.product}</strong> (${qty})</span></li>`;
+                alertList.innerHTML += `<li style="color: #f59e0b;">🔸 Faible : <strong>${item.product}</strong> (${qty})</li>`;
             }
         }
 
         const tr = document.createElement('tr');
         tr.setAttribute('data-id', item.id);
-        
-        // Styles de ligne
         if (item.isOffline) tr.style.opacity = "0.7";
-        if (qty <= 0) tr.style.background = "rgba(239, 68, 68, 0.05)";
 
+        // STRUCTURE NETTOYÉE POUR PERMETTRE L'ÉDITION DU NOM
         tr.innerHTML = `
-            <td><input type="checkbox" data-index="${index}"></td>
-            <td contenteditable="${!item.isOffline}" class="edit-cell" style="font-weight:600; display:flex; align-items:center;">
-                ${item.isOffline ? iconSync : ''}
+            <td data-label="Sélect."><input type="checkbox"></td>
+            
+            <td data-label="Code" contenteditable="${!item.isOffline}" class="edit-cell cell-barcode">
+                ${barcode}
+            </td>
+
+            <td data-label="Produit" contenteditable="${!item.isOffline}" class="edit-cell cell-product">
                 ${item.product || ''}
             </td>
-            <td contenteditable="${!item.isOffline}" class="edit-cell" style="font-weight:bold; color: ${qty <= 5 ? '#ef4444' : 'inherit'};">
-                ${qty <= 0 ? iconRupture : (qty <= 5 ? iconWarning : '')}
+
+            <td data-label="Quantité" contenteditable="${!item.isOffline}" class="edit-cell cell-qty" style="font-weight:bold; color: ${qty <= 5 ? '#ef4444' : 'inherit'};">
                 ${qty}
             </td>
-            <td contenteditable="${!item.isOffline}" class="edit-cell">${buy.toLocaleString()}</td>
-            <td contenteditable="${!item.isOffline}" class="edit-cell">${sell.toLocaleString()}</td>
-            <td style="font-weight:600; color: ${margin >= 0 ? '#10b981' : '#ef4444'}">
-                ${margin.toLocaleString()} ${window.currentCurrency || 'FC'}
+
+            <td data-label="Prix Achat" contenteditable="${!item.isOffline}" class="edit-cell cell-buy">${buy}</td>
+
+            <td data-label="Prix Vente" contenteditable="${!item.isOffline}" class="edit-cell cell-sell">${sell}</td>
+
+            <td data-label="Marge" class="cell-margin" style="font-weight:600; color: ${margin >= 0 ? '#10b981' : '#ef4444'}">
+                ${margin.toLocaleString()} <small>${window.currentCurrency || 'FC'}</small>
+            </td>
+
+            <td data-label="Action" style="text-align: center;">
+                <button onclick="startScanner('${item.id}')" class="btn-scan-action">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2m-10 0H5a2 2 0 0 1-2-2v-2M8 12h8"/></svg>
+                </button>
             </td>
         `;
         tbody.appendChild(tr);
     });
     
-    if (typeof updateBannerUI === 'function') updateBannerUI();
+    if (typeof updateBannerUI_Live === 'function') updateBannerUI_Live();
 }
+
 // --- 3. CALCULS BANNIÈRE ---
 function updateBannerUI() {
     let tQty = 0, tBuyTotal = 0, tSellTotal = 0;
@@ -449,93 +496,124 @@ function updateBannerUI_Live() {
     let tQty = 0, tBuyTotal = 0, tSellTotal = 0;
 
     rows.forEach(tr => {
-        const q = parseInt(tr.cells[2].innerText.replace(/\s/g, '')) || 0;
-        const b = parseFloat(tr.cells[3].innerText.replace(/\s/g, '').replace(',', '.')) || 0;
-        const s = parseFloat(tr.cells[4].innerText.replace(/\s/g, '').replace(',', '.')) || 0;
-        const margin = s - b;
+        const parseValue = (element) => {
+            if (!element) return 0;
+            const cleanText = element.innerText.replace(/[\s\u00A0]/g, '').replace(',', '.');
+            return parseFloat(cleanText) || 0;
+        };
 
-        const marginCell = tr.cells[5];
+        // Utilisation systématique des classes CSS
+        const q = parseValue(tr.querySelector('.cell-qty'));
+        const b = parseValue(tr.querySelector('.cell-buy'));
+        const s = parseValue(tr.querySelector('.cell-sell'));
+        
+        const margin = s - b;
+        const marginCell = tr.querySelector('.cell-margin');
+        
         if (marginCell) {
-            marginCell.innerText = `${margin.toLocaleString()} ${window.currentCurrency}`;
+            marginCell.innerHTML = `${margin.toLocaleString()} <small>${window.currentCurrency || 'FC'}</small>`;
             marginCell.style.color = margin >= 0 ? '#10b981' : '#ef4444';
         }
+
         tQty += q;
         tBuyTotal += (q * b);
         tSellTotal += (q * s);
     });
 
-    const tProfit = tSellTotal - tBuyTotal;
-    if(document.getElementById('countStock')) document.getElementById('countStock').textContent = tQty;
-    if(document.getElementById('stockValue')) document.getElementById('stockValue').textContent = tBuyTotal.toLocaleString() + " " + window.currentCurrency;
-    if(document.getElementById('saleValue')) document.getElementById('saleValue').textContent = tSellTotal.toLocaleString() + " " + window.currentCurrency;
-    if(document.getElementById('profitValue')) document.getElementById('profitValue').textContent = tProfit.toLocaleString() + " " + window.currentCurrency;
-}
+    const currency = window.currentCurrency || 'FC';
+    const updateEl = (id, val, suffix = "") => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val.toLocaleString() + suffix;
+    };
 
+    updateEl('countStock', tQty);
+    updateEl('stockValue', tBuyTotal, " " + currency);
+    updateEl('saleValue', tSellTotal, " " + currency);
+    
+    const profitEl = document.getElementById('profitValue');
+    if (profitEl) {
+        const tProfit = tSellTotal - tBuyTotal;
+        profitEl.textContent = tProfit.toLocaleString() + " " + currency;
+        profitEl.style.color = tProfit >= 0 ? "#10b981" : "#ef4444";
+    }
+}
 // --- 4. SAUVEGARDE & ACTIONS ---
+let isSaving = false;
+
 async function saveInventory() {
+    if (isSaving) return;
+    isSaving = true;
+    
     const rows = document.querySelectorAll('#inventoryTable tr');
     const updates = [];
-    
-    // On passe en mode synchronisation
-    updateSaveStatus('syncing');
 
     rows.forEach(tr => {
         const id = tr.getAttribute('data-id');
-        const name = tr.cells[1].innerText.trim();
-        if (name && id) {
-            updates.push({ 
-                id: id, 
-                product: name, 
-                qty: parseInt(tr.cells[2].innerText.replace(/\s/g, '')) || 0, 
-                buy_price: parseFloat(tr.cells[3].innerText.replace(/\s/g, '').replace(',', '.')) || 0,
-                sell_price: parseFloat(tr.cells[4].innerText.replace(/\s/g, '').replace(',', '.')) || 0 
-            });
-        }
+        if (!id || id.startsWith('offline_')) return;
+
+        // On récupère les valeurs via les classes définies dans renderInventory
+        const product = tr.querySelector('.cell-product')?.innerText.trim() || "Produit sans nom";
+        const barcode = tr.querySelector('.cell-barcode')?.innerText.trim();
+        const qty = parseInt(tr.querySelector('.cell-qty')?.innerText.replace(/[\s\u00A0]/g, '')) || 0;
+        const buy = parseFloat(tr.querySelector('.cell-buy')?.innerText.replace(/[\s\u00A0]/g, '').replace(',', '.')) || 0;
+        const sell = parseFloat(tr.querySelector('.cell-sell')?.innerText.replace(/[\s\u00A0]/g, '').replace(',', '.')) || 0;
+
+        updates.push({ 
+            id: id, 
+            barcode: barcode === '—' ? null : barcode,
+            product: product, 
+            qty: qty, 
+            buy_price: buy,
+            sell_price: sell 
+        });
     });
+
+    if (updates.length === 0) {
+        isSaving = false;
+        return;
+    }
 
     try {
         const { error } = await _db.from('inventory').upsert(updates);
         if (error) throw error;
-
-        inventoryData = updates;
-        updateSaveStatus('saved'); // Succès : Vert
+        updateSaveStatus('saved');
     } catch (err) {
         console.error("Erreur sauvegarde:", err);
-        updateSaveStatus('error'); // Échec : Rouge
+        updateSaveStatus('error');
+    } finally {
+        isSaving = false;
     }
 }
 async function addRow() {
-    // 1. Préparation des données par défaut
+    let barcodeInput = prompt("Code-barres (vide pour auto) :");
+    if (barcodeInput === null) return;
+
     const newItem = { 
+        barcode: barcodeInput.trim() || "UMB-" + Math.random().toString(36).substring(2, 7).toUpperCase(),
         product: "Nouveau Produit", 
         qty: 0, 
         buy_price: 0, 
         sell_price: 0,
-        user_id: currentUser?.id // Toujours inclure le user_id pour le RLS
+        user_id: window.currentUser?.id // Ajout du window.
     };
 
-    // 2. Gestion Hors-ligne
-    if (!navigator.onLine) {
-        OfflineManager.saveLocally(OfflineManager.KEYS.INVENTORY, newItem);
-        
-        // On rafraîchit l'affichage local immédiatement
-        // Note : renderInventory() fusionne déjà inventoryData + Queue offline
-        renderInventory(); 
-        return;
-    }
+    try {
+        // .select() est CRUCIAL ici : il demande à Supabase de renvoyer l'objet créé (avec son nouvel UID)
+        const { data, error } = await _db
+            .from('inventory')
+            .insert([newItem])
+            .select(); 
 
-    // 3. Gestion En ligne (Supabase)
-    const { error } = await _db.from('inventory').insert([newItem]);
+        if (error) throw error;
 
-    if (error) {
-        console.error("Erreur insertion inventaire:", error.message);
-        alert("Erreur lors de l'ajout : " + error.message);
-    } else {
-        // Tentative de synchro si des éléments étaient en attente
-        if (typeof OfflineManager !== 'undefined') OfflineManager.syncAll();
-        
-        // Rechargement des données depuis le serveur
-        await loadInventory();
+        if (data && data[0]) {
+            // Ici, data[0].id contient le véritable UUID généré par Supabase
+            showToast(`Produit créé avec l'ID : ${data[0].id}`, 'success');
+            await loadInventory(); // Recharge pour tout synchroniser
+        }
+    } catch (err) {
+        console.error("Erreur création:", err);
+        showToast("Erreur de création", "error");
     }
 }
 async function deleteSelectedRow() {
@@ -545,11 +623,21 @@ async function deleteSelectedRow() {
     for (let cb of checks) {
         const tr = cb.closest('tr');
         const idToDelete = tr.getAttribute('data-id');
-        await _db.from('inventory').delete().eq('id', idToDelete);
-    }
-    await loadInventory();
-}
 
+        if (idToDelete.startsWith('offline_')) {
+            // CAS OFFLINE : On supprime uniquement du LocalStorage
+            let queue = OfflineManager.getQueue(OfflineManager.KEYS.INVENTORY);
+            queue = queue.filter(item => item.id !== idToDelete);
+            localStorage.setItem(OfflineManager.KEYS.INVENTORY, JSON.stringify(queue));
+            console.log("🗑️ Article local supprimé");
+        } else {
+            // CAS ONLINE : On supprime sur Supabase
+            const { error } = await _db.from('inventory').delete().eq('id', idToDelete);
+            if (error) console.error("Erreur suppression DB:", error.message);
+        }
+    }
+    await loadInventory(); // Rafraîchit l'affichage
+}
 async function clearInventory() {
     if (confirm("⚠️ ATTENTION : Supprimer TOUT l'inventaire ?")) {
         const { error } = await _db.from('inventory').delete().neq('product', '###'); 
@@ -598,20 +686,21 @@ function filterTable(q) {
 }
 
 function validateNumericInput(cell) {
-    const originalText = cell.innerText;
-    const cleanedText = originalText.replace(/[^0-9.,]/g, '');
-    if (originalText !== cleanedText) {
-        cell.innerText = cleanedText;
-        // Reposistionner le curseur
+    // Nettoyage plus souple pour permettre la saisie fluide
+    const original = cell.innerText;
+    const cleaned = original.replace(/[^0-9.,]/g, '');
+    
+    if (original !== cleaned) {
+        cell.innerText = cleaned;
+        // Place le curseur à la fin
+        const selection = window.getSelection();
         const range = document.createRange();
-        const sel = window.getSelection();
         range.selectNodeContents(cell);
         range.collapse(false);
-        sel.removeAllRanges();
-        sel.addRange(range);
+        selection.removeAllRanges();
+        selection.addRange(range);
     }
 }
-
 /**
  * Gère l'état visuel de la synchronisation (Pro version)
  * @param {'syncing' | 'saved' | 'error'} state 
@@ -682,6 +771,216 @@ window.onclick = function(event) {
         }
     }
 }
+let currentTargetId = null; // Variable globale pour suivre la cible
+let html5QrCode = null;     // Déclarer la variable ici pour éviter le "ReferenceError"
+
+async function startScanner(productId = null) {
+    currentTargetId = productId; // Mode assignation si ID présent
+    
+    const modal = document.getElementById('scannerModal');
+    if (modal) modal.style.display = 'flex';
+
+    // 1. Initialiser l'objet seulement s'il n'existe pas encore
+    if (!html5QrCode) {
+        // On vérifie que la librairie est bien chargée dans le window
+        if (typeof Html5Qrcode !== 'undefined') {
+            html5QrCode = new Html5Qrcode("reader");
+        } else {
+            showToast("Erreur : Librairie de scan non chargée", "error");
+            return;
+        }
+    }
+
+    // 2. Configuration optimisée pour mobile
+    const config = { 
+        fps: 15, // Un peu plus fluide pour les scans rapides
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0 
+    };
+
+    try {
+        // Si le scanner est déjà en cours (état "SCANNING"), on l'arrête avant de relancer
+        if (html5QrCode.isScanning) {
+            await html5QrCode.stop();
+        }
+
+        await html5QrCode.start(
+            { facingMode: "environment" }, 
+            config,
+            (decodedText) => {
+                // Succès du scan
+                console.log("Code détecté :", decodedText);
+                
+                // On appelle ta fonction de traitement (Assignation ou Recherche)
+                handleScannedCode(decodedText);
+                
+                // On ferme le scanner proprement
+                stopScanner();
+            }
+        );
+    } catch (err) {
+        console.error("Erreur caméra:", err);
+        
+        // Gestion précise des erreurs
+        if (err.name === "NotAllowedError" || err.toString().includes("Permission")) {
+            alert("Accès caméra refusé. Vérifiez les autorisations de votre navigateur.");
+        } else if (err.toString().includes("NotFoundError")) {
+            alert("Aucune caméra détectée sur cet appareil.");
+        } else {
+            // Souvent une erreur si le scanner est déjà utilisé ailleurs
+            console.warn("Tentative de redémarrage du scanner...");
+        }
+        
+        if (modal) modal.style.display = 'none';
+    }
+}
+
+// Fonction pour arrêter proprement le scanner
+async function stopScanner() {
+    const modal = document.getElementById('scannerModal');
+    if (modal) modal.style.display = 'none';
+    
+    if (html5QrCode && html5QrCode.isScanning) {
+        try {
+            await html5QrCode.stop();
+        } catch (err) {
+            console.error("Erreur lors de l'arrêt du scanner:", err);
+        }
+    }
+}
+async function stopScanner() {
+    const modal = document.getElementById('scannerModal');
+    
+    if (html5QrCode && html5QrCode.getState() > 1) { // Vérifie si le scanner est en cours (SCANNING ou ATTACHED)
+        try {
+            await html5QrCode.stop();
+            console.log("Scanner arrêté proprement.");
+        } catch (err) {
+            console.warn("Erreur lors de l'arrêt (déjà arrêté ?) :", err);
+        }
+    }
+    
+    modal.style.display = 'none';
+}
+async function handleScannedCode(code) {
+    try {
+        if (currentTargetId) {
+            // --- MODE ASSIGNATION : On met à jour le code d'un produit précis ---
+            const { error } = await _db
+                .from('inventory')
+                .update({ barcode: code })
+                .eq('id', currentTargetId);
+
+            if (error) throw error;
+
+            AudioFeedback.playSuccess();
+            showToast("Code assigné avec succès", "success");
+            
+            currentTargetId = null; // Reset de la cible
+            await loadInventory(); // Rafraîchit le tableau pour voir le nouveau code
+            
+        } else {
+            // --- MODE RECHERCHE OU CRÉATION (Bouton principal) ---
+            const { data: item, error } = await _db
+                .from('inventory')
+                .select('*')
+                .eq('barcode', code)
+                .maybeSingle();
+
+            if (error) throw error;
+
+            if (item) {
+                // Produit trouvé : On l'affiche
+                AudioFeedback.playSuccess();
+                const searchBar = document.getElementById('searchBar');
+                if (searchBar) {
+                    searchBar.value = code;
+                    filterTable(code.toLowerCase());
+                }
+                showToast(`Produit trouvé : ${item.product}`, 'info');
+            } else {
+                // Produit inconnu : On propose la création
+                AudioFeedback.playError(); // Son d'alerte (Inconnu)
+                
+                if (confirm(`Le code [${code}] n'existe pas. Créer un nouvel article ?`)) {
+                    const newItem = { 
+                        barcode: code, 
+                        product: "Nouveau Produit Scanné", 
+                        qty: 0, 
+                        buy_price: 0, 
+                        sell_price: 0,
+                        user_id: currentUser?.id 
+                    };
+
+                    const { error: insertError } = await _db.from('inventory').insert([newItem]);
+                    if (insertError) throw insertError;
+
+                    AudioFeedback.playSuccess(); // Bip de succès après création
+                    showToast("Nouvel article enregistré !", 'success');
+                    await loadInventory();
+                }
+            }
+        }
+    } catch (err) {
+        AudioFeedback.playError();
+        console.error("Erreur scan:", err);
+        showToast("Erreur lors du traitement du code", "error");
+    } finally {
+        // Sécurité : on s'assure que le mode assignation est désactivé pour le prochain scan
+        currentTargetId = null; 
+    }
+}
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.style = `
+        position: fixed; bottom: 20px; right: 20px; 
+        padding: 12px 20px; border-radius: 8px; 
+        background: ${type === 'success' ? '#10b981' : '#3b82f6'};
+        color: white; font-weight: 600; font-size: 0.85rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10001;
+        display: flex; align-items: center; gap: 10px;
+        animation: slideUp 0.3s ease-out;
+    `;
+    toast.innerHTML = `
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path d="M20 6L9 17l-5-5"></path>
+        </svg>
+        ${message}
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.5s';
+        setTimeout(() => toast.remove(), 500);
+    }, 3000);
+}
+function showStockAlert(productName, quantity) {
+    const container = document.getElementById('inv-toast-container');
+    
+    // Création du toast
+    const toast = document.createElement('div');
+    toast.className = 'inv-alert-toast';
+    toast.innerHTML = `
+        <svg class="icon" style="color: var(--danger); width:24px; height:24px;">
+            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+        <div>
+            <strong style="display:block; color: var(--danger); font-size: 0.9rem;">Rupture de Stock</strong>
+            <span style="font-size: 0.85rem;">${productName} (${quantity} unité)</span>
+        </div>
+    `;
+
+    container.appendChild(toast);
+
+    // Auto-suppression après 5 secondes
+    setTimeout(() => {
+        toast.classList.add('fade-out');
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
+}
+
+// Exemple d'utilisation (à appeler lors du chargement de tes données)
+// if (produit.quantite === 0) showStockAlert("Nouveau Produit", 0);
 </script>
 </body>
 </html>
