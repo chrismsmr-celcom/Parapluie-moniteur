@@ -2299,3 +2299,90 @@ body.driver-js-opened {
     flex-direction: column;
     gap: 10px;
 }
+/* --- STYLE DE BASE (ACTION BAR) --- */
+.action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    flex-wrap: wrap; /* Permet le passage à la ligne si besoin */
+}
+
+.action-bar .group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* Styles communs des boutons pour la cohérence */
+.action-bar button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.icon {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+}
+
+/* --- RESPONSIVE MOBILE (ACCORDÉON / STACK) --- */
+@media (max-width: 768px) {
+    .action-bar {
+        flex-direction: column; /* On empile les éléments */
+        align-items: stretch; /* Les boutons prennent toute la largeur */
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .action-bar .group {
+        flex-direction: column; /* Les groupes deviennent verticaux */
+        width: 100%;
+        gap: 8px;
+    }
+
+    /* Optionnel : Séparateur visuel entre les deux groupes sur mobile */
+    .action-bar .group:first-child {
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+    }
+
+    .action-bar button {
+        width: 100%; /* Boutons pleine largeur pour le pouce */
+        justify-content: center; /* Centre le texte et l'icône */
+        padding: 12px; /* Plus grande zone de clic sur mobile */
+    }
+
+    /* Gestion du Dropdown en mobile */
+    .dropdown {
+        width: 100%;
+    }
+
+    .dropdown-menu {
+        position: static; /* Le menu pousse le contenu au lieu de flotter */
+        width: 100%;
+        box-shadow: none;
+        border: 1px solid #eee;
+        margin-top: 5px;
+        display: none; /* Caché par défaut */
+    }
+
+    .dropdown-menu.show {
+        display: block;
+    }
+}
