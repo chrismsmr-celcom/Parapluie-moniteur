@@ -2386,3 +2386,29 @@ body.driver-js-opened {
         display: block;
     }
 }
+.pay-option input { display: none; }
+    .pay-box {
+        display: flex; flex-direction: column; align-items: center; gap: 8px;
+        padding: 12px; border: 2px solid #f1f5f9; border-radius: 10px;
+        cursor: pointer; transition: 0.2s; color: #64748b;
+    }
+    .pay-box span { font-size: 0.75rem; font-weight: 700; }
+    .pay-option input:checked + .pay-box {
+        border-color: #1f3c63; background: #eff6ff; color: #1f3c63;
+    }
+
+    /* Style pour mettre en évidence le mode de paiement sélectionné */
+    
+    .pay-radio:checked + .pay-card {
+        border-color: #10b981 !important;
+        background: #f0fdf4 !important;
+        color: #10b981 !important;
+    }
+    .pay-card {
+        transition: all 0.2s ease;
+        color: #64748b;
+    }
+    .pay-card:hover {
+        border-color: #94a3b8;
+
+
