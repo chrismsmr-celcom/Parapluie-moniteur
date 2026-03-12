@@ -272,41 +272,75 @@
     </div>
 </div>
 <div id="customerModal" class="modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; backdrop-filter: blur(4px);">
-    <div style="background:white; padding:25px; border-radius:12px; width:95%; max-width:450px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); max-height: 90vh; overflow-y: auto;">
+    <div style="background:white; padding:25px; border-radius:12px; width:95%; max-width:450px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto;">
+        
         <h3 style="margin-top:0; color:#1f3c63; display:flex; align-items:center; gap:10px;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             Résumé de la Facture
         </h3>
 
         <div id="invoiceSummary" style="background:#f9fafb; border-radius:8px; padding:15px; margin-bottom:20px; border:1px solid #edf2f7;">
-            <div id="summaryItemsList" style="font-size:0.9rem; color:#4a5568; margin-bottom:10px;">
-                </div>
+            <div id="summaryItemsList" style="font-size:0.9rem; color:#4a5568; margin-bottom:10px;"></div>
             <div style="border-top:2px dashed #e2e8f0; padding-top:10px; display:flex; justify-content:space-between; font-weight:700; font-size:1.1rem; color:#1a202c;">
                 <span>Total à payer</span>
-                <span id="summaryTotalAmount">0.00 $</span>
+                <span id="summaryTotalAmount">0.00 FC</span>
             </div>
         </div>
-        
-        <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
-        
-        <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:#1f3c63;">Détails du Client (Optionnel)</h4>
-        <div style="margin-bottom:15px;">
-            <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:5px;">Nom Complet</label>
-            <input type="text" id="custName" placeholder="Ex: Jean Mukendi" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; outline:none; transition:border 0.2s;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='#ddd'">
+
+        <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:#1f3c63;">Mode de Paiement</h4>
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:15px;">
+            <label style="cursor:pointer;">
+                <input type="radio" name="payCategory" value="CASH" checked onclick="toggleSubAccounts('CASH')" style="display:none;" class="pay-radio">
+                <div class="pay-card" style="text-align:center; padding:12px 8px; border:1px solid #ddd; border-radius:8px; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+                    <span style="font-size:0.75rem; font-weight:600;">Espèces</span>
+                </div>
+            </label>
+            <label style="cursor:pointer;">
+                <input type="radio" name="payCategory" value="MOBILE" onclick="toggleSubAccounts('MOBILE')" style="display:none;" class="pay-radio">
+                <div class="pay-card" style="text-align:center; padding:12px 8px; border:1px solid #ddd; border-radius:8px; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                    <span style="font-size:0.75rem; font-weight:600;">Mobile</span>
+                </div>
+            </label>
+            <label style="cursor:pointer;">
+                <input type="radio" name="payCategory" value="BANK" onclick="toggleSubAccounts('BANK')" style="display:none;" class="pay-radio">
+                <div class="pay-card" style="text-align:center; padding:12px 8px; border:1px solid #ddd; border-radius:8px; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M3 10h18"/><path d="M5 6l7-3 7 3"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M8 14v3"/><path d="M12 14v3"/><path d="M16 14v3"/></svg>
+                    <span style="font-size:0.75rem; font-weight:600;">Banque</span>
+                </div>
+            </label>
         </div>
 
-        <div style="margin-bottom:15px;">
-            <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:5px;">Téléphone</label>
-            <input type="text" id="custPhone" placeholder="Ex: +243..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; outline:none;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='#ddd'">
+        <div style="margin-bottom:20px;">
+            <label id="subAccountLabel" style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:5px; color:#64748b;">Compte de destination :</label>
+            <select id="exactAccount" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; outline:none; background:#fff; font-size:0.9rem; color:#1e293b; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 12px top 50%; background-size: 10px auto;">
+            </select>
+        </div>
+
+        <hr style="border:0; border-top:1px solid #f1f5f9; margin-bottom:20px;">
+
+        <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:#1f3c63;">Détails du Client (Optionnel)</h4>
+        <div style="margin-bottom:12px;">
+            <input type="text" id="custName" placeholder="Nom du client" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; outline:none; font-size:0.9rem;">
+        </div>
+        <div style="margin-bottom:12px;">
+            <input type="text" id="custPhone" placeholder="Téléphone" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; outline:none; font-size:0.9rem;">
         </div>
 
         <div style="display:flex; gap:12px; margin-top:25px;">
-<button onclick="confirmInvoice()">Confirmer et Imprimer</button>            
-<button onclick="closeCustomerModal()" style="flex:1; background:#f3f4f6; color:#4b5563; border:none; padding:14px; border-radius:8px; cursor:pointer; font-weight:500;">Annuler</button>
+            <button onclick="confirmInvoice()" style="flex:2; background:#10b981; color:white; border:none; padding:14px; border-radius:8px; cursor:pointer; font-weight:600; font-size:1rem; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);">
+                Confirmer et Imprimer
+            </button>
+            <button onclick="closeCustomerModal()" style="flex:1; background:#f3f4f6; color:#4b5563; border:none; padding:14px; border-radius:8px; cursor:pointer; font-weight:500;">
+                Annuler
+            </button>
         </div>
     </div>
 </div>
-<div id="reader" style="width: 100%; max-width: 500px; display: none; margin: 10px auto; border-radius: 12px; overflow: hidden;"></div>
+
+<div id="reader" style="width: 100%; max-width: 500px; display: none; margin: 10px auto; border-radius: 12px; overflow: hidden; border: 2px solid var(--primary);"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script src="js/auth-check.js"></script>
@@ -879,159 +913,115 @@ function closeCustomerModal() {
  * VALIDE LA FACTURE ET GÉNÈRE LE PDF RÉEL
  */
 async function confirmInvoice() {
-    const btn = event?.target || document.querySelector('#customerModal button[onclick="confirmInvoice()"]');
-    const originalText = btn.innerHTML;
+    const btn = document.querySelector("#customerModal button[onclick='confirmInvoice()']");
+    const originalText = btn?.innerHTML || "Confirmer";
     
-    // 1. Récupérer l'index de la vente qu'on veut facturer
-    const index = document.getElementById('modalSaleIndex').value;
-    const sale = window.salesData[index];
-
+    // On récupère les infos du modal
     const clientName = document.getElementById('custName').value || "Client Comptant";
     const clientPhone = document.getElementById('custPhone').value || "N/A";
+    
+    // Récupération du mode de paiement (icônes SVG)
+    const payCategory = document.querySelector('input[name="payCategory"]:checked')?.value || "CASH";
+    const accountSelect = document.getElementById('exactAccount');
+    const exactAccountLabel = accountSelect ? accountSelect.options[accountSelect.selectedIndex].text : "Caisse";
 
-    if (!sale) {
-        showToast("Erreur: Données de vente introuvables.", "error");
+    // On vérifie si on a des articles à facturer
+    if (!window.currentInvoiceData || !window.currentInvoiceData.items || window.currentInvoiceData.items.length === 0) {
+        showToast("Erreur: Aucun article à facturer.", "error");
         return;
     }
 
     try {
-        btn.disabled = true;
-        btn.innerHTML = "Génération...";
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = "Génération...";
+        }
 
         if (!window.MoniteoPDF) throw new Error("Module PDF non chargé.");
 
         const invoiceID = `FAC-${Date.now().toString().slice(-6)}`;
         
-        // 2. On prépare l'item unique à partir de la ligne sélectionnée
-        const itemsToPrint = [{
-            description: sale.product || "Produit sans nom",
-            price: Number(sale.sell_price) || 0,
-            qty: Number(sale.qty) || 0,
-            total: (Number(sale.sell_price) || 0) * (Number(sale.qty) || 0)
-        }];
-
-        // 3. Appel du module
+        // 3. Appel du module PDF (On utilise 'items' qui est déjà un tableau)
         await window.MoniteoPDF.generateThermalReceipt({
             invoiceNumber: invoiceID,
             date: new Date().toLocaleDateString('fr-FR'),
+            paymentMethod: exactAccountLabel, // On affiche le compte choisi
             customer: {
                 name: clientName,
                 phone: clientPhone
             },
-            items: itemsToPrint
+            items: window.currentInvoiceData.items.map(item => ({
+                description: item.name || item.description,
+                price: Number(item.price) || 0,
+                qty: Number(item.quantity || item.qty) || 0,
+                total: (Number(item.price) || 0) * (Number(item.quantity || item.qty) || 0)
+            }))
         });
 
+        // SAUVEGARDE CLOUD (Optionnel - à décommenter quand prêt)
+        // await saveSaleToSupabase(invoiceID, payCategory, accountSelect.value, window.currentInvoiceData);
+
         showToast(`Facture ${invoiceID} générée !`, "success");
+        
+        // Nettoyage
+        if (typeof resetSalesInterface === 'function') resetSalesInterface();
         closeCustomerModal();
 
     } catch (err) {
-        console.error("ERREUR PDF:", err);
-        alert("Erreur critique : " + err.message);
+        console.error("ERREUR FACTURATION:", err);
+        showToast("Erreur : " + err.message, "error");
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
     }
 }
-async function generateMultiItemInvoice(customer = { name: "Client Comptant", phone: "-" }) {
-    if (window.moniteoCart.length === 0) {
-        alert("Le panier est vide !");
-        return;
-    }
+// On utilise une seule variable pour éviter les conflits
+window.currentInvoiceData = { items: [], total: 0 };
 
-    try {
-        // Calcul du total général de la facture
-        const grandTotal = window.moniteoCart.reduce((sum, item) => sum + item.total, 0);
-        
-        const invoiceID = `FAC-${Date.now().toString().slice(-6)}`;
-
-        if (!window.MoniteoPDF) throw new Error("Module PDF introuvable.");
-
-        // Appel au module PDF avec la liste complète
-        await window.MoniteoPDF.generateThermalReceipt({
-            invoiceNumber: invoiceID,
-            date: new Date().toLocaleDateString('fr-FR'),
-            customer: customer,
-            // On envoie le tableau complet au lieu d'un seul item
-            items: window.moniteoCart, 
-            totalHT: grandTotal,
-            qrCode: `VERIF-POS-${invoiceID}`
-        });
-
-        // Une fois la facture générée, on vide le panier
-        window.moniteoCart = [];
-        alert("Vente enregistrée et facture générée !");
-
-    } catch (error) {
-        console.error("Erreur POS:", error);
-        alert("Erreur : " + error.message);
-    }
-}
-// Variable globale pour stocker les articles en cours
-window.moniteoCart = [];
-
-/**
- * Ajoute un produit au panier avant facturation
- */
 function addToCart(index) {
-    const product = window.salesData[index]; // Ou tes données de stock
+    const product = window.salesData[index];
     if (!product) return;
 
-    // Vérifier si le produit est déjà dans le panier
-    const existingItem = window.moniteoCart.find(item => item.id === product.id);
+    // Chercher si l'article existe déjà
+    const existing = window.currentInvoiceData.items.find(i => i.id === (product.id || index));
 
-    if (existingItem) {
-        existingItem.qty += 1;
-        existingItem.total = existingItem.qty * existingItem.price;
+    if (existing) {
+        existing.quantity += 1;
     } else {
-        window.moniteoCart.push({
-            id: product.id,
-            description: product.product || product.name,
+        window.currentInvoiceData.items.push({
+            id: product.id || index,
+            name: product.product || "Produit",
             price: parseFloat(product.sell_price) || 0,
-            qty: 1,
-            total: parseFloat(product.sell_price) || 0
+            quantity: 1
         });
     }
+
+    // Recalcul du total
+    window.currentInvoiceData.total = window.currentInvoiceData.items.reduce((sum, i) => sum + (i.price * i.quantity), 0);
     
-    console.log("Panier mis à jour :", window.moniteoCart);
-    // Ici, tu peux appeler une fonction pour mettre à jour l'affichage de ton interface
+    showToast(`${product.product} ajouté au panier`, "success");
 }
-// Remplace "async function generateInvoice..." par ceci :
-window.generateInvoice = async function(index, customer) {
+function prepareAndInvoice(index) {
     const sale = window.salesData[index];
-    if (!sale) {
-        alert("Données de vente introuvables.");
-        return;
+    if (!sale) return;
+
+    // On prépare les données pour le modal (une seule ligne ici)
+    window.currentInvoiceData = {
+        items: [{
+            name: sale.product,
+            price: parseFloat(sale.sell_price),
+            quantity: parseInt(sale.qty)
+        }],
+        total: parseFloat(sale.sell_price) * parseInt(sale.qty)
+    };
+
+    // On ouvre le modal (qui va appeler processInvoice pour l'affichage)
+    if (typeof processInvoice === 'function') {
+        processInvoice(); 
     }
-
-    try {
-        const qty = parseInt(sale.qty) || 0;
-        const price = parseFloat(sale.sell_price) || 0;
-        const subTotal = price * qty;
-        const invoiceID = `FAC-${Date.now().toString().slice(-6)}`;
-
-        if (!window.MoniteoPDF) throw new Error("Module PDF non chargé.");
-
-        await window.MoniteoPDF.generateThermalReceipt({
-            invoiceNumber: invoiceID,
-            date: sale.date || new Date().toLocaleDateString('fr-FR'),
-            customer: {
-                name: customer?.name || "Client Comptant",
-                phone: customer?.phone || "-"
-            },
-            // Note : Si tu as mis à jour exportPDF pour le panier, 
-            // transforme ceci en tableau [item] pour la compatibilité
-            items: [{
-                description: sale.product || "Produit",
-                price: price,
-                qty: qty,
-                total: subTotal
-            }]
-        });
-    } catch (error) {
-        console.error("Erreur Facturation:", error);
-        alert("Erreur: " + error.message);
-    }
-};
+}
 /**
  * NAVIGATION & UI
  */
@@ -1394,6 +1384,130 @@ function showToast(message, type = 'info') {
         toast.style.transform = 'translateX(100%)';
         setTimeout(() => toast.remove(), 500);
     }, 4000);
+}
+/**
+ * Met à jour dynamiquement les comptes de destination sans emojis
+ */
+function toggleSubAccounts(category) {
+    const select = document.getElementById('exactAccount');
+    const label = document.getElementById('subAccountLabel');
+    if (!select || !label) return;
+
+    // On vide le menu actuel
+    select.innerHTML = '';
+
+    const accounts = {
+        'CASH': {
+            label: "Compte de destination (Espèces) :",
+            options: [
+                { id: 'CAISSE_1', name: 'Caisse Principale' },
+                { id: 'CAISSE_2', name: 'Caisse Secondaire' }
+            ]
+        },
+        'MOBILE': {
+            label: "Opérateur Mobile Money :",
+            options: [
+                { id: 'MPESA', name: 'M-Pesa' },
+                { id: 'ORANGE_MONEY', name: 'Orange Money' },
+                { id: 'AIRTEL_MONEY', name: 'Airtel Money' }
+            ]
+        },
+        'BANK': {
+            label: "Institution Bancaire :",
+            options: [
+                { id: 'EQUITY_BCDC', name: 'Equity BCDC' },
+                { id: 'RAWBANK', name: 'Rawbank' },
+                { id: 'TMB', name: 'TMB' }
+            ]
+        }
+    };
+
+    const config = accounts[category];
+
+    // Mise à jour du libellé
+    label.innerText = config.label;
+
+    // Remplissage du select avec les noms propres
+    config.options.forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt.id;
+        o.textContent = opt.name;
+        select.appendChild(o);
+    });
+}
+/**
+ * Enregistre la transaction dans Supabase
+ */
+async function saveSaleToSupabase(invoiceID, payCategory, exactAccountID, invoiceData) {
+    try {
+        // 1. Préparation des données pour la table 'sales'
+        const salesToInsert = invoiceData.items.map(item => ({
+            invoice_id: invoiceID,
+            product_name: item.name,
+            quantity: item.quantity,
+            unit_price: item.price,
+            total_price: item.price * item.quantity,
+            payment_method: payCategory, // CASH, MOBILE, BANK
+            account_id: exactAccountID,   // Ex: MPESA, CAISSE_1
+            client_name: document.getElementById('custName').value || "Client Comptant",
+            created_at: new Date().toISOString()
+        }));
+
+        // 2. Insertion groupée dans Supabase
+        const { data, error } = await _supabase
+            .from('sales')
+            .insert(salesToInsert);
+
+        if (error) throw error;
+
+        // 3. Optionnel : Mise à jour du compte financier (Solde)
+        // Tu peux créer une table 'accounts' pour suivre la balance de chaque compte
+        await updateAccountBalance(exactAccountID, invoiceData.total);
+
+        console.log("Données sauvegardées avec succès sur Supabase");
+        return true;
+
+    } catch (err) {
+        console.error("Erreur Supabase:", err.message);
+        showToast("Erreur de sauvegarde cloud", "error");
+        
+        // Si ça échoue, on peut tenter de sauvegarder en local (Offline)
+        if (typeof OfflineManager !== 'undefined') {
+            OfflineManager.save(OfflineManager.KEYS.SALES, invoiceData);
+        }
+        return false;
+    }
+}
+
+/**
+ * Met à jour le solde du compte sélectionné
+ */
+async function updateAccountBalance(accountId, amount) {
+    try {
+        // On utilise l'opérateur RPC de Supabase ou un simple increment
+        const { error } = await _supabase.rpc('increment_balance', { 
+            row_id: accountId, 
+            amount_to_add: parseFloat(amount) 
+        });
+
+        if (error) {
+            // Si tu n'as pas créé de fonction RPC, utilise une requête simple :
+            const { data: currentAcc } = await _supabase
+                .from('accounts')
+                .select('balance')
+                .eq('id', accountId)
+                .single();
+
+            const newBalance = (parseFloat(currentAcc?.balance) || 0) + parseFloat(amount);
+            
+            await _supabase
+                .from('accounts')
+                .update({ balance: newBalance, updated_at: new Date().toISOString() })
+                .eq('id', accountId);
+        }
+    } catch (err) {
+        console.error("Erreur mise à jour solde:", err);
+    }
 }
 </script>
 </body>
