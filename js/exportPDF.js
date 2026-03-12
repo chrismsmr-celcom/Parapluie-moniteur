@@ -193,32 +193,38 @@ window.MoniteoPDF = {
         });
 
         // --- 5. TOTALISATION & PAIEMENT ---
-        currentY += 4;
-        doc.setLineDash([]); 
-        doc.line(margin, currentY, pageWidth - margin, currentY);
-        currentY += 6;
+        // --- 5. TOTALISATION & PAIEMENT ---
+currentY += 4;
+doc.setLineDash([]); 
+doc.line(margin, currentY, pageWidth - margin, currentY);
+currentY += 6;
 
-        const subTotal = data.items.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
-        const tvaRate = parseFloat(config.tva) || 0;
-        const tvaAmount = subTotal * (tvaRate / 100);
-        const grandTotal = subTotal + tvaAmount;
+const subTotal = data.items.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+const tvaRate = parseFloat(config.tva) || 0;
+const tvaAmount = subTotal * (tvaRate / 100);
+const grandTotal = subTotal + tvaAmount;
 
-        doc.text("Sous-total HT:", margin, currentY);
-        doc.text(`${this._formatNumber(subTotal)} ${config.currency}`, pageWidth - margin, currentY, { align: 'right' });
-        doc.text(`TVA (${tvaRate}%):`, margin, currentY + 4);
-        doc.text(`${this._formatNumber(tvaAmount)} ${config.currency}`, pageWidth - margin, currentY + 4, { align: 'right' });
+doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(60);
+doc.text("Sous-total HT:", margin, currentY);
+doc.text(`${this._formatNumber(subTotal)} ${config.currency}`, pageWidth - margin, currentY, { align: 'right' });
+doc.text(`TVA (${tvaRate}%):`, margin, currentY + 4);
+doc.text(`${this._formatNumber(tvaAmount)} ${config.currency}`, pageWidth - margin, currentY + 4, { align: 'right' });
 
-        currentY += 12;
-        doc.setFillColor(0, 0, 0); 
-        doc.rect(margin, currentY - 5, pageWidth - (margin * 2), 8, 'F');
-        doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(255);
-        doc.text("TOTAL TTC:", margin + 2, currentY);
-        doc.text(`${this._formatNumber(grandTotal)} ${config.currency}`, pageWidth - margin - 2, currentY, { align: 'right' });
+currentY += 12;
+// Rectangle noir pour le Total (Style Premium)
+doc.setFillColor(0, 0, 0); 
+doc.rect(margin, currentY - 5, pageWidth - (margin * 2), 8, 'F');
+doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(255);
+doc.text("TOTAL TTC:", margin + 2, currentY);
+doc.text(`${this._formatNumber(grandTotal)} ${config.currency}`, pageWidth - margin - 2, currentY, { align: 'right' });
 
-        currentY += 8;
-        doc.setFont("helvetica", "bold").setFontSize(8).setTextColor(0);
-        const paymentMode = data.paymentMethod || "ESPÈCES";
-        doc.text(`MODE DE PAIEMENT : ${paymentMode.toUpperCase()}`, margin, currentY);
+currentY += 10;
+doc.setFont("helvetica", "bold").setFontSize(8).setTextColor(0);
+
+// RÉCUPÉRATION DU MODE DE PAIEMENT CORRIGÉE
+// On affiche le libellé du compte (ex: M-Pesa) plutôt que juste la catégorie
+const paymentMode = data.paymentMethod ? data.paymentMethod.toUpperCase() : "ESPÈCES";
+doc.text(`RÈGLEMENT : ${paymentMode}`, margin, currentY);
 
         // --- 6. QR CODE ---
         currentY += 10;
