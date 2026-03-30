@@ -1,1116 +1,1492 @@
 <!DOCTYPE html>
 <html lang="fr">
-	<head>
-		<head>
+<head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#ffffff">
-    <title>Moniteo Umbrella - Gestion Staff</title>
-
-    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
-    <link rel="icon" type="image/png" sizes="16x16" href="assets/icon-16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
-    <link rel="manifest" href="assets/manifest.webmanifest">
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="UI/style.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="theme-color" content="#2563eb">
+    <title>Moniteo | Gestion du personnel</title>
     
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
-    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
-
     <script src="js/auth-check.js"></script>        
-    <script src="js/supabase-config.js"></script>  
-     <script src="js/offline-manager.js"></script>   
-     <script src="js/settings-manager.js"></script>  
-     <script src="js/common.js"></script>            
-     <script src="js/stats-manager.js"></script>    
-      <script src="js/exportPDF.js"></script>         
-    <script src="js/copilot-manager.js"></script>  
-     </head>
-     <script>
-    // Variable globale pour stocker les données du staff
-    let staffData = [];
-
-    // protectPage vient de auth-check.js
-    protectPage(async (user) => {
-        console.log("✅ Accès Staff autorisé pour :", user.email);
-        // On attend que les données soient là avant de faire quoi que ce soit
-        await fetchStaffData(user); 
-    });
-
-    async function fetchStaffData(user) {
-        try {
-            const db = window._db || _db;
-            if (!db) throw new Error("Base de données non initialisée.");
-
-            const { data, error } = await db
-                .from('staff') 
-                .select('*')
-                .eq('user_id', user.id)
-                .order('name', { ascending: true });
-
-            if (error) throw error;
-
-            if (data) {
-                console.log("👥 Staff récupéré :", data.length);
-                
-                // On remplit la variable globale
-                staffData = data;
-                
-                // Appel du rendu (défini dans common.js ou ci-dessous)
-                if (typeof renderStaff === 'function') {
-                    renderStaff(); 
-                } else {
-                    console.warn("⚠️ La fonction renderStaff n'est pas encore définie.");
-                }
-            }
-        } catch (err) {
-            console.error("❌ Erreur critique :", err.message);
+    <script src="js/supabase-config.js"></script>   
+    <script src="js/offline-manager.js"></script>   
+    <script src="js/settings-manager.js"></script> 
+    <script src="js/common.js"></script>            
+    <script src="js/stats-manager.js"></script>    
+    <script src="js/exportPDF.js"></script>         
+    <script src="js/copilot-manager.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --primary-light: #60a5fa;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --sidebar-width: 280px;
+            --sidebar-collapsed-width: 80px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
         }
-    }
-</script>
-	</head>
-	<body>
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            overflow-x: hidden;
+            width: 100%;
+            position: relative;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: white;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+            z-index: 100;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .sidebar.collapsed { width: var(--sidebar-collapsed-width); }
+        .sidebar.collapsed .logo-full,
+        .sidebar.collapsed .nav-links span,
+        .sidebar.collapsed .logout-btn span { display: none; }
+        .sidebar.collapsed .logo-short { display: flex; }
+
+        .logo-box {
+            padding: 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid var(--gray-200);
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .logo-full { height: 180px; width: auto; }
+        .logo-short { height: 65px; width: auto; display: none; justify-content: center; align-items: center; margin: 0 auto; }
+
+        .nav-links {
+            list-style: none;
+            padding: 0 0.75rem;
+        }
+        .nav-links li { margin-bottom: 0.5rem; }
+        .nav-links a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--gray-600);
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .nav-links a:hover { background: var(--gray-100); color: var(--primary); }
+        .nav-links a.active { background: var(--primary); color: white; }
+        .nav-links i { width: 20px; font-size: 1.1rem; text-align: center; }
+
+        .logout-box {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            border-top: 1px solid var(--gray-200);
+        }
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--danger);
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .logout-btn:hover { background: rgba(239, 68, 68, 0.1); }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            transition: all 0.3s;
+            min-height: 100vh;
+            width: calc(100% - var(--sidebar-width));
+            overflow-x: hidden;
+            position: relative;
+        }
+        .sidebar.collapsed ~ .main-content { margin-left: var(--sidebar-collapsed-width); width: calc(100% - var(--sidebar-collapsed-width)); }
+
+        /* Header */
+        .dashboard-header {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .header-info h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .header-info p { color: var(--gray-500); font-size: 0.875rem; }
+        .company-badge {
+            background: var(--primary-light);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1.25rem;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .stat-info h3 { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--gray-500); margin-bottom: 0.25rem; letter-spacing: 0.5px; }
+        .stat-info p { font-size: 1.3rem; font-weight: 800; color: var(--gray-900); }
+
+        /* Action Bar */
+        .action-bar {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+        }
+        .search-wrapper i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+        }
+        .search-input {
+            width: 100%;
+            padding: 0.6rem 1rem 0.6rem 2.5rem;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+        }
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; transform: translateY(-1px); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; transform: translateY(-1px); }
+        .btn-outline { background: transparent; border: 1px solid var(--gray-300); color: var(--gray-600); }
+        .btn-outline:hover { background: var(--gray-100); }
+
+        /* Dropdown */
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 0.5rem;
+            background: white;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            min-width: 200px;
+            z-index: 100;
+            overflow: hidden;
+            display: none;
+        }
+        .dropdown-menu button {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: var(--gray-700);
+            transition: all 0.2s;
+        }
+        .dropdown-menu button:hover { background: var(--gray-100); }
+        .dropdown-menu hr { margin: 0.25rem 0; border: none; border-top: 1px solid var(--gray-200); }
+
+        /* Table */
+        .table-container {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 100px;
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        th {
+            background: var(--gray-50);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--gray-500);
+        }
+        td { font-size: 0.875rem; }
+        .contract-badge {
+            background: var(--gray-100);
+            padding: 0.2rem 0.5rem;
+            border-radius: var(--radius-lg);
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+        .btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+        }
+        .btn-icon:hover { background: var(--gray-100); }
+
+        /* Charts */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .chart-card {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .chart-title { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .chart-container { height: 280px; position: relative; }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            max-width: 550px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .modal-header h3 { font-size: 1.1rem; font-weight: 600; }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray-500);
+        }
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .form-group label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--gray-500);
+            letter-spacing: 0.5px;
+        }
+        .form-group input, .form-group select {
+            padding: 0.6rem 0.75rem;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-family: inherit;
+        }
+
+        /* Premium Modal Styles */
+        .premium-modal .premium-modal-content {
+            max-width: 500px;
+            padding: 0;
+            overflow: hidden;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .premium-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, var(--gray-50) 0%, white 100%);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .premium-header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .premium-icon-badge {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.1rem;
+        }
+
+        .premium-header-left h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--gray-800);
+        }
+
+        .premium-header-left p {
+            font-size: 0.65rem;
+            color: var(--gray-500);
+            margin: 0;
+        }
+
+        .premium-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--gray-100);
+            border: none;
+            cursor: pointer;
+            color: var(--gray-500);
+            transition: all 0.2s;
+        }
+
+        .premium-close:hover {
+            background: var(--danger);
+            color: white;
+            transform: rotate(90deg);
+        }
+
+        /* Document Header */
+        .premium-document-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            background: white;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .premium-logo-area {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .premium-logo-placeholder {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-light), var(--primary));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .premium-logo-area h2 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--gray-800);
+        }
+
+        .premium-slogan {
+            font-size: 0.55rem;
+            color: var(--gray-400);
+            margin: 0;
+        }
+
+        .premium-document-ref {
+            text-align: right;
+        }
+
+        .premium-ref-badge {
+            background: var(--gray-100);
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .premium-date {
+            font-size: 0.6rem;
+            color: var(--gray-500);
+        }
+
+        /* Employee Card */
+        .premium-employee-card {
+            display: flex;
+            gap: 0.75rem;
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, #f8fafc, white);
+            margin: 0 1rem;
+            border-radius: 14px;
+            border: 1px solid var(--gray-100);
+        }
+
+        .premium-employee-avatar {
+            width: 45px;
+            height: 45px;
+            background: var(--primary-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.4rem;
+        }
+
+        .premium-employee-info {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.4rem 0.75rem;
+        }
+
+        .premium-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 0.7rem;
+        }
+
+        .premium-label {
+            color: var(--gray-500);
+            font-weight: 500;
+        }
+
+        .premium-label i {
+            width: 12px;
+            font-size: 0.6rem;
+            margin-right: 0.2rem;
+        }
+
+        .premium-value {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        /* Table Styles */
+        .premium-table-wrapper {
+            padding: 0.75rem 1rem;
+        }
+
+        .premium-payslip-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .premium-payslip-table th {
+            text-align: left;
+            padding: 0.5rem 0.4rem;
+            background: var(--gray-50);
+            font-weight: 600;
+            color: var(--gray-600);
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .premium-amount-header {
+            text-align: right;
+            width: 40%;
+        }
+
+        .premium-payslip-table td {
+            padding: 0.5rem 0.4rem;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .premium-payslip-table td:first-child {
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+        .premium-payslip-table td:last-child {
+            text-align: right;
+        }
+
+        .premium-amount {
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .premium-bonus {
+            color: var(--success);
+        }
+
+        .premium-brut {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .premium-total-row {
+            background: var(--gray-50);
+            font-weight: 700;
+        }
+
+        .premium-input-cell {
+            text-align: right;
+        }
+
+        .premium-input {
+            width: 90px;
+            text-align: right;
+            padding: 0.25rem 0.4rem;
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            font-size: 0.7rem;
+            transition: all 0.2s;
+        }
+
+        .premium-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
+
+        .premium-net-row {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+        }
+
+        .premium-net-row td {
+            border: none;
+            padding: 0.6rem 0.4rem;
+        }
+
+        .premium-net-row td:first-child {
+            font-weight: 700;
+        }
+
+        .premium-net-amount {
+            font-size: 1rem;
+            font-weight: 800;
+            text-align: right;
+        }
+
+        /* Legal Note */
+        .premium-legal-note {
+            margin: 0 1rem 0.75rem 1rem;
+            padding: 0.5rem;
+            background: #fef3c7;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.6rem;
+            color: #92400e;
+        }
+
+        /* Footer */
+        .premium-modal-footer {
+            padding: 0.75rem 1rem;
+            border-top: 1px solid var(--gray-200);
+            background: var(--gray-50);
+        }
+
+        .premium-share-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .premium-share-label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+        }
+
+        .premium-share-buttons {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .premium-share-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: white;
+            border: 1px solid var(--gray-200);
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--gray-600);
+            font-size: 0.8rem;
+        }
+
+        .premium-share-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .premium-share-btn:nth-child(1):hover { background: #ea4335; color: white; border-color: #ea4335; }
+        .premium-share-btn:nth-child(2):hover { background: #25D366; color: white; border-color: #25D366; }
+        .premium-share-btn:nth-child(3):hover { background: #0088cc; color: white; border-color: #0088cc; }
+        .premium-share-btn:nth-child(4):hover { background: #006AFF; color: white; border-color: #006AFF; }
+
+        .premium-action-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .premium-btn {
+            flex: 1;
+            padding: 0.5rem 0.8rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            border: none;
+        }
+
+        .premium-btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .premium-btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .premium-btn-outline {
+            background: white;
+            border: 1px solid var(--gray-200);
+            color: var(--gray-600);
+        }
+
+        .premium-btn-outline:hover {
+            background: var(--gray-100);
+            border-color: var(--gray-300);
+        }
+
+        /* Loading & Toast */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 1100;
+        }
+        .toast {
+            background: white;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: slideUp 0.3s ease;
+        }
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--danger); }
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Responsive */
+        @media (max-width: 1024px) { .charts-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; bottom: 0; top: auto; left: 0; right: 0; width: 100% !important; height: auto; flex-direction: row; padding: 0.5rem; }
+            .sidebar .logo-box, .sidebar .logout-box { display: none; }
+            .sidebar .nav-links { display: flex; flex-direction: row; width: 100%; padding: 0; }
+            .sidebar .nav-links li { flex: 1; margin: 0; }
+            .sidebar .nav-links a { flex-direction: column; padding: 0.5rem; font-size: 0.7rem; }
+            .sidebar .nav-links i { font-size: 1.2rem; margin: 0; }
+            .main-content { margin-left: 0 !important; width: 100% !important; padding: 1rem; padding-bottom: 80px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .action-bar { flex-direction: column; }
+            .btn-group { width: 100%; justify-content: center; }
+            .modal-grid { grid-template-columns: 1fr; }
+            .premium-modal-content { width: 95%; max-width: 450px; }
+            .premium-document-header { flex-direction: column; text-align: center; gap: 0.5rem; }
+            .premium-logo-area { flex-direction: column; }
+            .premium-document-ref { text-align: center; }
+            .premium-employee-card { flex-direction: column; align-items: center; text-align: center; margin: 0 0.75rem; }
+            .premium-employee-info { grid-template-columns: 1fr; width: 100%; }
+            .premium-info-row { justify-content: space-between; }
+            .premium-share-group { flex-direction: column; }
+            .premium-action-group { flex-direction: column; }
+            .premium-btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
 <nav class="sidebar" id="sidebar">
     <div class="logo-box">
-        <img src="https://i.postimg.cc/bJjy56Lq/Moniteo-1-removebg-preview.png" class="logo-full" alt="Moniteo">
+        <img src="https://oysdycuouodarfkmdtop.supabase.co/storage/v1/object/public/LOGO/Moniteo-20260115-205657-0000-removebg-preview.png" class="logo-full" alt="Moniteo">
         <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
-    </div>   
+    </div>
     <ul class="nav-links">
-        <li><a href="dashboard.html"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> <span>Accueil</span></a></li>
-        <li><a href="sales.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
-        <li><a href="inventory.html"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> <span>Inventaire</span></a></li>
-        <li><a href="expenses.html" ><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> <span>Dépenses</span></a></li>
-        <li><a href="staff.html" class="active"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> <span>Staff</span></a></li>
-        <li><a href="reporting.html"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> <span>Reporting</span></a></li>
-        <li><a href="history.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>Historique</span></a></li>
-        <li><a href="setting.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> <span>Paramètres</span></a></li>
-        
-        <li class="help-item">
-            <a href="#" onclick="startMoniteoCopilot(); return false;">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                </svg>
-                <span>Besoin d'aide ?</span>
-            </a>
-        </li>
-    </ul>    
+        <li><a href="dashboard.html"><i class="fas fa-chart-line"></i><span>Accueil</span></a></li>
+        <li><a href="sales.html"><i class="fas fa-shopping-cart"></i><span>Ventes</span></a></li>
+        <li><a href="inventory.html"><i class="fas fa-boxes"></i><span>Inventaire</span></a></li>
+        <li><a href="expenses.html"><i class="fas fa-receipt"></i><span>Dépenses</span></a></li>
+        <li><a href="staff.html" class="active"><i class="fas fa-users"></i><span>Staff</span></a></li>
+        <li><a href="clients.html"><i class="fas fa-user-friends"></i><span>Clients</span></a></li>
+        <li><a href="reporting.html"><i class="fas fa-chart-bar"></i><span>Rapports</span></a></li>
+        <li><a href="setting.html"><i class="fas fa-cog"></i><span>Paramètres</span></a></li>
+    </ul>
     <div class="logout-box">
-        <a href="#" onclick="logout(); return false;" class="logout-btn">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-            <span>Déconnexion</span>
-        </a>
+        <a href="#" onclick="logout()" class="logout-btn"><i class="fas fa-sign-out-alt"></i><span>Déconnexion</span></a>
     </div>
 </nav>
 
-		<main class="main-content">
-			<header class="header-flex" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); margin-bottom: 25px;">
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <div id="dynamicLogoContainer" style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px;"></div>
-        
-        <div style="border-left: 2px solid var(--border-soft); padding-left: 15px; display: flex; flex-direction: column; justify-content: center; min-height: 45px;">
-            <h2 id="pageTitle" style="margin: 0; font-size: 1.25rem; font-weight: 700; line-height: 1.2; color: var(--text-main);">GESTION DU PERSONNEL</h2>
-            <div style="display: flex; flex-direction: column; margin-top: 2px;">
-                <span id="companySubtitle" style="color: var(--secondary); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.8px; line-height: 1.4;"></span>
-                <span id="dateDisplay" style="color: var(--text-light); font-size: 0.75rem; font-weight: 500;"></span>
+<!-- Main Content -->
+<main class="main-content">
+    <div class="dashboard-header">
+        <div class="header-info">
+            <h1>Gestion du personnel</h1>
+            <p id="dateDisplay"></p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div id="companyLogoContainer" style="width: 45px; height: 45px; border-radius: 50%; overflow: hidden; background: var(--gray-100); display: flex; align-items: center; justify-content: center;">
+                <img id="companyLogo" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
             </div>
+            <div class="company-badge" id="companyBadge">Chargement...</div>
         </div>
     </div>
 
-    <div class="header-actions" style="display: flex; gap: 20px; align-items: center;">
-        <div style="position: relative;">
-            <input type="text" id="searchInput" placeholder="Chercher un employé..." oninput="filterStaff()" 
-                style="padding: 10px 15px 10px 35px; border-radius: 8px; border: 1px solid var(--border-soft); background: var(--bg-body); color: var(--text-main); font-size: 0.9rem; outline: none; width: 220px;">
-            <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; color: var(--text-light);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-        </div>
-        
-        <div id="loading-state" style="display: none; align-items: center; gap: 8px;">
-            <svg class="loader-icon-spin" viewBox="0 0 24 24" style="width: 20px; height: 20px; color: var(--primary); animation: spin 1s linear infinite;">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle>
-            </svg>
-            <span style="font-size: 0.8rem; color: var(--text-light); font-weight: 500;">Récupération...</span>
-        </div>
-    </div>
-</header>
-	<div class="summary-banner" style="display: grid; grid-gap: 20px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 25px;">
-    
-    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #3b82f6; display: flex; align-items: center; gap: 15px;">
-        <div style="background: #eff6ff; padding: 10px; border-radius: 10px; color: #3b82f6;">
-            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-        </div>
-        <div>
-            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Effectif Total</small>
-            <p id="statTotal" style="margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text-main);">0</p>
-        </div>
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon" style="background:#eff6ff;color:#3b82f6;"><i class="fas fa-users"></i></div><div class="stat-info"><h3>Effectif total</h3><p id="statTotal">0</p></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#ecfdf5;color:#10b981;"><i class="fas fa-chart-line"></i></div><div class="stat-info"><h3>Masse salariale</h3><p id="statMasse">0</p></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#fef2f2;color:#ef4444;"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-info"><h3>Fin de contrat</h3><p id="statAlerts">0</p></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#fffbeb;color:#f59e0b;"><i class="fas fa-chart-simple"></i></div><div class="stat-info"><h3>Salaire moyen</h3><p id="statMoyenne">0</p></div></div>
     </div>
 
-    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #10b981; display: flex; align-items: center; gap: 15px;">
-        <div style="background: #ecfdf5; padding: 10px; border-radius: 10px; color: #10b981;">
-            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-        </div>
-        <div>
-            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Masse Salariale</small>
-            <p id="statMasse" style="margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text-main);">0</p>
-        </div>
-    </div>
-
-    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #ef4444; display: flex; align-items: center; gap: 15px;">
-        <div style="background: #fef2f2; padding: 10px; border-radius: 10px; color: #ef4444;">
-            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-        </div>
-        <div>
-            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Fin de Contrats</small>
-            <p id="statAlerts" style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #ef4444;">0</p>
-        </div>
-    </div>
-
-    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #f59e0b; display: flex; align-items: center; gap: 15px;">
-        <div style="background: #fffbeb; padding: 10px; border-radius: 10px; color: #f59e0b;">
-            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>
-        </div>
-        <div>
-            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Salaire Moyen</small>
-            <p id="statMoyenne" style="margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text-main);">0</p>
-        </div>
-    </div>
-</div>
-			<div class="action-bar">
-    <div class="group">
-        <button class="btn-main" onclick="addEmployee()">
-            <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            Nouveau Collaborateur
-        </button>
-
-        <div class="dropdown">
-            <button class="btn-outline dropdown-trigger" onclick="toggleDropdown(event, 'staffActionsMenu')">Actions</button>
-            <div class="dropdown-menu" id="staffActionsMenu">
-                <button onclick="exportToExcel()">Exporter vers Excel</button>
-                <button onclick="exportToPDF()">Générer Rapport PDF</button>
-                <button onclick="document.getElementById('importExcel').click()">Importer Excel</button>
-            </div>
-        </div>
-    </div>
-
-    <input type="file" id="importExcel" hidden accept=".xlsx, .xls" onchange="importStaffExcel(event)">
-
-    <div class="dropdown" style="margin-left: auto;">
-        <button class="btn-danger dropdown-trigger" onclick="toggleDropdown(event, 'staffDangerMenu')">Options Critiques</button>
-        <div class="dropdown-menu" id="staffDangerMenu">
-            <button onclick="clearStaff()" style="color: var(--danger); font-weight: bold;">Nettoyer la liste</button>
-        </div>
-    </div>
-</div>
-			<div class="card">
-    <div class="table-wrapper">
-    <table>
-        <thead>
-            <tr>
-                <th>Collaborateur</th>
-                <th>Poste</th>
-                <th>Salaire ($)</th>
-                <th>Bonus ($)</th> <th>Avance ($)</th>
-                <th>Retenue/IPR ($)</th>
-                <th style="text-align: center;">Net Estimé</th>
-                <th style="text-align: right;">Actions</th>
-            </tr>
-        </thead>            
-        <tbody id="staffTable"></tbody>
-    </table>
-</div>
-</div>
-			<div class="card">
-				<h3>Répartition & Analyse</h3>
-				<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin-top: 1rem;">
-					<div style="height: 250px;">
-						<canvas id="contractChart"></canvas>
-					</div>
-					<div style="height: 250px;">
-						<canvas id="salaryChart"></canvas>
-					</div>
-				</div>
-			</div>
-		</main>
-		<div id="employeeModal" class="modal">
-    <div class="modal-content">
-        <span class="close-btn" onclick="closeModal()">&times;</span>
-        
-        <div style="text-align: center; margin-bottom: 15px;">
-            <div style="width: 100px; height: 100px; margin: 0 auto; cursor: pointer; position: relative;" onclick="document.getElementById('uploadPhoto').click()">
-                <img id="modalPhoto" 
-                     src="https://ui-avatars.com/api/?name=User&background=64748b&color=fff" 
-                     style="width:100%; height:100%; border-radius:50%; object-fit:cover; border: 2px solid var(--border-soft); background: var(--bg-body);">
-                
-                <div style="position: absolute; bottom: 0; right: 0; background: var(--primary); color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; border: 2px solid var(--bg-card);">+</div>
-            </div>
-            
-            <input type="file" id="uploadPhoto" hidden accept="image/*" onchange="handlePhotoUpload(this)">
-            
-            <p style="font-size: 0.7rem; color: var(--secondary); margin-top: 8px; cursor: pointer; font-weight: 600;" onclick="document.getElementById('uploadPhoto').click()">
-                CLIQUER POUR CHANGER LA PHOTO
-            </p>
-        </div>                
-        
-        <h3 id="modalNameHeader" style="text-align:center; margin-bottom:20px; color: var(--primary);">Dossier Collaborateur</h3>
-        
-        <div class="modal-grid">
-            <div><label>Nom complet</label><input type="text" id="editName"></div>
-            <div><label>Poste / Fonction</label><input type="text" id="editRole"></div>
-            <div>
-                <label>Contrat</label>
-                <select id="editContract">
-                    <option value="CDI">CDI</option>
-                    <option value="CDD">CDD</option>
-                    <option value="Stage">Stage</option>
-                    <option value="Freelance">Freelance</option>
-                </select>
-            </div>
-            <div><label>ID Paie / Matricule</label><input type="text" id="editID"></div>
-            <div><label>Date Entrée</label><input type="date" id="editEntryDate"></div>
-            <div><label>Date Fin (si CDD)</label><input type="date" id="editExpiryDate"></div>
-            <div style="grid-column: span 2;"><label>Email Professionnel</label><input type="email" id="editEmail" placeholder="nom@entreprise.com"></div>
-        </div>
-        
-        <div style="margin-top:25px; display:flex; gap:10px;">
-            <button class="btn-main" onclick="saveEmployeeDetails()" style="flex:2">Mettre à jour le dossier</button>
-            <button class="btn-outline" onclick="closeModal()" style="flex:1">Annuler</button>
-        </div>
-    </div>
-</div>
-
-<div id="payslipModal" class="payslip-sidebar-overlay" onclick="if(event.target === this) closePayslip()">
-    <div class="payslip-sidebar">
-        <div class="sidebar-body">
-            <div id="payslipContent">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <div>
-                        <h2 id="psCompany" style="margin:0; color:#1f3c63; letter-spacing: -0.5px;">MON ENTREPRISE</h2>
-                        <span id="psDate" style="font-size: 0.85rem; color: #64748b; font-weight: 600; text-transform: uppercase;"></span>
-                    </div>
+    <!-- Action Bar -->
+    <div class="action-bar">
+        <div class="search-wrapper"><i class="fas fa-search"></i><input type="text" id="searchInput" class="search-input" placeholder="Rechercher un collaborateur..." onkeyup="filterStaff()"></div>
+        <div class="btn-group"><button class="btn btn-primary" onclick="addEmployee()"><i class="fas fa-plus"></i> Nouveau collaborateur</button></div>
+        <div class="btn-group">
+            <div class="dropdown">
+                <button class="btn btn-outline dropdown-trigger" onclick="toggleActionsDropdown(event)"><i class="fas fa-ellipsis-h"></i> Actions <i class="fas fa-chevron-down" style="font-size:0.7rem;"></i></button>
+                <div class="dropdown-menu" id="actionsDropdownMenu">
+                    <button onclick="exportToExcel()"><i class="fas fa-file-excel" style="color:#10b981;"></i> Exporter Excel</button>
+                    <button onclick="exportToPDF()"><i class="fas fa-file-pdf" style="color:#ef4444;"></i> Générer rapport PDF</button>
+                    <button onclick="document.getElementById('importExcel').click()"><i class="fas fa-upload"></i> Importer Excel</button>
+                    <hr><button onclick="clearStaff()" style="color:var(--danger);"><i class="fas fa-trash-alt"></i> Nettoyer la liste</button>
                 </div>
-                
-                <div style="background: #f8fafc; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
-                    <div id="psName" style="font-weight: 800; font-size: 1.1rem; color: #1e293b;"></div>
-                    <div id="psRole" style="color: #64748b; font-size: 0.9rem;"></div>
-                    <div style="margin-top: 10px; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">
-                        ID: <span id="psID" style="color: #475569; font-weight: bold;"></span> | 
-                        CONTRAT: <span id="psContract" style="color: #475569; font-weight: bold;"></span>
-                    </div>
-                </div>
+            </div>
+        </div>
+    </div>
 
-                <table style="width: 100%; border-collapse: collapse; font-size: 0.95rem;">
-                    <tr style="border-bottom: 1px solid #f1f5f9;">
-                        <td style="padding: 12px 0; color: #475569;">Salaire de Base</td>
-                        <td id="psSalary" style="text-align: right; font-weight: 600; color: #1e293b;">0</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #f1f5f9;">
-                        <td style="padding: 12px 0; color: #475569;">Primes & Bonus</td>
-                        <td id="psBonus" style="text-align: right; font-weight: 600; color: #10b981;">0</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 12px 0; color: #ef4444; font-weight: 500;">Avance sur Salaire</td>
-                        <td style="text-align: right; padding: 12px 0;">
-                            <input type="number" id="inputAvance" oninput="calculateNet()" value="0" step="0.01" style="width: 90px; text-align: right; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 8px; font-family: inherit;">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 12px 0; color: #ef4444; font-weight: 500;">Cotisations / IPR</td>
-                        <td style="text-align: right; padding: 12px 0;">
-                            <input type="number" id="inputTax" oninput="calculateNet()" value="0" step="0.01" style="width: 90px; text-align: right; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 8px; font-family: inherit;">
-                        </td>
-                    </tr>
+    <!-- Table -->
+    <div class="table-container">
+        <div style="overflow-x: auto;">
+            <table id="staffTable">
+                <thead><tr><th>Collaborateur</th><th>Poste</th><th>Salaire</th><th>Bonus</th><th>Avance</th><th>Retenue</th><th>Net estimé</th><th style="text-align: right;">Actions</th></tr></thead>
+                <tbody id="staffTableBody"><tr><td colspan="8" style="text-align:center;">Chargement...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+        <div class="chart-card"><div class="chart-title"><i class="fas fa-chart-pie" style="color:var(--primary);"></i> Répartition par contrat</div><div class="chart-container"><canvas id="contractChart"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title"><i class="fas fa-chart-bar" style="color:var(--success);"></i> Top 5 salaires</div><div class="chart-container"><canvas id="salaryChart"></canvas></div></div>
+    </div>
+</main>
+
+<!-- Employee Modal -->
+<div id="employeeModal" class="modal">
+    <div class="modal-content" style="max-width: 650px;">
+        <div class="modal-header"><h3><i class="fas fa-user-circle"></i> Dossier collaborateur</h3><button onclick="closeModal('employeeModal')" class="modal-close">&times;</button></div>
+        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+            <div style="text-align: center; min-width: 120px;">
+                <div style="width: 100px; height: 100px; margin: 0 auto; cursor: pointer; position: relative;" onclick="document.getElementById('uploadPhoto').click()">
+                    <img id="modalPhoto" src="https://ui-avatars.com/api/?name=User&background=64748b&color=fff" style="width:100%; height:100%; border-radius:50%; object-fit:cover; border: 3px solid var(--primary);">
+                    <div style="position: absolute; bottom: 0; right: 0; background: var(--primary); color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; border: 2px solid white;">+</div>
+                </div>
+                <input type="file" id="uploadPhoto" hidden accept="image/*" onchange="handlePhotoUpload(this)">
+                <p style="font-size: 0.7rem; color: var(--gray-500); margin-top: 0.75rem; cursor: pointer;" onclick="document.getElementById('uploadPhoto').click()"><i class="fas fa-camera"></i> Changer la photo</p>
+            </div>
+            <div style="flex: 1;">
+                <div class="modal-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group"><label><i class="fas fa-user"></i> Nom complet</label><input type="text" id="editName" placeholder="Nom et prénom"></div>
+                    <div class="form-group"><label><i class="fas fa-briefcase"></i> Poste</label><input type="text" id="editRole" placeholder="Fonction"></div>
+                    <div class="form-group"><label><i class="fas fa-file-signature"></i> Type de contrat</label>
+                        <select id="editContract"><option value="CDI">CDI</option><option value="CDD">CDD</option><option value="Stage">Stage</option><option value="Freelance">Freelance</option></select>
+                    </div>
+                    <div class="form-group"><label><i class="fas fa-calendar-alt"></i> Date d'entrée</label><input type="date" id="editEntryDate"></div>
+                    <div class="form-group" style="grid-column: span 2;"><label><i class="fas fa-building"></i> Département</label><input type="text" id="editDepartment" placeholder="Département"></div>
+                </div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--gray-200);">
+            <button class="btn btn-primary" style="flex:2;" onclick="saveEmployeeDetails()"><i class="fas fa-save"></i> Enregistrer</button>
+            <button class="btn btn-outline" style="flex:1;" onclick="closeModal('employeeModal')"><i class="fas fa-times"></i> Annuler</button>
+        </div>
+    </div>
+</div>
+
+<!-- Payslip Modal -->
+<div id="payslipModal" class="modal premium-modal">
+    <div class="modal-content premium-modal-content">
+        <div class="premium-modal-header">
+            <div class="premium-header-left"><div class="premium-icon-badge"><i class="fas fa-file-invoice-dollar"></i></div><div><h3>Bulletin de paie</h3><p>Aperçu avant génération</p></div></div>
+            <button onclick="closeModal('payslipModal')" class="premium-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="premium-payslip-preview">
+            <div class="premium-document-header">
+                <div class="premium-logo-area">
+    <div id="psLogoContainer" class="premium-logo-placeholder">
+        <i class="fas fa-chart-line"></i>
+    </div>
+    <div>
+        <h2 id="psCompany">MON ENTREPRISE</h2>
+        <p class="premium-slogan">Document officiel - Bulletin de paie</p>
+    </div>
+</div>
+                <div class="premium-document-ref"><div class="premium-ref-badge"><span>N°</span><strong id="psRefNum">2024-001</strong></div><span id="psDate" class="premium-date"></span></div>
+            </div>
+            <div class="premium-employee-card">
+                <div class="premium-employee-avatar"><i class="fas fa-user-circle"></i></div>
+                <div class="premium-employee-info">
+                    <div class="premium-info-row"><span class="premium-label"><i class="fas fa-user"></i> Nom</span><span class="premium-value" id="psName">-</span></div>
+                    <div class="premium-info-row"><span class="premium-label"><i class="fas fa-briefcase"></i> Poste</span><span class="premium-value" id="psRole">-</span></div>
+                    <div class="premium-info-row"><span class="premium-label"><i class="fas fa-id-card"></i> Matricule</span><span class="premium-value" id="psID">-</span></div>
+                    <div class="premium-info-row"><span class="premium-label"><i class="fas fa-file-signature"></i> Contrat</span><span class="premium-value" id="psContract">-</span></div>
+                </div>
+            </div>
+            <div class="premium-table-wrapper">
+                <table class="premium-payslip-table">
+                    <thead><tr><th>Désignation</th><th>Montant</th></tr></thead>
+                    <tbody>
+                        <tr><td><strong>Salaire de base</strong></td><td class="premium-amount" id="psSalary">0</td></tr>
+                        <tr><td>Primes et bonus</td><td class="premium-amount premium-bonus" id="psBonus">0</td></tr>
+                        <tr class="premium-total-row"><td><strong>BRUT TOTAL</strong></td><td class="premium-amount premium-brut" id="psBrut">0</td></tr>
+                        <tr><td>Avance sur salaire</td><td><input type="number" id="inputAvance" oninput="calculateNet()" value="0" step="0.01" class="premium-input" placeholder="0"></td></tr>
+                        <tr><td>Cotisations / IPR</td><td><input type="number" id="inputTax" oninput="calculateNet()" value="0" step="0.01" class="premium-input" placeholder="0"></td></tr>
+                    </tbody>
+                    <tfoot><tr class="premium-net-row"><td><strong>NET À PAYER</strong></td><td class="premium-net-amount" id="psTotal">0</td></tr></tfoot>
                 </table>
-
-                <div style="margin-top: 35px; background: #1f3c63; color: white; padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(31, 60, 99, 0.2);">
-                    <span style="font-weight: 500; font-size: 0.9rem;">NET À PAYER</span>
-                    <span id="psTotal" style="font-size: 1.4rem; font-weight: 800;">0 FC</span>
+            </div>
+            <div class="premium-legal-note"><i class="fas fa-info-circle"></i><span>Document généré automatiquement par le système de paie. Fait foi pour la période concernée.</span></div>
+        </div>
+        <div class="premium-modal-footer">
+            <div class="premium-share-group">
+                <span class="premium-share-label">Partager via</span>
+                <div class="premium-share-buttons">
+                    <button onclick="sharePayslipVia('email')" class="premium-share-btn" title="Email"><i class="fas fa-envelope"></i></button>
+                    <button onclick="sharePayslipVia('whatsapp')" class="premium-share-btn" title="WhatsApp"><i class="fab fa-whatsapp"></i></button>
+                    <button onclick="sharePayslipVia('telegram')" class="premium-share-btn" title="Telegram"><i class="fab fa-telegram-plane"></i></button>
+                    <button onclick="sharePayslipVia('messenger')" class="premium-share-btn" title="Messenger"><i class="fab fa-facebook-messenger"></i></button>
+                    <button onclick="sharePayslipVia('more')" class="premium-share-btn" title="Plus"><i class="fas fa-ellipsis-h"></i></button>
                 </div>
             </div>
+            <div class="premium-action-group">
+                <button onclick="generatePayslipPDF()" class="premium-btn premium-btn-primary"><i class="fas fa-download"></i> Générer PDF</button>
+                <button onclick="closeModal('payslipModal')" class="premium-btn premium-btn-outline"><i class="fas fa-times"></i> Fermer</button>
+            </div>
         </div>
-
-        <div class="sidebar-footer no-print" style="padding: 20px; border-top: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 10px;">
-    <button onclick="downloadPayslipPDF()" style="flex: 1; background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 120px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        PDF
-    </button>
-
-    <button onclick="sharePayslip()" style="flex: 1; background: #10b981; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 120px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-        ENVOYER
-    </button>
-
-    <button onclick="closePayslip()" style="flex: 1; background: white; border: 1px solid #e2e8f0; color: #64748b; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; min-width: 100%;">Fermer</button>
-</div>
     </div>
 </div>
+
+<!-- Hidden inputs -->
+<input type="file" id="importExcel" hidden accept=".xlsx,.xls" onchange="importStaffExcel(event)">
+
+<!-- Loading & Toast -->
+<div id="loadingOverlay" class="loading-overlay" style="display:none;"><div class="spinner"></div></div>
+<div id="toastContainer" class="toast-container"></div>
 
 <script>
-    // --- 2. VARIABLES & DONNÉES ---
-    let currentIdx = -1;
-    let cChart = null;
-    let sChart = null;
+    
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    window._db = supabaseClient;
 
-    // --- 3. INITIALISATION ---
-    async function init() {
-        const { data: { user }, error } = await _db.auth.getUser();
-        
-        if (error || !user) {
-            console.warn("Utilisateur non connecté, redirection...");
-            window.location.replace("index.html");
-            return;
-        }
-        
-        currentUser = user; 
-        await fetchStaffData(); // Remplace loadStaff() pour la logique Supabase
+    let currentUser = null, staffData = [], currentStaffIndex = -1, currentPayslipStaffId = null, charts = {};
+
+    document.addEventListener('DOMContentLoaded', () => { checkAuth(); initSidebar(); });
+
+    async function checkAuth() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { window.location.href = 'index.html'; return; }
+        currentUser = session.user;
+        await loadCompanyInfo();
+        await loadStaff();
+        updateDateDisplay();
     }
 
-    // --- 4. RÉCUPÉRATION DES DONNÉES (FILTRÉES) ---
-   async function fetchStaffData() {
-    if (!currentUser) return;
-
-    const loadingElement = document.getElementById('loading-state');
-    if (loadingElement) loadingElement.style.display = 'flex';
-
-    try {
-        const { data, error } = await _db
-            .from('staff')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .order('name', { ascending: true });
-
-        if (error) throw error;
-
-        // On enrichit les données
-        staffData = (data || []).map(emp => ({
-            ...emp,
-            // Logique de secours si les champs sont vides dans Supabase
-            contractType: emp.contractType || (emp.role?.toLowerCase().includes("stage") ? "Stage" : "CDI"),
-            status: emp.status || "actif",
-            id_employee: emp.id_employee || (emp.id ? emp.id.substring(0, 8).toUpperCase() : "N/A"),
-            entryDate: emp.entryDate || (emp.created_at ? emp.created_at.split('T')[0] : new Date().toISOString().split('T')[0])
-        }));
-
-        // ✅ Mise à jour du cache local pour le prochain chargement hors-ligne
-        localStorage.setItem('staffData', JSON.stringify(staffData));
-        
-        renderStaff(); 
-
-    } catch (err) {
-        console.error("Erreur de chargement du personnel:", err.message);
-        
-        // 🔄 Récupération du cache si Supabase est inaccessible
-        const cachedData = localStorage.getItem('staffData');
-        staffData = cachedData ? JSON.parse(cachedData) : [];
-        
-        renderStaff();
-    } finally {
-        // ✅ On cache le chargement quoi qu'il arrive
-        if (loadingElement) loadingElement.style.display = 'none';
+    async function loadCompanyInfo() {
+        try {
+            const { data } = await supabaseClient.from('settings').select('logo_url, company_name').eq('user_id', currentUser.id).single();
+            if (data) {
+                document.getElementById('companyBadge').textContent = data.company_name || 'Mon entreprise';
+                if (data.logo_url) { document.getElementById('companyLogo').src = data.logo_url; document.getElementById('companyLogo').style.display = 'block'; }
+            }
+        } catch(e) {}
     }
-}
 
-    // --- 5. PERSISTENCE SUPABASE (MODIFICATION) ---
-  async function saveChange(index) {
-    if (!currentUser) return;
-    const item = staffData[index];
-    if (!item) return;
-
-    const s = parseMoney(item.salary);
-    const b = parseMoney(item.bonus);
-    const a = parseMoney(item.advance_amount);
-    const t = parseMoney(item.tax_amount);
-    const net = (s + b) - (a + t);
-
-    // CRITIQUE : J'ai retiré 'expiryDate' car elle n'existe pas dans ta table
-    const toSave = {
-        name: item.name,
-        role: item.role,
-        photo: item.photo,
-        user_id: currentUser.id,
-        salary: s,
-        bonus: b,
-        advance_amount: a,
-        tax_amount: t,
-        last_calculated_net: net,
-        contractType: item.contractType || 'CDI',
-        status: item.status || 'actif',
-        entryDate: item.entryDate || new Date().toISOString().split('T')[0],
-        department: item.department || ''
-    };
-
-    try {
-        if (item.id && String(item.id).length > 20) {
-            const { error } = await _db
-                .from('staff')
-                .update(toSave)
-                .eq('id', item.id);
+    async function loadStaff() {
+        showLoading(true);
+        try {
+            const { data, error } = await supabaseClient.from('staff').select('*').eq('user_id', currentUser.id).order('name', { ascending: true });
             if (error) throw error;
-            console.log("✅ Sauvegarde réussie");
-        } else {
-            const { data, error } = await _db
-                .from('staff')
-                .insert([toSave])
-                .select();
-            if (error) throw error;
-            if (data) staffData[index].id = data[0].id;
-        }
-        
-        // Rafraîchir l'affichage sans recharger toute la page
-        renderStaff();
-        if (typeof updateKPIs === 'function') updateKPIs();
-        
-    } catch (err) {
-        console.error("❌ Erreur SQL:", err.message);
-        // On alerte l'utilisateur si la colonne manque toujours
-        if (err.message.includes('expiryDate')) {
-            alert("Erreur de structure : La colonne expiryDate n'existe pas en base.");
-        }
-}
-    // --- SYNCHRONISATION VISUELLE ---
-    
-    // Mise à jour des compteurs (Alertes, Total Salaires, etc.)
-    if (typeof updateKPIs === 'function') {
-        updateKPIs();
-    }
-    
-    // Rafraîchir le tableau pour refléter les changements et le formatage
-    if (typeof renderStaff === 'function') {
-        renderStaff();
-    }
-}
-    // --- 6. ACTIONS (CRUD) ---
-    async function addEmployee() {
-    if (!currentUser) return;
-
-    // 1. Préparation de l'objet complet (valeurs par défaut)
-    const newEmp = { 
-        name: "Nouveau Collaborateur", 
-        role: "Poste", 
-        salary: 0, 
-        bonus: 0,
-        user_id: currentUser.id,
-        contractType: "CDI",
-        status: "actif",
-        entryDate: new Date().toISOString().split('T')[0]
-    };
-
-    // 2. GESTION HORS-LIGNE
-    if (!navigator.onLine) {
-        const offlineItem = OfflineManager.saveLocally(OfflineManager.KEYS.STAFF, newEmp);
-        
-        // On l'ajoute temporairement en haut de notre liste locale pour l'affichage
-        // On lui donne un ID employee temporaire basé sur son ID offline
-        offlineItem.id_employee = "OFFLINE";
-        staffData.unshift(offlineItem);
-        
-        renderStaff();
-        // On ouvre la modal (index 0 car unshift met l'élément au début)
-        if (typeof openModal === 'function') openModal(0);
-        return;
-    }
-
-    // 3. GESTION EN LIGNE (SUPABASE)
-    const { data, error } = await _db.from('staff').insert([newEmp]).select();
-    
-    if (!error && data && data.length > 0) {
-        // On enrichit la donnée reçue pour l'affichage immédiat
-        const createdEmp = {
-            ...data[0],
-            id_employee: data[0].id.substring(0, 8).toUpperCase()
-        };
-
-        staffData.unshift(createdEmp);
-        
-        // Tentative de synchronisation du reste si besoin
-        if (typeof OfflineManager !== 'undefined') OfflineManager.syncAll();
-
-        renderStaff();
-        openModal(0); // Ouvre la fiche pour éditer le nom/rôle immédiatement
-    } else {
-        console.error("Erreur ajout staff:", error?.message);
-        alert("Impossible d'ajouter l'employé : " + (error?.message || "Erreur réseau"));
-    }
-}
-
-    async function removeEmp(i) {
-        if(!confirm("Supprimer ce dossier ?")) return;
-        const targetId = staffData[i].id;
-        
-        const { error } = await _db.from('staff').delete().eq('id', targetId);
-        if(!error) {
-            staffData.splice(i,1);
+            staffData = data || [];
             renderStaff();
-        } else {
-            alert("Erreur lors de la suppression");
-        }
+            updateStats();
+            renderCharts();
+        } catch(e) { showToast(e.message, 'error'); }
+        finally { showLoading(false); }
     }
 
-    // --- 7. LOGIQUE DE CONFIGURATION ---
-
-    function parseMoney(val) {
-    if (val === null || val === undefined || val === '') return 0;
-    if (typeof val === 'number') return val;
-
-    // 1. Convertir en string et remplacer la virgule par un point
-    let s = String(val).replace(',', '.');
-
-    // 2. Supprimer tout ce qui n'est pas un chiffre, un point ou un signe moins
-    s = s.replace(/[^\d.-]/g, '');
-
-    // 3. Gérer le cas où il y aurait plusieurs points (ex: 1.200.50) 
-    // On ne garde que le dernier point comme séparateur décimal
-    const parts = s.split('.');
-    if (parts.length > 2) {
-        s = parts.slice(0, -1).join('') + '.' + parts.slice(-1);
-    }
-
-    return parseFloat(s) || 0;
-}
-    // --- 8. RENDU ET AFFICHAGE ---
-async function updateStaffField(index, field, value) {
-    // 1. Utilisation de staffData qui est ta variable globale définie
-    const item = staffData[index]; 
-    if (!item) {
-        console.error("❌ Employé non trouvé à l'index:", index);
-        return;
-    }
-
-    // 2. Nettoyage de la valeur (Bonus, Avance, Taxe, Salaire)
-    const numValue = parseMoney(value);
-    
-    // 3. Mise à jour locale pour le calcul immédiat
-    item[field] = numValue;
-
-    // 4. Sauvegarde automatique dans Supabase
-    await saveChange(index);
-    
-    // 5. Rafraîchissement du tableau pour recalculer le "Net Estimé"
-    renderStaff();
-}
-function renderStaff(filter = '') {
-    const searchFilter = (typeof filter === 'string' ? filter : '').toLowerCase().trim();
-    const tbody = document.getElementById('staffTable'); 
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    
-    // --- GESTION DES DONNÉES ---
-    const pendingStaff = typeof OfflineManager !== 'undefined' ? OfflineManager.getQueue(OfflineManager.KEYS.STAFF) : [];
-    const allStaffRender = [...pendingStaff, ...staffData];
-
-    let totalSalaries = 0;
-    let totalStaffCount = allStaffRender.length;
-
-    if (document.getElementById('staffCountLabel')) {
-        document.getElementById('staffCountLabel').textContent = totalStaffCount;
-    }
-
-    const iconSyncSmall = `<svg class="spin" style="width:12px;height:12px;color:#ffa500;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>`;
-
-    allStaffRender.forEach((e, i) => {
-        // --- CALCUL DES VALEURS ---
-        const salary = parseMoney(e.salary);
-        const bonus = parseMoney(e.bonus);
-        const valAvance = parseMoney(e.advance_amount);
-        const valTax = parseMoney(e.tax_amount);    
+    function renderStaff() {
+        const tbody = document.getElementById('staffTableBody');
+        const search = document.getElementById('searchInput')?.value.toLowerCase() || '';
+        const filtered = staffData.filter(s => s.name?.toLowerCase().includes(search) || s.role?.toLowerCase().includes(search));
+        if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Aucun collaborateur</td></tr>'; return; }
         
-        // Calcul du Net (Salaire + Bonus - Avance - Taxe)
-        const netEstimatif = (salary + bonus) - (valAvance + valTax);
-        const curr = window.currentCurrency || 'FC';
-
-        totalSalaries += salary;
-
-        // --- FILTRAGE ---
-        const nameMatch = (e.name || '').toLowerCase().includes(searchFilter);
-        const roleMatch = (e.role || '').toLowerCase().includes(searchFilter);
-
-        if (nameMatch || roleMatch) {
-            let highlightedName = e.name || 'Inconnu';
-            if (searchFilter) {
-                const regex = new RegExp(`(${searchFilter})`, 'gi');
-                highlightedName = highlightedName.replace(regex, '<mark style="background:#fef08a; padding:0; border-radius:2px;">$1</mark>');
-            }
-
-            const tr = document.createElement('tr');
-            if (e.isOffline) tr.style.opacity = "0.7";
-
-            tr.innerHTML = `
-                <td>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="position:relative; width:35px; height:35px; flex-shrink:0;">
-                            <img src="${e.photo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(e.name || '?') + '&background=random'}" 
-                                 style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
-                            ${e.isOffline ? `<div style="position:absolute; bottom:-2px; right:-2px; background:white; border-radius:50%; padding:2px; display:flex;">${iconSyncSmall}</div>` : ''}
-                        </div>
-                        <div>
-                            <div style="font-weight:600; cursor:pointer; color:var(--primary)" onclick="${e.isOffline ? '' : `openModal(${i})`}">
-                                ${highlightedName}
-                            </div>
-                            <span class="contract-badge" style="font-size:0.65rem; opacity:0.8;">${e.contractType || 'CDI'}</span>
-                        </div>
-                    </div>
-                </td>
-                <td contenteditable="${!e.isOffline}" onblur="updateField(${i},'role',this.textContent)">${e.role || '-'}</td>
-                
-                <td>
-                    <input type="number" step="0.01" value="${salary}" 
-                           style="width:80px; border:1px solid #cbd5e1; border-radius:4px; padding:4px;"
-                           onblur="updateField(${i}, 'salary', this.value)">
-                </td>
-
-                <td style="background: #f0fdf4;">
-                    <input type="number" step="0.01" value="${bonus}" 
-                           style="width:75px; border:1px solid #22c55e; border-radius:4px; padding:4px; font-weight:bold; color:#166534;"
-                           onblur="updateField(${i}, 'bonus', this.value)">
-                </td>
-                
-                <td style="background: #fffcf0;">
-                    <input type="number" step="0.01" value="${valAvance}" 
-                           style="width:75px; border:1px solid #eab308; border-radius:4px; padding:4px; font-weight:bold; color:#854d0e;"
-                           onblur="updateField(${i}, 'advance_amount', this.value)">
-                </td>
-
-                <td style="background: #fef2f2;">
-                    <input type="number" step="0.01" value="${valTax}" 
-                           style="width:75px; border:1px solid #ef4444; border-radius:4px; padding:4px; font-weight:bold; color:#991b1b;"
-                           onblur="updateField(${i}, 'tax_amount', this.value)">
-                </td>
-
-                <td style="font-weight:800; color:var(--primary); background: #f8fafc; text-align:center;">
-                    ${netEstimatif.toLocaleString()} <span style="font-size:0.7rem;">${curr}</span>
-                </td>
-
-                <td>
-                    <div style="display:flex; gap:8px; align-items:center; justify-content: flex-end;">
-                        ${e.isOffline ? '' : `
-                        <button class="btn-icon" onclick="showPayslip(${i})">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-                        </button>
-                        <button class="btn-icon" onclick="removeEmp(${i})">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--danger)"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </button>
-                        `}
-                    </div>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        }
-    });
-
-    const displayMoyenne = document.getElementById('statMoyenne');
-    if (displayMoyenne) {
-        const moyenne = totalStaffCount > 0 ? (totalSalaries / totalStaffCount) : 0;
-        displayMoyenne.innerText = `${Math.round(moyenne).toLocaleString()} ${window.currentCurrency || 'FC'}`;
-    }
-}
-async function updateField(i, k, v) {
-    const e = staffData[i]; 
-    if (!e) return;
-
-    let newValue;
-    if (['salary', 'bonus', 'advance_amount', 'tax_amount'].includes(k)) {
-        newValue = parseMoney(v);
-    } else {
-        newValue = String(v).trim();
+        const currency = window.currentCurrency || 'FCFA';
+        tbody.innerHTML = filtered.map((staff) => {
+            const salary = staff.salary || 0, bonus = staff.bonus || 0, advance = staff.advance_amount || 0, tax = staff.tax_amount || 0, net = (salary + bonus) - (advance + tax);
+            return `<tr>
+                <td><div style="display:flex; align-items:center; gap:0.75rem;"><img src="${staff.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(staff.name || 'U')}&background=2563eb&color=fff`}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;"><div><div style="font-weight:600; cursor:pointer; color:var(--primary);" onclick="openStaffModal('${staff.id}')">${escapeHtml(staff.name)}</div><span class="contract-badge">${staff.contractType || 'CDI'}</span></div></div></td>
+                <td contenteditable="true" onblur="updateField('${staff.id}', 'role', this.innerText)">${escapeHtml(staff.role || '-')}</td>
+                <td><input type="number" step="0.01" value="${salary}" onblur="updateField('${staff.id}', 'salary', this.value)" style="width:90px; padding:0.25rem; border:1px solid var(--gray-200); border-radius:var(--radius-md);"></td>
+                <td><input type="number" step="0.01" value="${bonus}" onblur="updateField('${staff.id}', 'bonus', this.value)" style="width:90px; padding:0.25rem; border:1px solid var(--gray-200); border-radius:var(--radius-md);"></td>
+                <td><input type="number" step="0.01" value="${advance}" onblur="updateField('${staff.id}', 'advance_amount', this.value)" style="width:90px; padding:0.25rem; border:1px solid var(--gray-200); border-radius:var(--radius-md);"></td>
+                <td><input type="number" step="0.01" value="${tax}" onblur="updateField('${staff.id}', 'tax_amount', this.value)" style="width:90px; padding:0.25rem; border:1px solid var(--gray-200); border-radius:var(--radius-md);"></td>
+                <td style="font-weight:700; color:var(--primary); text-align:center;">${formatMoney(net)}</td>
+                <td style="text-align:right;"><button class="btn-icon" onclick="showPayslip('${staff.id}')" title="Fiche de paie"><i class="fas fa-file-invoice"></i></button><button class="btn-icon" onclick="deleteStaff('${staff.id}')" title="Supprimer" style="color:var(--danger);"><i class="fas fa-trash-alt"></i></button></td>
+            </tr>`;
+        }).join('');
     }
 
-    // Mise à jour de l'objet local
-    e[k] = newValue;
-
-    // Lancement de la sauvegarde (qui gère l'envoi à Supabase)
-    await saveChange(i);
-}
-    function toggleStatus(i) {
-        staffData[i].status = (staffData[i].status === 'actif') ? 'inactif' : 'actif';
-        saveChange(i);
-        renderStaff();
+    async function updateField(id, field, value) {
+        let newValue = ['salary', 'bonus', 'advance_amount', 'tax_amount'].includes(field) ? parseFloat(value) || 0 : value;
+        const { error } = await supabaseClient.from('staff').update({ [field]: newValue }).eq('id', id);
+        if (error) { showToast(error.message, 'error'); return; }
+        await loadStaff();
+        showToast('Mise à jour effectuée', 'success');
     }
 
-    // --- 9. KPIs ET GRAPHIQUES ---
-    function updateKPIs() {
-        const total = staffData.length;
-        const masse = staffData.reduce((s, e) => s + parseMoney(e.salary), 0);
-        const activeAlerts = staffData.filter(e => e.status === 'actif' && e.expiryDate).length;
-
-        if(document.getElementById('statTotal')) document.getElementById('statTotal').textContent = total;
-        if(document.getElementById('statMasse')) document.getElementById('statMasse').textContent = masse.toLocaleString() + " " + currentCurrency;
-        
-        localStorage.setItem('staffData', JSON.stringify(staffData));
-        refreshCharts();
+    function updateStats() {
+        let totalStaff = staffData.length;
+        let totalSalary = staffData.reduce((sum, s) => sum + (s.salary || 0), 0);
+        let avgSalary = totalStaff > 0 ? totalSalary / totalStaff : 0;
+        let expiringSoon = staffData.filter(s => { if (!s.expiryDate) return false; let daysLeft = (new Date(s.expiryDate) - new Date()) / (1000 * 60 * 60 * 24); return daysLeft <= 30 && daysLeft > 0; }).length;
+        document.getElementById('statTotal').textContent = totalStaff;
+        document.getElementById('statMasse').textContent = formatMoney(totalSalary);
+        document.getElementById('statAlerts').textContent = expiringSoon;
+        document.getElementById('statMoyenne').textContent = formatMoney(avgSalary);
     }
 
-    function refreshCharts() {
-        const ctxC = document.getElementById('contractChart');
-        const ctxS = document.getElementById('salaryChart');
-        if (!ctxC || !ctxS || typeof Chart === 'undefined') return;
-
-        if (cChart) cChart.destroy();
-        if (sChart) sChart.destroy();
-
-        const counts = {};
-        staffData.forEach(e => counts[e.contractType || 'CDI'] = (counts[e.contractType || 'CDI'] || 0) + 1);
-
-        cChart = new Chart(ctxC, {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(counts),
-                datasets: [{ data: Object.values(counts), backgroundColor: ['#1f3c63', '#3b82f6', '#10b981'] }]
-            },
-            options: { maintainAspectRatio: false }
-        });
-
-        const top5 = [...staffData].sort((a, b) => parseMoney(b.salary) - parseMoney(a.salary)).slice(0, 5);
-        sChart = new Chart(ctxS, {
-            type: 'bar',
-            data: {
-                labels: top5.map(e => e.name),
-                datasets: [{ label: 'Salaire', data: top5.map(e => parseMoney(e.salary)), backgroundColor: '#3b82f6' }]
-            },
-            options: { maintainAspectRatio: false }
-        });
-    }
-     
-    // --- 10. MODALE DOSSIER ---
-           function applyGlobalSettings() {
-    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-    window.currentCurrency = config.currency || "FC";
-
-    if (config.darkMode) document.body.classList.add('dark-mode');
-    else document.body.classList.remove('dark-mode');
-
-    const title = document.getElementById('companyTitle');
-    if (title && config.name) {
-        title.innerHTML = `Inventaire <small style="font-size:0.6em; color:var(--secondary)">| ${config.name}</small>`;
+    function renderCharts() {
+        const ctx1 = document.getElementById('contractChart')?.getContext('2d');
+        const ctx2 = document.getElementById('salaryChart')?.getContext('2d');
+        const contractCount = { CDI: 0, CDD: 0, Stage: 0, Freelance: 0 };
+        staffData.forEach(s => { contractCount[s.contractType] = (contractCount[s.contractType] || 0) + 1; });
+        if (ctx1) { if (charts.contract) charts.contract.destroy(); charts.contract = new Chart(ctx1, { type: 'doughnut', data: { labels: Object.keys(contractCount), datasets: [{ data: Object.values(contractCount), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'] }] }, options: { responsive: true, maintainAspectRatio: false } }); }
+        const topSalaries = [...staffData].sort((a,b) => (b.salary||0) - (a.salary||0)).slice(0,5);
+        if (ctx2) { if (charts.salary) charts.salary.destroy(); charts.salary = new Chart(ctx2, { type: 'bar', data: { labels: topSalaries.map(s => s.name), datasets: [{ label: 'Salaire', data: topSalaries.map(s => s.salary||0), backgroundColor: '#10b981', borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y' } }); }
     }
 
-    const logoCont = document.getElementById('dynamicLogoContainer');
-    if (logoCont && config.logo) {
-        logoCont.innerHTML = `<img src="${config.logo}" style="height: 40px; width: auto; border-radius: 4px;">`;
+    async function addEmployee() {
+        const { data, error } = await supabaseClient.from('staff').insert([{ user_id: currentUser.id, name: 'Nouveau collaborateur', role: 'Poste', salary: 0, bonus: 0, advance_amount: 0, tax_amount: 0, contractType: 'CDI', entryDate: new Date().toISOString().split('T')[0] }]).select();
+        if (error) { showToast(error.message, 'error'); return; }
+        await loadStaff();
+        if (data && data[0]) openStaffModal(data[0].id);
+        showToast('Collaborateur ajouté', 'success');
     }
-}
-    // --- MODALE DOSSIER ---
-function openModal(i) {
-    currentIdx = i;
-    const e = staffData[i];
-    
-    // Remplissage des champs (Ajout de l'Email et du Header)
-    document.getElementById('editName').value = e.name || '';
-    document.getElementById('modalNameHeader').innerText = e.name || 'Dossier Collaborateur';
-    document.getElementById('editRole').value = e.role || '';
-    document.getElementById('editContract').value = e.contractType || 'CDI';
-    document.getElementById('editID').value = e.id_employee || '';
-    document.getElementById('editEntryDate').value = e.entryDate || '';
-    document.getElementById('editExpiryDate').value = e.expiryDate || '';
-    document.getElementById('editEmail').value = e.email || ''; // Mise à jour de l'email
-    
-    // Image de secours si placeholder échoue
-    const imgElement = document.getElementById('modalPhoto');
-    imgElement.src = e.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(e.name)}&size=100&background=64748b&color=fff`;
-    
-    document.getElementById('employeeModal').style.display = 'flex';
-}
 
-function closeModal() {
-    document.getElementById('employeeModal').style.display = 'none';
-}
+    async function deleteStaff(id) {
+        if (!confirm('Supprimer ce collaborateur ?')) return;
+        const { error } = await supabaseClient.from('staff').delete().eq('id', id);
+        if (error) { showToast(error.message, 'error'); return; }
+        await loadStaff();
+        showToast('Collaborateur supprimé', 'success');
+    }
 
-async function saveEmployeeDetails() {
-    if (currentIdx === -1) return;
-    
-    const e = staffData[currentIdx];
-    e.name = document.getElementById('editName').value;
-    e.role = document.getElementById('editRole').value;
-    e.contractType = document.getElementById('editContract').value;
-    e.id_employee = document.getElementById('editID').value;
-    e.entryDate = document.getElementById('editEntryDate').value;
-    e.expiryDate = document.getElementById('editExpiryDate').value;
-    e.email = document.getElementById('editEmail').value; // Sauvegarde de l'email
-    
-    await saveChange(currentIdx);
-    closeModal(); 
-    renderStaff();
-}
+    async function clearStaff() {
+        if (!confirm('Supprimer tout le personnel ?')) return;
+        for (const staff of staffData) await supabaseClient.from('staff').delete().eq('id', staff.id);
+        await loadStaff();
+        showToast('Liste nettoyée', 'success');
+    }
 
-function handlePhotoUpload(input) {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            document.getElementById('modalPhoto').src = e.target.result;
-            staffData[currentIdx].photo = e.target.result;
+    function openStaffModal(staffId) {
+        const staff = staffData.find(s => s.id === staffId);
+        if (!staff) return;
+        currentStaffIndex = staffData.findIndex(s => s.id === staffId);
+        document.getElementById('editName').value = staff.name || '';
+        document.getElementById('editRole').value = staff.role || '';
+        document.getElementById('editContract').value = staff.contractType || 'CDI';
+        document.getElementById('editEntryDate').value = staff.entryDate || '';
+        document.getElementById('editDepartment').value = staff.department || '';
+        document.getElementById('modalPhoto').src = staff.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(staff.name || 'U')}&background=2563eb&color=fff`;
+        document.getElementById('employeeModal').style.display = 'flex';
+    }
+
+    async function saveEmployeeDetails() {
+        if (currentStaffIndex === -1) return;
+        const staff = staffData[currentStaffIndex];
+        const updates = {
+            name: document.getElementById('editName').value,
+            role: document.getElementById('editRole').value,
+            contractType: document.getElementById('editContract').value,
+            entryDate: document.getElementById('editEntryDate').value,
+            department: document.getElementById('editDepartment').value,
+            photo: document.getElementById('modalPhoto').src
         };
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-
-// --- 11. EXPORTS ---
-
-async function exportToPDF() {
-    const user = window.currentUser || (typeof _db !== 'undefined' ? (await _db.auth.getUser()).data.user : null);
-    if (!user) return alert("Session expirée. Veuillez vous reconnecter.");
-    
-    if (typeof staffData === 'undefined' || staffData.length === 0) {
-        return alert("Aucune donnée disponible pour l'export.");
+        const { error } = await supabaseClient.from('staff').update(updates).eq('id', staff.id);
+        if (error) { showToast(error.message, 'error'); return; }
+        closeModal('employeeModal');
+        await loadStaff();
+        showToast('Dossier mis à jour', 'success');
     }
 
-    const curr = window.currentCurrency || "FC";
-    const body = staffData.map(e => [
-        (e.name || "INCONNU").toUpperCase(), 
-        (e.role || "NON DÉFINI").toUpperCase(), 
-        (e.status || "ACTIF").toUpperCase(), 
-        `${Number(e.salary || 0).toLocaleString()} ${curr}`
-    ]);
+    function handlePhotoUpload(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => { document.getElementById('modalPhoto').src = e.target.result; };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
 
-    await window.MoniteoPDF.generate({
-        title: "REGISTRE GÉNÉRAL DU PERSONNEL",
-        subtitle: `EXTRAIT DU REGISTRE AU ${new Date().toLocaleDateString('fr-FR')}`,
-        tables: [
-            {
-                headers: ['NOM COMPLET', 'POSTE / FONCTION', 'STATUT', 'REMUNÉRATION'],
-                rows: body,
-                theme: 'grid',
-                styles: { fontSize: 8, cellPadding: 2 }
-            }
-        ],
-        onAfterGenerate: (doc, currentY, FONT) => {
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
+    function showPayslip(staffId) {
+    currentPayslipStaffId = staffId;
+    const staff = staffData.find(s => s.id === staffId);
+    if (!staff) return;
     
-    // On remonte un peu pour que ce soit bien visible au-dessus du footer
-    const finalY = pageHeight - 40; 
-    const lineWidth = 55; // Largeur de la ligne de signature
-
-    doc.setFont(FONT, "bold").setFontSize(8).setTextColor(31, 60, 99);
+    // Charger le logo et le nom de l'entreprise
+    loadCompanyLogoForPayslip();
     
-    // Séparateur visuel discret
-    doc.text("------------------------------------------------------------------", pageWidth/2, finalY - 12, {align:'center'});
-
-    // 1. DIRECTION GÉNÉRALE
-    doc.text("DIRECTION GÉNÉRALE", 14, finalY);
-    doc.setDrawColor(200).setLineWidth(0.2);
-    doc.line(14, finalY + 2, 14 + lineWidth, finalY + 2); // Ligne simple au lieu du rect
-
-    // 2. CONTRÔLE ET AUDIT RH (Centré)
-    const midX = (pageWidth / 2) - (lineWidth / 2);
-    doc.text("CONTRÔLE ET AUDIT RH", pageWidth / 2, finalY, {align:'center'});
-    doc.line(midX, finalY + 2, midX + lineWidth, finalY + 2);
-
-    // 3. CACHET ET DATE (À droite)
-    const rightX = pageWidth - 14 - lineWidth;
-    doc.text("CACHET ET DATE", pageWidth - 14, finalY, {align:'right'});
-    doc.line(rightX, finalY + 2, pageWidth - 14, finalY + 2);
-}
-    });
-}
-
-function exportToExcel() {
-    const worksheet = XLSX.utils.json_to_sheet(staffData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Staff");
-    XLSX.writeFile(workbook, "Export_Staff.xlsx");
-}
-
-// --- 12. PAYS LIP (FICHE DE PAIE - LOGIQUE UI) ---
-
-function showPayslip(i) {
-    if (!staffData || !staffData[i]) return;
+    const currency = window.currentCurrency || 'FCFA';
+    const salary = staff.salary || 0, bonus = staff.bonus || 0, brut = salary + bonus;
     
-    currentIdx = i; 
-    const e = staffData[i];
-    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-    const curr = window.currentCurrency || "FC";
-
-    const salBase = typeof parseMoney === 'function' ? parseMoney(e.salary) : parseFloat(e.salary || 0);
-    const bonus = typeof parseMoney === 'function' ? parseMoney(e.bonus) : parseFloat(e.bonus || 0);
-
-    const setTxt = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.innerText = val;
-    };
-
-    setTxt('psCompany', (config.name || "MONITEO").toUpperCase());
-    setTxt('psName', e.name);
-    setTxt('psRole', e.role || "Collaborateur");
-    setTxt('psID', e.id_employee || "MAT-PRO");
-    setTxt('psContract', e.contractType || "CDI");
-    setTxt('psSalary', salBase.toLocaleString() + " " + curr);
-    setTxt('psBonus', (bonus > 0 ? "+" : "") + bonus.toLocaleString() + " " + curr);
-
-    const inputAvance = document.getElementById('inputAvance');
-    const inputTax = document.getElementById('inputTax');
-    if (inputAvance) inputAvance.value = 0;
-    if (inputTax) inputTax.value = 0;
-
+    document.getElementById('psDate').textContent = new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toUpperCase();
+    document.getElementById('psName').textContent = staff.name || '-';
+    document.getElementById('psRole').textContent = staff.role || 'Collaborateur';
+    document.getElementById('psID').textContent = staff.id?.substring(0, 8).toUpperCase() || '-';
+    document.getElementById('psContract').textContent = staff.contractType || 'CDI';
+    document.getElementById('psSalary').textContent = `${MoniteoPDF._formatNumber(salary)} ${currency}`;
+    document.getElementById('psBonus').textContent = `${MoniteoPDF._formatNumber(bonus)} ${currency}`;
+    document.getElementById('psBrut').textContent = `${MoniteoPDF._formatNumber(brut)} ${currency}`;
+    document.getElementById('inputAvance').value = staff.advance_amount || 0;
+    document.getElementById('inputTax').value = staff.tax_amount || 0;
     calculateNet();
-
-    const optionsDate = { month: 'long', year: 'numeric' };
-    setTxt('psDate', new Date().toLocaleDateString('fr-FR', optionsDate).toUpperCase());
-
-    const modal = document.getElementById('payslipModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        setTimeout(() => modal.classList.add('active'), 10);
+    
+    document.getElementById('payslipModal').style.display = 'flex';
+}
+    function calculateNet() {
+        const salary = parseFloat(document.getElementById('psSalary')?.innerText.replace(/[^0-9.-]/g, '')) || 0;
+        const bonus = parseFloat(document.getElementById('psBonus')?.innerText.replace(/[^0-9.-]/g, '')) || 0;
+        const advance = parseFloat(document.getElementById('inputAvance')?.value) || 0;
+        const tax = parseFloat(document.getElementById('inputTax')?.value) || 0;
+        const net = (salary + bonus) - (advance + tax);
+        document.getElementById('psTotal').textContent = formatMoney(net);
     }
-}
 
-function closePayslip() {
-    const modal = document.getElementById('payslipModal');
-    if (!modal) return;
-    modal.classList.remove('active'); 
-    setTimeout(() => {
-        modal.style.display = 'none';
-    }, 300);
-}
+    async function generatePayslipPDF() {
+        const staff = staffData.find(s => s.id === currentPayslipStaffId);
+        if (!staff) return;
+        const currency = window.currentCurrency || 'FCFA';
+        const config = await MoniteoPDF._getConfig();
+        const salary = staff.salary || 0, bonus = staff.bonus || 0, advance = parseFloat(document.getElementById('inputAvance')?.value) || 0, tax = parseFloat(document.getElementById('inputTax')?.value) || 0;
+        const brut = salary + bonus, net = brut - (advance + tax);
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        let y = 20;
+        if (config.logo) { try { doc.addImage(config.logo, 'PNG', 14, 10, 25, 25); } catch(e) {} doc.setFontSize(16).setFont("helvetica", "bold").setTextColor(31, 60, 99); doc.text(config.companyName.toUpperCase(), 45, 20); }
+        else { doc.setFontSize(16).setFont("helvetica", "bold").setTextColor(31, 60, 99); doc.text(config.companyName.toUpperCase(), 14, 20); }
+        doc.setFontSize(10).setFont("helvetica", "normal").setTextColor(100);
+        doc.text("BULLETIN DE PAIE", pageWidth / 2, 30, { align: 'center' });
+        doc.text(`Période : ${new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toUpperCase()}`, pageWidth / 2, 36, { align: 'center' });
+        doc.setFontSize(9).setFont("helvetica", "bold");
+        doc.text("IDENTIFICATION DU SALARIÉ", 14, 50);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Nom : ${staff.name || '-'}`, 14, 58);
+        doc.text(`Poste : ${staff.role || '-'}`, 14, 64);
+        doc.text(`Matricule : ${staff.id?.substring(0, 8).toUpperCase() || '-'}`, 14, 70);
+        doc.autoTable({
+            startY: 85,
+            head: [['Désignation', 'Montant']],
+            body: [['Salaire de base', `${MoniteoPDF._formatNumber(salary)} ${currency}`], ['Primes et bonus', `${MoniteoPDF._formatNumber(bonus)} ${currency}`], ['BRUT TOTAL', `${MoniteoPDF._formatNumber(brut)} ${currency}`], ['Avance sur salaire', `${MoniteoPDF._formatNumber(advance)} ${currency}`], ['Cotisations IPR', `${MoniteoPDF._formatNumber(tax)} ${currency}`]],
+            foot: [['NET À PAYER', `${MoniteoPDF._formatNumber(net)} ${currency}`]],
+            headStyles: { fillColor: [31, 60, 99], textColor: [255, 255, 255], fontSize: 8 },
+            footStyles: { fillColor: [31, 60, 99], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+            styles: { fontSize: 8, cellPadding: 3 },
+            margin: { left: 14, right: 14 }
+        });
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.setFontSize(7).setFont("helvetica", "italic").setTextColor(100);
+        doc.text("Signature employeur", 14, finalY);
+        doc.text("Cachet et visa", pageWidth / 2 - 20, finalY);
+        doc.text("Récépissé employé", pageWidth - 45, finalY);
+        const pageHeight = doc.internal.pageSize.getHeight();
+        doc.setFontSize(6).setTextColor(150);
+        doc.text(`RCCM: ${config.rccm} | NIF: ${config.nif} | ID NAT: ${config.id_nat}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+        doc.save(`Bulletin_Paie_${(staff.name || 'Employe').replace(/\s/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+        closeModal('payslipModal');
+        showToast('Bulletin de paie généré', 'success');
+    }
 
-// --- 13. GÉNÉRATION DU PDF (BULLETIN DE PAIE) ---
-async function generatePayslipBlob() {
-    const name = document.getElementById('psName')?.innerText || "NON DÉFINI";
-    const dateText = document.getElementById('psDate')?.innerText || "";
-    const baseSalary = parseFloat(document.getElementById('psSalary')?.innerText.replace(/[^0-9.-]/g, '')) || 0;
-    const bonus = parseFloat(document.getElementById('psBonus')?.innerText.replace(/[^0-9.-]/g, '')) || 0;
-    const avance = parseFloat(document.getElementById('inputAvance')?.value) || 0;
+    // Générer le blob PDF et le stocker
+async function preparePayslipPDF() {
+    const staff = staffData.find(s => s.id === currentPayslipStaffId);
+    if (!staff) return null;
+    
+    const currency = window.currentCurrency || 'FCFA';
+    const config = await MoniteoPDF._getConfig();
+    
+    const salary = staff.salary || 0;
+    const bonus = staff.bonus || 0;
+    const advance = parseFloat(document.getElementById('inputAvance')?.value) || 0;
     const tax = parseFloat(document.getElementById('inputTax')?.value) || 0;
-    const totalNet = (baseSalary + bonus) - (avance + tax);
-    const currency = window.currentCurrency || "FC";
-
-    return await window.MoniteoPDF.generate({
-        title: "BULLETIN DE PAIE OFFICIEL",
-        subtitle: `PÉRIODE : ${dateText}`,
-        returnInstance: true, 
-        tables: [
-            {
-                headers: ['IDENTIFICATION DU SALARIÉ', 'DÉTAILS ADMINISTRATIFS'],
-                rows: [
-                    [`NOM : ${name.toUpperCase()}`, `MATRICULE : ${document.getElementById('psID')?.innerText || '-'}`],
-                    [`POSTE : ${document.getElementById('psRole')?.innerText || '-'}`, `DEVISE : ${currency}`]
-                ]
-            },
-            {
-                headers: ['DÉSIGNATION', 'GAINS', 'RETENUES'],
-                rows: [
-                    ['Salaire de Base', baseSalary.toLocaleString() + " " + currency, ''],
-                    ['Primes et Gratifications', bonus.toLocaleString() + " " + currency, ''],
-                    ['Avances sur salaire', '', avance > 0 ? avance.toLocaleString() + " " + currency : '-'],
-                    ['Cotisations / IPR', '', tax > 0 ? tax.toLocaleString() + " " + currency : '-']
-                ],
-                foot: ['TOTAL NET À PAYER', '', `${totalNet.toLocaleString()} ${currency}`],
-                footStyles: { fillColor: [31, 60, 99], textColor: [255, 255, 255], fontSize: 10, fontStyle: 'bold' }
-            }
+    const brut = salary + bonus;
+    const net = brut - (advance + tax);
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // En-tête
+    let y = 20;
+    if (config.logo) {
+        try { doc.addImage(config.logo, 'PNG', 14, 10, 25, 25); } catch(e) {}
+        doc.setFontSize(16).setFont("helvetica", "bold").setTextColor(31, 60, 99);
+        doc.text(config.companyName.toUpperCase(), 45, 20);
+    } else {
+        doc.setFontSize(16).setFont("helvetica", "bold").setTextColor(31, 60, 99);
+        doc.text(config.companyName.toUpperCase(), 14, 20);
+    }
+    
+    doc.setFontSize(10).setFont("helvetica", "normal").setTextColor(100);
+    doc.text("BULLETIN DE PAIE", pageWidth / 2, 30, { align: 'center' });
+    doc.text(`Période : ${new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toUpperCase()}`, pageWidth / 2, 36, { align: 'center' });
+    
+    // Infos employé
+    doc.setFontSize(9).setFont("helvetica", "bold");
+    doc.text("IDENTIFICATION DU SALARIÉ", 14, 50);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Nom : ${staff.name || '-'}`, 14, 58);
+    doc.text(`Poste : ${staff.role || '-'}`, 14, 64);
+    doc.text(`Matricule : ${staff.id?.substring(0, 8).toUpperCase() || '-'}`, 14, 70);
+    doc.text(`Date d'entrée : ${staff.entryDate || '-'}`, 14, 76);
+    
+    // Tableau
+    doc.autoTable({
+        startY: 85,
+        head: [['Désignation', 'Montant']],
+        body: [
+            ['Salaire de base', `${MoniteoPDF._formatNumber(salary)} ${currency}`],
+            ['Primes et bonus', `${MoniteoPDF._formatNumber(bonus)} ${currency}`],
+            ['BRUT TOTAL', `${MoniteoPDF._formatNumber(brut)} ${currency}`],
+            ['Avance sur salaire', `${MoniteoPDF._formatNumber(advance)} ${currency}`],
+            ['Cotisations / IPR', `${MoniteoPDF._formatNumber(tax)} ${currency}`],
         ],
-        onAfterGenerate: (doc, currentY) => {
-            let finalY = currentY + 15;
-            const pageWidth = doc.internal.pageSize.getWidth();
-            doc.setFontSize(9).setFont("helvetica", "bold").setTextColor(31, 60, 99);
-            doc.text("VALIDATIONS ET SIGNATURES", 14, finalY);
-            
-            finalY += 10;
-            doc.setLineWidth(0.2).setDrawColor(200, 200, 200);
-            // Signatures
-            doc.text("L'EMPLOYEUR", 14, finalY);
-            doc.line(14, finalY + 2, 64, finalY + 2); 
-            doc.text("COMPTABILITÉ", (pageWidth/2)-25, finalY);
-            doc.line((pageWidth/2)-25, finalY + 2, (pageWidth/2)+25, finalY + 2);
-            doc.text("LE SALARIÉ", pageWidth - 64, finalY);
-            doc.line(pageWidth - 64, finalY + 2, pageWidth - 14, finalY + 2);
-        }
+        foot: [['NET À PAYER', `${MoniteoPDF._formatNumber(net)} ${currency}`]],
+        headStyles: { fillColor: [31, 60, 99], textColor: [255, 255, 255], fontSize: 8 },
+        footStyles: { fillColor: [31, 60, 99], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+        styles: { fontSize: 8, cellPadding: 3 },
+        margin: { left: 14, right: 14 }
     });
+    
+    const finalY = doc.lastAutoTable.finalY + 10;
+    
+    // Signatures
+    doc.setFontSize(7).setFont("helvetica", "italic").setTextColor(100);
+    doc.text("Signature employeur", 14, finalY);
+    doc.text("Cachet et visa", pageWidth / 2 - 20, finalY);
+    doc.text("Récépissé employé", pageWidth - 45, finalY);
+    
+    // Infos légales footer
+    const pageHeight = doc.internal.pageSize.getHeight();
+    doc.setFontSize(6).setTextColor(150);
+    doc.text(`RCCM: ${config.rccm} | NIF: ${config.nif} | ID NAT: ${config.id_nat}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    
+    return doc.output('blob');
 }
-async function downloadPayslipPDF() {
-    try {
-        const doc = await generatePayslipBlob();
-        if (doc) {
-            const name = document.getElementById('psName')?.innerText || "Collaborateur";
-            const date = document.getElementById('psDate')?.innerText || "";
-            // Formatage du nom de fichier propre
-            const fileName = `Bulletin_${name.replace(/\s+/g, '_')}_${date.replace(/\s+/g, '_')}.pdf`;
-            doc.save(fileName);
-        }
-    } catch (error) {
-        console.error("Erreur lors du téléchargement:", error);
+
+
+    function downloadPDF(blob, fileName) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
-}
 
-function toggleDropdown(event, menuId) {
-    event.stopPropagation();
-    document.querySelectorAll('.dropdown-menu').forEach(m => {
-        if (m.id !== menuId) m.classList.remove('show');
-    });
-    const menu = document.getElementById(menuId);
-    if(menu) menu.classList.toggle('show');
-}
-
-function filterStaff() {
-    const searchInput = document.getElementById('searchInput');
-    if (!searchInput) return;
-    const searchTerm = searchInput.value.toLowerCase().trim();
-    renderStaff(searchTerm);
-    const tbody = document.getElementById('staffTable');
-    if (tbody && tbody.children.length === 0 && searchTerm !== "") {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-soft);">Aucun collaborateur trouvé pour "<strong>${searchTerm}</strong>"</td></tr>`;
-    }
-}
-
-function calculateNet() {
-    const getVal = (id) => {
-        const el = document.getElementById(id);
-        if (!el) return 0;
-        const valStr = el.tagName === 'INPUT' ? el.value : el.textContent;
-        return parseFloat(valStr.replace(/[^0-9.-]+/g, "")) || 0;
-    };
-
-    const salary = getVal('psSalary');
-    const bonus = getVal('psBonus');
-    const avance = getVal('inputAvance');
-    const tax = getVal('inputTax');
-
-    const net = (salary + bonus) - (avance + tax);
-    const currency = window.currentCurrency || "FC";
-
-    const totalEl = document.getElementById('psTotal');
-    if (totalEl) {
-        totalEl.textContent = `${net.toLocaleString()} ${currency}`;
-    }
-}
-async function sharePayslip() {
-    const name = document.getElementById('psName')?.innerText || "Collaborateur";
-    const date = document.getElementById('psDate')?.innerText || "Bulletin";
-    const fileName = `Bulletin_${name.replace(/\s+/g, '_')}.pdf`;
-
-    try {
-        const doc = await generatePayslipBlob(); 
+    async function sharePayslipVia(method) {
+        const staff = staffData.find(s => s.id === currentPayslipStaffId);
+        if (!staff) return;
+        showToast('Préparation du PDF...', 'info');
+        const pdfBlob = await preparePayslipPDF();
+        if (!pdfBlob) { showToast('Erreur lors de la génération du PDF', 'error'); return; }
+        const fileName = `Bulletin_Paie_${(staff.name || 'Employe').replace(/\s/g, '_')}.pdf`;
+        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
         
-        if (!doc) {
-            alert("Erreur: Le document n'a pas pu être généré.");
-            return;
+        if (method === 'email') {
+            const subject = `Bulletin de paie - ${staff.name}`;
+            const body = `Bonjour,\n\nVeuillez trouver ci-joint votre bulletin de paie.\n\nCordialement.`;
+            window.location.href = `mailto:${staff.email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            setTimeout(() => downloadPDF(pdfBlob, fileName), 500);
         }
+        else if (method === 'whatsapp') {
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try { await navigator.share({ title: `Bulletin de paie - ${staff.name}`, text: `Bulletin de paie de ${staff.name}`, files: [file] }); showToast('Partage réussi', 'success'); } catch(e) { downloadPDF(pdfBlob, fileName); showToast('PDF téléchargé', 'success'); }
+            } else { downloadPDF(pdfBlob, fileName); showToast('PDF téléchargé, partagez-le sur WhatsApp', 'success'); }
+        }
+        else if (method === 'telegram') {
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try { await navigator.share({ title: `Bulletin de paie - ${staff.name}`, files: [file] }); showToast('Partage réussi', 'success'); } catch(e) { downloadPDF(pdfBlob, fileName); showToast('PDF téléchargé', 'success'); }
+            } else { downloadPDF(pdfBlob, fileName); showToast('PDF téléchargé', 'success'); }
+        }
+        else if (method === 'messenger') { downloadPDF(pdfBlob, fileName); showToast('PDF téléchargé', 'success'); }
+        else if (method === 'more' && navigator.share) {
+            try { await navigator.share({ title: `Bulletin de paie - ${staff.name}`, files: [file] }); showToast('Partage réussi', 'success'); } catch(e) { downloadPDF(pdfBlob, fileName); showToast('PDF téléchargé', 'success'); }
+        }
+        else { downloadPDF(pdfBlob, fileName); showToast('PDF téléchargé', 'success'); }
+    }
 
-        const pdfOutput = doc.output('blob');
-        const file = new File([pdfOutput], fileName, { type: 'application/pdf' });
+    function exportToExcel() {
+        const ws = XLSX.utils.json_to_sheet(staffData.map(s => ({ Nom: s.name, Poste: s.role, Salaire: s.salary, Bonus: s.bonus, Avance: s.advance_amount, Retenue: s.tax_amount, Contrat: s.contractType })));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Staff');
+        XLSX.writeFile(wb, `staff_${new Date().toISOString().split('T')[0]}.xlsx`);
+        showToast('Export Excel réussi', 'success');
+    }
 
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-                files: [file],
-                title: `Bulletin de Paie - ${name}`,
-                text: `Bulletin de paie de ${name} (${date})`
-            });
-        } else {
-            alert("Le partage natif de PDF n'est pas disponible. Téléchargez-le d'abord.");
+    async function exportToPDF() {
+        if (staffData.length === 0) { showToast('Aucune donnée', 'error'); return; }
+        const rows = staffData.map(s => [s.name, s.role || '-', formatMoney(s.salary || 0), s.contractType || '-']);
+        if (typeof MoniteoPDF !== 'undefined' && MoniteoPDF.generate) {
+            await MoniteoPDF.generate({ title: 'REGISTRE DU PERSONNEL', subtitle: `Généré le ${new Date().toLocaleDateString()}`, tables: [{ headers: ['NOM', 'POSTE', 'SALAIRE', 'CONTRAT'], rows: rows }] });
+        } else { alert('Module PDF non disponible'); }
+    }
+
+    async function importStaffExcel(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+        let imported = 0;
+        for (const row of rows) { await supabaseClient.from('staff').insert([{ user_id: currentUser.id, name: row.Nom || row.name, role: row.Poste || row.role, salary: parseFloat(row.Salaire || row.salary) || 0, contractType: row.Contrat || 'CDI' }]); imported++; }
+        await loadStaff();
+        showToast(`${imported} collaborateur(s) importé(s)`, 'success');
+        event.target.value = '';
+    }
+
+    function filterStaff() { renderStaff(); }
+    function toggleActionsDropdown(event) { event.stopPropagation(); const menu = document.getElementById('actionsDropdownMenu'); const isOpen = menu.style.display === 'block'; document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none'); menu.style.display = isOpen ? 'none' : 'block'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function initSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const checkScreenSize = () => { if (window.innerWidth <= 768) sidebar.classList.add('collapsed'); else if (window.innerWidth <= 1024) sidebar.classList.add('collapsed'); else sidebar.classList.remove('collapsed'); };
+        window.addEventListener('resize', checkScreenSize);
+        checkScreenSize();
+    }
+    function showLoading(show) { document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
+    function showToast(message, type = 'success') { const container = document.getElementById('toastContainer'); const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${message}`; container.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+    function formatMoney(amount) { const config = JSON.parse(localStorage.getItem('moniteo_config') || '{}'); const currency = config.currency || 'FCFA'; return (amount || 0).toLocaleString() + ' ' + currency; }
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
+    function updateDateDisplay() { document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
+    async function logout() { if (confirm('Déconnexion ?')) { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; } }
+
+    document.addEventListener('click', () => { document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none'); });
+    window.addEmployee = addEmployee; window.deleteStaff = deleteStaff; window.clearStaff = clearStaff;
+    window.exportToExcel = exportToExcel; window.exportToPDF = exportToPDF; window.importStaffExcel = importStaffExcel;
+    window.updateField = updateField; window.filterStaff = filterStaff; window.toggleActionsDropdown = toggleActionsDropdown;
+    window.openStaffModal = openStaffModal; window.saveEmployeeDetails = saveEmployeeDetails; window.handlePhotoUpload = handlePhotoUpload;
+    window.showPayslip = showPayslip; window.generatePayslipPDF = generatePayslipPDF; window.sharePayslipVia = sharePayslipVia;
+    window.calculateNet = calculateNet; window.closeModal = closeModal; window.logout = logout;
+// Charger le logo de l'entreprise pour le bulletin de paie
+async function loadCompanyLogoForPayslip() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('settings')
+            .select('logo_url, company_name')
+            .eq('user_id', currentUser.id)
+            .single();
+        
+        if (error) throw error;
+        
+        if (data) {
+            // Mettre à jour le nom de l'entreprise
+            document.getElementById('psCompany').textContent = data.company_name || 'MON ENTREPRISE';
+            
+            // Mettre à jour le logo
+            const logoContainer = document.getElementById('psLogoContainer');
+            if (data.logo_url && data.logo_url !== '') {
+                logoContainer.innerHTML = `<img src="${data.logo_url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">`;
+            } else {
+                logoContainer.innerHTML = '<i class="fas fa-chart-line"></i>';
+            }
         }
     } catch (error) {
-        console.error("Erreur lors du partage:", error);
-        alert("Une erreur est survenue lors de l'envoi.");
+        console.warn('Logo par défaut utilisé');
+        document.getElementById('psLogoContainer').innerHTML = '<i class="fas fa-chart-line"></i>';
     }
 }
- </script>
-	</body>
+</script>
+</body>
 </html>
