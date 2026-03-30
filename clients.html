@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="theme-color" content="#2563eb">
+    <title>Moniteo | Gestion des clients</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <script src="js/auth-check.js"></script>        
+    <script src="js/supabase-config.js"></script>   
+    <script src="js/offline-manager.js"></script>   
+    <script src="js/settings-manager.js"></script> 
+    <script src="js/common.js"></script>            
+    <script src="js/stats-manager.js"></script>    
+    <script src="js/exportPDF.js"></script>         
+    <script src="js/copilot-manager.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --primary-light: #60a5fa;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --sidebar-width: 280px;
+            --sidebar-collapsed-width: 80px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            overflow-x: hidden;
+            width: 100%;
+            position: relative;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: white;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+            z-index: 100;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .sidebar.collapsed { width: var(--sidebar-collapsed-width); }
+        .sidebar.collapsed .logo-full,
+        .sidebar.collapsed .nav-links span,
+        .sidebar.collapsed .logout-btn span { display: none; }
+        .sidebar.collapsed .logo-short { display: flex; }
+
+        .logo-box {
+            padding: 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid var(--gray-200);
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .logo-full { height: 180px; width: auto; }
+        .logo-short { height: 65px; width: auto; display: none; justify-content: center; align-items: center; margin: 0 auto; }
+
+        .nav-links {
+            list-style: none;
+            padding: 0 0.75rem;
+        }
+        .nav-links li { margin-bottom: 0.5rem; }
+        .nav-links a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--gray-600);
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .nav-links a:hover { background: var(--gray-100); color: var(--primary); }
+        .nav-links a.active { background: var(--primary); color: white; }
+        .nav-links i { width: 20px; font-size: 1.1rem; text-align: center; }
+
+        .logout-box {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            border-top: 1px solid var(--gray-200);
+        }
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--danger);
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .logout-btn:hover { background: rgba(239, 68, 68, 0.1); }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            transition: all 0.3s;
+            min-height: 100vh;
+            width: calc(100% - var(--sidebar-width));
+            overflow-x: hidden;
+            position: relative;
+        }
+        .sidebar.collapsed ~ .main-content { margin-left: var(--sidebar-collapsed-width); width: calc(100% - var(--sidebar-collapsed-width)); }
+
+        /* Header */
+        .dashboard-header {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .header-info h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .header-info p { color: var(--gray-500); font-size: 0.875rem; }
+        .company-badge {
+            background: var(--primary-light);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1.25rem;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .stat-info h3 { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--gray-500); margin-bottom: 0.25rem; letter-spacing: 0.5px; }
+        .stat-info p { font-size: 1.3rem; font-weight: 800; color: var(--gray-900); }
+
+        /* Action Bar */
+        .action-bar {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+        }
+        .search-wrapper i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+        }
+        .search-input {
+            width: 100%;
+            padding: 0.6rem 1rem 0.6rem 2.5rem;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+        }
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+        .btn-outline { background: transparent; border: 1px solid var(--gray-300); color: var(--gray-600); }
+        .btn-outline:hover { background: var(--gray-100); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; transform: translateY(-1px); }
+
+        /* Table */
+        .table-container {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        th {
+            background: var(--gray-50);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--gray-500);
+        }
+        td { font-size: 0.875rem; }
+        .btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+        }
+        .btn-icon:hover { background: var(--gray-100); }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .modal-header h3 { font-size: 1.1rem; font-weight: 600; }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray-500);
+        }
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .form-group label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--gray-500);
+            letter-spacing: 0.5px;
+        }
+        .form-group input, .form-group select {
+            padding: 0.6rem 0.75rem;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-family: inherit;
+        }
+
+        /* Loading & Toast */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 1100;
+        }
+        .toast {
+            background: white;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: slideUp 0.3s ease;
+        }
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--danger); }
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Responsive */
+        @media (max-width: 1024px) { .charts-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; bottom: 0; top: auto; left: 0; right: 0; width: 100% !important; height: auto; flex-direction: row; padding: 0.5rem; }
+            .sidebar .logo-box, .sidebar .logout-box { display: none; }
+            .sidebar .nav-links { display: flex; flex-direction: row; width: 100%; padding: 0; }
+            .sidebar .nav-links li { flex: 1; margin: 0; }
+            .sidebar .nav-links a { flex-direction: column; padding: 0.5rem; font-size: 0.7rem; }
+            .sidebar .nav-links i { font-size: 1.2rem; margin: 0; }
+            .main-content { margin-left: 0 !important; width: 100% !important; padding: 1rem; padding-bottom: 80px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .action-bar { flex-direction: column; }
+            .btn-group { width: 100%; justify-content: center; }
+            .modal-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+    <div class="logo-box">
+        <img src="https://oysdycuouodarfkmdtop.supabase.co/storage/v1/object/public/LOGO/Moniteo-20260115-205657-0000-removebg-preview.png" class="logo-full" alt="Moniteo">
+        <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
+    </div>
+    <ul class="nav-links">
+        <li><a href="dashboard.html"><i class="fas fa-chart-line"></i><span>Accueil</span></a></li>
+        <li><a href="sales.html"><i class="fas fa-shopping-cart"></i><span>Ventes</span></a></li>
+        <li><a href="inventory.html"><i class="fas fa-boxes"></i><span>Inventaire</span></a></li>
+        <li><a href="expenses.html"><i class="fas fa-receipt"></i><span>Dépenses</span></a></li>
+        <li><a href="staff.html"><i class="fas fa-users"></i><span>Staff</span></a></li>
+        <li><a href="clients.html" class="active"><i class="fas fa-user-friends"></i><span>Clients</span></a></li>
+        <li><a href="reporting.html"><i class="fas fa-chart-bar"></i><span>Rapports</span></a></li>
+        <li><a href="setting.html"><i class="fas fa-cog"></i><span>Paramètres</span></a></li>
+    </ul>
+    <div class="logout-box">
+        <a href="#" onclick="logout()" class="logout-btn"><i class="fas fa-sign-out-alt"></i><span>Déconnexion</span></a>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="main-content">
+    <div class="dashboard-header">
+        <div class="header-info">
+            <h1>Gestion des clients</h1>
+            <p id="dateDisplay"></p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div id="companyLogoContainer" style="width: 45px; height: 45px; border-radius: 50%; overflow: hidden; background: var(--gray-100); display: flex; align-items: center; justify-content: center;">
+                <img id="companyLogo" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+            </div>
+            <div class="company-badge" id="companyBadge">Chargement...</div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#eff6ff;color:#3b82f6;"><i class="fas fa-users"></i></div>
+            <div class="stat-info"><h3>Total clients</h3><p id="totalClients">0</p></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#ecfdf5;color:#10b981;"><i class="fas fa-chart-line"></i></div>
+            <div class="stat-info"><h3>CA total</h3><p id="totalRevenue">0</p></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#fef3c7;color:#f59e0b;"><i class="fas fa-star"></i></div>
+            <div class="stat-info"><h3>Top client</h3><p id="topClient">-</p></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#fee2e2;color:#ef4444;"><i class="fas fa-clock"></i></div>
+            <div class="stat-info"><h3>Inactifs (30j)</h3><p id="inactiveClients">0</p></div>
+        </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+        <div class="search-wrapper">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" class="search-input" placeholder="Rechercher un client..." onkeyup="filterClients()">
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="openClientModal()"><i class="fas fa-plus"></i> Nouveau client</button>
+            <button class="btn btn-outline" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+            <button class="btn btn-outline" onclick="exportToPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+        <div style="overflow-x: auto;">
+            <table id="clientsTable">
+                <thead>
+                    <tr>
+                        <th>Client</th>
+                        <th>Email</th>
+                        <th>Téléphone</th>
+                        <th>Adresse</th>
+                        <th>CA cumulé</th>
+                        <th>Dernier achat</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="clientsTableBody">
+                    <tr><td colspan="7" style="text-align:center;">Chargement...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<!-- Client Modal -->
+<div id="clientModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-user-plus"></i> <span id="modalTitle">Nouveau client</span></h3>
+            <button onclick="closeModal('clientModal')" class="modal-close">&times;</button>
+        </div>
+        <input type="hidden" id="clientId">
+        <div class="modal-grid">
+            <div class="form-group"><label>Nom / Société</label><input type="text" id="clientName" placeholder="Nom complet ou société"></div>
+            <div class="form-group"><label>Email</label><input type="email" id="clientEmail" placeholder="client@email.com"></div>
+            <div class="form-group"><label>Téléphone</label><input type="tel" id="clientPhone" placeholder="+243 XX XXX XXXX"></div>
+            <div class="form-group"><label>Adresse</label><input type="text" id="clientAddress" placeholder="Adresse complète"></div>
+            <div class="form-group"><label>Ville</label><input type="text" id="clientCity" placeholder="Ville"></div>
+            <div class="form-group"><label>Code postal</label><input type="text" id="clientPostal" placeholder="Code postal"></div>
+            <div class="form-group"><label>Pays</label><input type="text" id="clientCountry" placeholder="Pays"></div>
+            <div class="form-group"><label>NIF / Taxe</label><input type="text" id="clientTax" placeholder="Numéro d'identification fiscale"></div>
+        </div>
+        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+            <button class="btn btn-primary" style="flex:2;" onclick="saveClient()"><i class="fas fa-save"></i> Enregistrer</button>
+            <button class="btn btn-outline" style="flex:1;" onclick="closeModal('clientModal')">Annuler</button>
+        </div>
+    </div>
+</div>
+
+<!-- Loading & Toast -->
+<div id="loadingOverlay" class="loading-overlay" style="display:none;"><div class="spinner"></div></div>
+<div id="toastContainer" class="toast-container"></div>
+
+<script>
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    window._db = supabaseClient;
+
+    let currentUser = null, clientsData = [], salesData = [], currentClientId = null;
+
+    document.addEventListener('DOMContentLoaded', () => { checkAuth(); initSidebar(); });
+
+    async function checkAuth() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { window.location.href = 'index.html'; return; }
+        currentUser = session.user;
+        await loadCompanyInfo();
+        await loadData();
+        updateDateDisplay();
+    }
+
+    async function loadCompanyInfo() {
+        try {
+            const { data } = await supabaseClient.from('settings').select('logo_url, company_name').eq('user_id', currentUser.id).single();
+            if (data) {
+                document.getElementById('companyBadge').textContent = data.company_name || 'Mon entreprise';
+                if (data.logo_url) { document.getElementById('companyLogo').src = data.logo_url; document.getElementById('companyLogo').style.display = 'block'; }
+            }
+        } catch(e) {}
+    }
+
+    async function loadData() {
+        showLoading(true);
+        try {
+            const [clientsRes, salesRes] = await Promise.all([
+                supabaseClient.from('clients').select('*').eq('user_id', currentUser.id).order('name', { ascending: true }),
+                supabaseClient.from('sales').select('*').eq('user_id', currentUser.id)
+            ]);
+            if (clientsRes.error) throw clientsRes.error;
+            clientsData = clientsRes.data || [];
+            salesData = salesRes.data || [];
+            renderTable();
+            updateStats();
+        } catch(e) { showToast(e.message, 'error'); }
+        finally { showLoading(false); }
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('clientsTableBody');
+        const search = document.getElementById('searchInput')?.value.toLowerCase() || '';
+        
+        // Calculer le CA par client
+        const clientRevenue = {};
+        salesData.forEach(sale => {
+            if (sale.client_id) {
+                clientRevenue[sale.client_id] = (clientRevenue[sale.client_id] || 0) + (sale.sell_price * sale.qty);
+            }
+        });
+        
+        // Dernier achat par client
+        const lastPurchase = {};
+        salesData.forEach(sale => {
+            if (sale.client_id && (!lastPurchase[sale.client_id] || new Date(sale.date) > new Date(lastPurchase[sale.client_id]))) {
+                lastPurchase[sale.client_id] = sale.date;
+            }
+        });
+        
+        const filtered = clientsData.filter(c => c.name?.toLowerCase().includes(search) || c.email?.toLowerCase().includes(search) || c.phone?.includes(search));
+        
+        if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Aucun client</td></tr>'; return; }
+        
+        const currency = window.currentCurrency || 'FCFA';
+        
+        tbody.innerHTML = filtered.map(client => {
+            const revenue = clientRevenue[client.id] || 0;
+            const lastDate = lastPurchase[client.id];
+            return `
+                <tr>
+                    <td><strong>${escapeHtml(client.name)}</strong> <br><small style="color:var(--gray-500);">${client.tax_number ? 'NIF: ' + client.tax_number : ''}</small></td>
+                    <td>${client.email || '-'}</td>
+                    <td>${client.phone || '-'}</td>
+                    <td>${client.address ? escapeHtml(client.address) + (client.city ? ', ' + client.city : '') : '-'}</td>
+                    <td style="font-weight:600; color:var(--primary);">${formatMoney(revenue)}</td>
+                    <td>${lastDate ? new Date(lastDate).toLocaleDateString('fr-FR') : '-'}</td>
+                    <td style="text-align:right;">
+                        <button class="btn-icon" onclick="openClientModal('${client.id}')" title="Modifier"><i class="fas fa-edit"></i></button>
+                        <button class="btn-icon" onclick="viewClientHistory('${client.id}')" title="Historique"><i class="fas fa-history"></i></button>
+                        <button class="btn-icon" onclick="deleteClient('${client.id}')" title="Supprimer" style="color:var(--danger);"><i class="fas fa-trash-alt"></i></button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function updateStats() {
+        const totalClients = clientsData.length;
+        
+        // Calcul du CA par client
+        const clientRevenue = {};
+        salesData.forEach(sale => {
+            if (sale.client_id) {
+                clientRevenue[sale.client_id] = (clientRevenue[sale.client_id] || 0) + (sale.sell_price * sale.qty);
+            }
+        });
+        
+        const totalRevenue = Object.values(clientRevenue).reduce((a,b) => a + b, 0);
+        
+        // Top client
+        let topClientName = '-', topClientRevenue = 0;
+        Object.entries(clientRevenue).forEach(([id, revenue]) => {
+            if (revenue > topClientRevenue) {
+                const client = clientsData.find(c => c.id === id);
+                if (client) {
+                    topClientRevenue = revenue;
+                    topClientName = client.name;
+                }
+            }
+        });
+        
+        // Clients inactifs (30 jours)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const lastPurchaseByClient = {};
+        salesData.forEach(sale => {
+            if (sale.client_id && (!lastPurchaseByClient[sale.client_id] || new Date(sale.date) > new Date(lastPurchaseByClient[sale.client_id]))) {
+                lastPurchaseByClient[sale.client_id] = sale.date;
+            }
+        });
+        const inactiveCount = clientsData.filter(c => {
+            const lastPurchase = lastPurchaseByClient[c.id];
+            return !lastPurchase || new Date(lastPurchase) < thirtyDaysAgo;
+        }).length;
+        
+        document.getElementById('totalClients').textContent = totalClients;
+        document.getElementById('totalRevenue').textContent = formatMoney(totalRevenue);
+        document.getElementById('topClient').textContent = topClientName !== '-' ? `${topClientName} (${formatMoney(topClientRevenue)})` : '-';
+        document.getElementById('inactiveClients').textContent = inactiveCount;
+    }
+
+    function openClientModal(clientId = null) {
+        currentClientId = clientId;
+        const modalTitle = document.getElementById('modalTitle');
+        if (clientId) {
+            modalTitle.textContent = 'Modifier client';
+            const client = clientsData.find(c => c.id === clientId);
+            if (client) {
+                document.getElementById('clientId').value = client.id;
+                document.getElementById('clientName').value = client.name || '';
+                document.getElementById('clientEmail').value = client.email || '';
+                document.getElementById('clientPhone').value = client.phone || '';
+                document.getElementById('clientAddress').value = client.address || '';
+                document.getElementById('clientCity').value = client.city || '';
+                document.getElementById('clientPostal').value = client.postal_code || '';
+                document.getElementById('clientCountry').value = client.country || '';
+                document.getElementById('clientTax').value = client.tax_number || '';
+            }
+        } else {
+            modalTitle.textContent = 'Nouveau client';
+            document.getElementById('clientId').value = '';
+            document.getElementById('clientName').value = '';
+            document.getElementById('clientEmail').value = '';
+            document.getElementById('clientPhone').value = '';
+            document.getElementById('clientAddress').value = '';
+            document.getElementById('clientCity').value = '';
+            document.getElementById('clientPostal').value = '';
+            document.getElementById('clientCountry').value = '';
+            document.getElementById('clientTax').value = '';
+        }
+        document.getElementById('clientModal').style.display = 'flex';
+    }
+
+    async function saveClient() {
+        const clientData = {
+            name: document.getElementById('clientName').value,
+            email: document.getElementById('clientEmail').value,
+            phone: document.getElementById('clientPhone').value,
+            address: document.getElementById('clientAddress').value,
+            city: document.getElementById('clientCity').value,
+            postal_code: document.getElementById('clientPostal').value,
+            country: document.getElementById('clientCountry').value,
+            tax_number: document.getElementById('clientTax').value,
+            user_id: currentUser.id
+        };
+        
+        const clientId = document.getElementById('clientId').value;
+        let error;
+        
+        if (clientId) {
+            const { error: updateError } = await supabaseClient.from('clients').update(clientData).eq('id', clientId);
+            error = updateError;
+        } else {
+            const { error: insertError } = await supabaseClient.from('clients').insert([clientData]);
+            error = insertError;
+        }
+        
+        if (error) { showToast(error.message, 'error'); return; }
+        
+        closeModal('clientModal');
+        await loadData();
+        showToast(clientId ? 'Client modifié' : 'Client ajouté', 'success');
+    }
+
+    async function deleteClient(clientId) {
+        if (!confirm('Supprimer ce client ? Toutes ses ventes seront également supprimées.')) return;
+        
+        // Supprimer d'abord les ventes associées
+        await supabaseClient.from('sales').delete().eq('client_id', clientId);
+        // Puis supprimer le client
+        const { error } = await supabaseClient.from('clients').delete().eq('id', clientId);
+        if (error) { showToast(error.message, 'error'); return; }
+        
+        await loadData();
+        showToast('Client supprimé', 'success');
+    }
+
+    function viewClientHistory(clientId) {
+        const client = clientsData.find(c => c.id === clientId);
+        if (!client) return;
+        
+        const clientSales = salesData.filter(s => s.client_id === clientId);
+        const totalRevenue = clientSales.reduce((sum, s) => sum + (s.sell_price * s.qty), 0);
+        
+        let salesHtml = '';
+        if (clientSales.length === 0) {
+            salesHtml = '<p>Aucun historique d\'achat</p>';
+        } else {
+            salesHtml = '<div style="max-height: 300px; overflow-y: auto;"><table style="width:100%; font-size:0.8rem;"><thead><tr><th>Date</th><th>Produit</th><th>Qté</th><th>Montant</th></tr></thead><tbody>' +
+                clientSales.map(s => `<tr><td>${s.date || '-'}</td><td>${s.product || '-'}</td><td>${s.qty || 0}</td><td>${formatMoney(s.sell_price * s.qty)}</td></tr>`).join('') +
+                '</tbody></table></div>';
+        }
+        
+        const modalHtml = `
+            <div id="historyModal" class="modal" style="display:flex;">
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-history"></i> Historique - ${escapeHtml(client.name)}</h3>
+                        <button onclick="closeModal('historyModal')" class="modal-close">&times;</button>
+                    </div>
+                    <div style="background: var(--gray-50); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div><strong>Email:</strong> ${client.email || '-'}</div>
+                            <div><strong>Téléphone:</strong> ${client.phone || '-'}</div>
+                            <div><strong>Adresse:</strong> ${client.address ? escapeHtml(client.address) : '-'}</div>
+                            <div><strong>CA total:</strong> ${formatMoney(totalRevenue)}</div>
+                        </div>
+                    </div>
+                    <div><strong>Historique des achats (${clientSales.length} transaction(s))</strong></div>
+                    ${salesHtml}
+                    <div style="margin-top: 1rem;">
+                        <button class="btn btn-primary" onclick="generateClientInvoicePDF('${clientId}')" style="width:100%;"><i class="fas fa-file-invoice"></i> Générer relevé client</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const existing = document.getElementById('historyModal');
+        if (existing) existing.remove();
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    async function generateClientInvoicePDF(clientId) {
+        const client = clientsData.find(c => c.id === clientId);
+        if (!client) return;
+        
+        const clientSales = salesData.filter(s => s.client_id === clientId);
+        const totalRevenue = clientSales.reduce((sum, s) => sum + (s.sell_price * s.qty), 0);
+        
+        const rows = clientSales.map(s => [s.date || '-', s.product || '-', s.qty || 0, formatMoney(s.sell_price * s.qty)]);
+        
+        if (typeof MoniteoPDF !== 'undefined' && MoniteoPDF.generate) {
+            await MoniteoPDF.generate({
+                title: 'RELEVÉ DE COMPTE CLIENT',
+                subtitle: `${client.name} - Total: ${formatMoney(totalRevenue)}`,
+                tables: [{ headers: ['DATE', 'PRODUIT', 'QUANTITÉ', 'MONTANT'], rows: rows }]
+            });
+        } else { alert('Module PDF non disponible'); }
+    }
+
+    function exportToExcel() {
+        const clientRevenue = {};
+        salesData.forEach(sale => {
+            if (sale.client_id) {
+                clientRevenue[sale.client_id] = (clientRevenue[sale.client_id] || 0) + (sale.sell_price * sale.qty);
+            }
+        });
+        
+        const wsData = clientsData.map(c => ({
+            Nom: c.name,
+            Email: c.email,
+            Téléphone: c.phone,
+            Adresse: c.address,
+            Ville: c.city,
+            'NIF': c.tax_number,
+            'CA cumulé': formatMoney(clientRevenue[c.id] || 0)
+        }));
+        
+        const ws = XLSX.utils.json_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Clients');
+        XLSX.writeFile(wb, `clients_${new Date().toISOString().split('T')[0]}.xlsx`);
+        showToast('Export Excel réussi', 'success');
+    }
+
+    async function exportToPDF() {
+        if (clientsData.length === 0) { showToast('Aucune donnée', 'error'); return; }
+        
+        const clientRevenue = {};
+        salesData.forEach(sale => {
+            if (sale.client_id) {
+                clientRevenue[sale.client_id] = (clientRevenue[sale.client_id] || 0) + (sale.sell_price * sale.qty);
+            }
+        });
+        
+        const rows = clientsData.map(c => [c.name, c.email || '-', c.phone || '-', formatMoney(clientRevenue[c.id] || 0)]);
+        
+        if (typeof MoniteoPDF !== 'undefined' && MoniteoPDF.generate) {
+            await MoniteoPDF.generate({
+                title: 'LISTE DES CLIENTS',
+                subtitle: `Généré le ${new Date().toLocaleDateString()}`,
+                tables: [{ headers: ['NOM', 'EMAIL', 'TÉLÉPHONE', 'CA CUMULÉ'], rows: rows }]
+            });
+        } else { alert('Module PDF non disponible'); }
+    }
+
+    function filterClients() { renderTable(); }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function initSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const checkScreenSize = () => { if (window.innerWidth <= 768) sidebar.classList.add('collapsed'); else if (window.innerWidth <= 1024) sidebar.classList.add('collapsed'); else sidebar.classList.remove('collapsed'); };
+        window.addEventListener('resize', checkScreenSize);
+        checkScreenSize();
+    }
+    function showLoading(show) { document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
+    function showToast(message, type = 'success') { const container = document.getElementById('toastContainer'); const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${message}`; container.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+    function formatMoney(amount) { const config = JSON.parse(localStorage.getItem('moniteo_config') || '{}'); const currency = config.currency || 'FCFA'; return (amount || 0).toLocaleString() + ' ' + currency; }
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
+    function updateDateDisplay() { document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
+    async function logout() { if (confirm('Déconnexion ?')) { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; } }
+
+    window.openClientModal = openClientModal; window.saveClient = saveClient; window.deleteClient = deleteClient;
+    window.viewClientHistory = viewClientHistory; window.generateClientInvoicePDF = generateClientInvoicePDF;
+    window.exportToExcel = exportToExcel; window.exportToPDF = exportToPDF; window.filterClients = filterClients;
+    window.closeModal = closeModal; window.logout = logout;
+</script>
+</body>
+</html>
