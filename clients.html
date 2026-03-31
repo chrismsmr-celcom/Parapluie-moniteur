@@ -263,6 +263,38 @@
         .btn-danger { background: var(--danger); color: white; }
         .btn-danger:hover { background: #dc2626; transform: translateY(-1px); }
 
+        /* Dropdown */
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 0.5rem;
+            background: white;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            min-width: 180px;
+            z-index: 100;
+            overflow: hidden;
+            display: none;
+        }
+        .dropdown-menu button {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: var(--gray-700);
+            transition: all 0.2s;
+        }
+        .dropdown-menu button:hover { background: var(--gray-100); }
+        .dropdown-menu hr { margin: 0.25rem 0; border: none; border-top: 1px solid var(--gray-200); }
+
         /* Table */
         .table-container {
             background: white;
@@ -317,7 +349,7 @@
             background: white;
             border-radius: var(--radius-xl);
             padding: 1.5rem;
-            max-width: 500px;
+            max-width: 550px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
@@ -463,34 +495,27 @@
 
     <!-- Stats Cards -->
     <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon" style="background:#eff6ff;color:#3b82f6;"><i class="fas fa-users"></i></div>
-            <div class="stat-info"><h3>Total clients</h3><p id="totalClients">0</p></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background:#ecfdf5;color:#10b981;"><i class="fas fa-chart-line"></i></div>
-            <div class="stat-info"><h3>CA total</h3><p id="totalRevenue">0</p></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background:#fef3c7;color:#f59e0b;"><i class="fas fa-star"></i></div>
-            <div class="stat-info"><h3>Top client</h3><p id="topClient">-</p></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background:#fee2e2;color:#ef4444;"><i class="fas fa-clock"></i></div>
-            <div class="stat-info"><h3>Inactifs (30j)</h3><p id="inactiveClients">0</p></div>
-        </div>
+        <div class="stat-card"><div class="stat-icon" style="background:#eff6ff;color:#3b82f6;"><i class="fas fa-users"></i></div><div class="stat-info"><h3>Total clients</h3><p id="totalClients">0</p></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#ecfdf5;color:#10b981;"><i class="fas fa-chart-line"></i></div><div class="stat-info"><h3>CA total</h3><p id="totalRevenue">0</p></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#f59e0b;"><i class="fas fa-star"></i></div><div class="stat-info"><h3>Top client</h3><p id="topClient">-</p></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#ef4444;"><i class="fas fa-clock"></i></div><div class="stat-info"><h3>Inactifs (30j)</h3><p id="inactiveClients">0</p></div></div>
     </div>
 
     <!-- Action Bar -->
     <div class="action-bar">
-        <div class="search-wrapper">
-            <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" class="search-input" placeholder="Rechercher un client..." onkeyup="filterClients()">
-        </div>
+        <div class="search-wrapper"><i class="fas fa-search"></i><input type="text" id="searchInput" class="search-input" placeholder="Rechercher un client..." onkeyup="filterClients()"></div>
         <div class="btn-group">
             <button class="btn btn-primary" onclick="openClientModal()"><i class="fas fa-plus"></i> Nouveau client</button>
-            <button class="btn btn-outline" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> Excel</button>
-            <button class="btn btn-outline" onclick="exportToPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+            <div class="dropdown">
+                <button class="btn btn-outline dropdown-trigger" onclick="toggleActionsDropdown(event)"><i class="fas fa-ellipsis-h"></i> Actions <i class="fas fa-chevron-down" style="font-size:0.7rem;"></i></button>
+                <div class="dropdown-menu" id="actionsDropdownMenu">
+                    <button onclick="exportToExcel()"><i class="fas fa-file-excel" style="color:#10b981;"></i> Exporter Excel</button>
+                    <button onclick="exportToPDF()"><i class="fas fa-file-pdf" style="color:#ef4444;"></i> Exporter PDF</button>
+                    <button onclick="sendNewsletter()"><i class="fas fa-envelope"></i> Envoyer newsletter</button>
+                    <hr>
+                    <button onclick="deleteAllInactive()" style="color:var(--danger);"><i class="fas fa-trash-alt"></i> Supprimer inactifs</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -506,7 +531,7 @@
                         <th>Adresse</th>
                         <th>CA cumulé</th>
                         <th>Dernier achat</th>
-                        <th style="text-align: right;">Actions</th>
+                        <th style="text-align:right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="clientsTableBody">
@@ -515,39 +540,50 @@
             </table>
         </div>
     </div>
-</main>
 
-<!-- Client Modal -->
-<div id="clientModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3><i class="fas fa-user-plus"></i> <span id="modalTitle">Nouveau client</span></h3>
-            <button onclick="closeModal('clientModal')" class="modal-close">&times;</button>
-        </div>
-        <input type="hidden" id="clientId">
-        <div class="modal-grid">
-            <div class="form-group"><label>Nom / Société</label><input type="text" id="clientName" placeholder="Nom complet ou société"></div>
-            <div class="form-group"><label>Email</label><input type="email" id="clientEmail" placeholder="client@email.com"></div>
-            <div class="form-group"><label>Téléphone</label><input type="tel" id="clientPhone" placeholder="+243 XX XXX XXXX"></div>
-            <div class="form-group"><label>Adresse</label><input type="text" id="clientAddress" placeholder="Adresse complète"></div>
-            <div class="form-group"><label>Ville</label><input type="text" id="clientCity" placeholder="Ville"></div>
-            <div class="form-group"><label>Code postal</label><input type="text" id="clientPostal" placeholder="Code postal"></div>
-            <div class="form-group"><label>Pays</label><input type="text" id="clientCountry" placeholder="Pays"></div>
-            <div class="form-group"><label>NIF / Taxe</label><input type="text" id="clientTax" placeholder="Numéro d'identification fiscale"></div>
-        </div>
-        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-            <button class="btn btn-primary" style="flex:2;" onclick="saveClient()"><i class="fas fa-save"></i> Enregistrer</button>
-            <button class="btn btn-outline" style="flex:1;" onclick="closeModal('clientModal')">Annuler</button>
+    <!-- Client Modal -->
+    <div id="clientModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-plus"></i> <span id="modalTitle">Nouveau client</span></h3>
+                <button onclick="closeModal('clientModal')" class="modal-close">&times;</button>
+            </div>
+            <input type="hidden" id="clientId">
+            <div class="modal-grid">
+                <div class="form-group"><label><i class="fas fa-user"></i> Nom / Société</label><input type="text" id="clientName" placeholder="Nom complet ou société" autocomplete="off"></div>
+                <div class="form-group"><label><i class="fas fa-envelope"></i> Email</label><input type="email" id="clientEmail" placeholder="client@email.com"></div>
+                <div class="form-group"><label><i class="fas fa-phone"></i> Téléphone</label><input type="tel" id="clientPhone" placeholder="+243 XX XXX XXXX"></div>
+                <div class="form-group"><label><i class="fas fa-map-marker-alt"></i> Adresse</label><input type="text" id="clientAddress" placeholder="Adresse complète"></div>
+                <div class="form-group"><label><i class="fas fa-city"></i> Ville</label><input type="text" id="clientCity" placeholder="Ville"></div>
+                <div class="form-group"><label><i class="fas fa-mail-bulk"></i> Code postal</label><input type="text" id="clientPostal" placeholder="Code postal"></div>
+                <div class="form-group"><label><i class="fas fa-globe"></i> Pays</label><input type="text" id="clientCountry" placeholder="Pays"></div>
+                <div class="form-group"><label><i class="fas fa-receipt"></i> NIF / Taxe</label><input type="text" id="clientTax" placeholder="Numéro d'identification fiscale"></div>
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button class="btn btn-primary" style="flex:2;" onclick="saveClient()"><i class="fas fa-save"></i> Enregistrer</button>
+                <button class="btn btn-outline" style="flex:1;" onclick="closeModal('clientModal')">Annuler</button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Loading & Toast -->
-<div id="loadingOverlay" class="loading-overlay" style="display:none;"><div class="spinner"></div></div>
-<div id="toastContainer" class="toast-container"></div>
+    <!-- History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-history"></i> Historique client</h3>
+                <button onclick="closeModal('historyModal')" class="modal-close">&times;</button>
+            </div>
+            <div id="historyContent"></div>
+        </div>
+    </div>
+
+    <!-- Loading & Toast -->
+    <div id="loadingOverlay" class="loading-overlay" style="display:none;"><div class="spinner"></div></div>
+    <div id="toastContainer" class="toast-container"></div>
+</main>
 
 <script>
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+       const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     window._db = supabaseClient;
 
     let currentUser = null, clientsData = [], salesData = [], currentClientId = null;
@@ -593,25 +629,35 @@
         const tbody = document.getElementById('clientsTableBody');
         const search = document.getElementById('searchInput')?.value.toLowerCase() || '';
         
-        // Calculer le CA par client
+        // Calcul du CA par client à partir des ventes
         const clientRevenue = {};
-        salesData.forEach(sale => {
+        salesData.forEach(sale => { 
             if (sale.client_id) {
-                clientRevenue[sale.client_id] = (clientRevenue[sale.client_id] || 0) + (sale.sell_price * sale.qty);
+                const amount = (sale.sell_price || 0) * (sale.qty || 0);
+                clientRevenue[sale.client_id] = (clientRevenue[sale.client_id] || 0) + amount;
             }
         });
         
         // Dernier achat par client
         const lastPurchase = {};
-        salesData.forEach(sale => {
-            if (sale.client_id && (!lastPurchase[sale.client_id] || new Date(sale.date) > new Date(lastPurchase[sale.client_id]))) {
-                lastPurchase[sale.client_id] = sale.date;
+        salesData.forEach(sale => { 
+            if (sale.client_id && sale.date) {
+                if (!lastPurchase[sale.client_id] || new Date(sale.date) > new Date(lastPurchase[sale.client_id])) {
+                    lastPurchase[sale.client_id] = sale.date;
+                }
             }
         });
         
-        const filtered = clientsData.filter(c => c.name?.toLowerCase().includes(search) || c.email?.toLowerCase().includes(search) || c.phone?.includes(search));
+        const filtered = clientsData.filter(c => 
+            c.name?.toLowerCase().includes(search) || 
+            c.email?.toLowerCase().includes(search) || 
+            c.phone?.includes(search)
+        );
         
-        if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Aucun client</td></tr>'; return; }
+        if (filtered.length === 0) { 
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Aucun client</td></tr>'; 
+            return; 
+        }
         
         const currency = window.currentCurrency || 'FCFA';
         
@@ -620,7 +666,10 @@
             const lastDate = lastPurchase[client.id];
             return `
                 <tr>
-                    <td><strong>${escapeHtml(client.name)}</strong> <br><small style="color:var(--gray-500);">${client.tax_number ? 'NIF: ' + client.tax_number : ''}</small></td>
+                    <td>
+                        <strong>${escapeHtml(client.name)}</strong> 
+                        ${client.tax_number ? `<br><small style="color:var(--gray-500);">NIF: ${client.tax_number}</small>` : ''}
+                    </td>
                     <td>${client.email || '-'}</td>
                     <td>${client.phone || '-'}</td>
                     <td>${client.address ? escapeHtml(client.address) + (client.city ? ', ' + client.city : '') : '-'}</td>
@@ -641,9 +690,10 @@
         
         // Calcul du CA par client
         const clientRevenue = {};
-        salesData.forEach(sale => {
+        salesData.forEach(sale => { 
             if (sale.client_id) {
-                clientRevenue[sale.client_id] = (clientRevenue[sale.client_id] || 0) + (sale.sell_price * sale.qty);
+                const amount = (sale.sell_price || 0) * (sale.qty || 0);
+                clientRevenue[sale.client_id] = (clientRevenue[sale.client_id] || 0) + amount;
             }
         });
         
@@ -654,22 +704,25 @@
         Object.entries(clientRevenue).forEach(([id, revenue]) => {
             if (revenue > topClientRevenue) {
                 const client = clientsData.find(c => c.id === id);
-                if (client) {
-                    topClientRevenue = revenue;
-                    topClientName = client.name;
+                if (client) { 
+                    topClientRevenue = revenue; 
+                    topClientName = client.name; 
                 }
             }
         });
         
-        // Clients inactifs (30 jours)
+        // Clients inactifs (30 jours sans achat)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const lastPurchaseByClient = {};
-        salesData.forEach(sale => {
-            if (sale.client_id && (!lastPurchaseByClient[sale.client_id] || new Date(sale.date) > new Date(lastPurchaseByClient[sale.client_id]))) {
-                lastPurchaseByClient[sale.client_id] = sale.date;
+        salesData.forEach(sale => { 
+            if (sale.client_id && sale.date) {
+                if (!lastPurchaseByClient[sale.client_id] || new Date(sale.date) > new Date(lastPurchaseByClient[sale.client_id])) {
+                    lastPurchaseByClient[sale.client_id] = sale.date;
+                }
             }
         });
+        
         const inactiveCount = clientsData.filter(c => {
             const lastPurchase = lastPurchaseByClient[c.id];
             return !lastPurchase || new Date(lastPurchase) < thirtyDaysAgo;
@@ -738,7 +791,6 @@
         }
         
         if (error) { showToast(error.message, 'error'); return; }
-        
         closeModal('clientModal');
         await loadData();
         showToast(clientId ? 'Client modifié' : 'Client ajouté', 'success');
@@ -746,70 +798,90 @@
 
     async function deleteClient(clientId) {
         if (!confirm('Supprimer ce client ? Toutes ses ventes seront également supprimées.')) return;
-        
-        // Supprimer d'abord les ventes associées
         await supabaseClient.from('sales').delete().eq('client_id', clientId);
-        // Puis supprimer le client
         const { error } = await supabaseClient.from('clients').delete().eq('id', clientId);
         if (error) { showToast(error.message, 'error'); return; }
-        
         await loadData();
         showToast('Client supprimé', 'success');
     }
 
-    function viewClientHistory(clientId) {
+    async function deleteAllInactive() {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const lastPurchaseByClient = {};
+        salesData.forEach(sale => { 
+            if (sale.client_id && sale.date) {
+                if (!lastPurchaseByClient[sale.client_id] || new Date(sale.date) > new Date(lastPurchaseByClient[sale.client_id])) {
+                    lastPurchaseByClient[sale.client_id] = sale.date;
+                }
+            }
+        });
+        
+        const inactiveClients = clientsData.filter(c => { 
+            const lastPurchase = lastPurchaseByClient[c.id]; 
+            return !lastPurchase || new Date(lastPurchase) < thirtyDaysAgo; 
+        });
+        
+        if (inactiveClients.length === 0) { showToast('Aucun client inactif', 'info'); return; }
+        if (!confirm(`Supprimer ${inactiveClients.length} client(s) inactif(s) ?`)) return;
+        
+        for (const client of inactiveClients) {
+            await supabaseClient.from('sales').delete().eq('client_id', client.id);
+            await supabaseClient.from('clients').delete().eq('id', client.id);
+        }
+        await loadData();
+        showToast(`${inactiveClients.length} client(s) supprimé(s)`, 'success');
+    }
+
+    async function viewClientHistory(clientId) {
         const client = clientsData.find(c => c.id === clientId);
         if (!client) return;
         
         const clientSales = salesData.filter(s => s.client_id === clientId);
-        const totalRevenue = clientSales.reduce((sum, s) => sum + (s.sell_price * s.qty), 0);
+        const totalRevenue = clientSales.reduce((sum, s) => sum + ((s.sell_price || 0) * (s.qty || 0)), 0);
         
-        let salesHtml = '';
-        if (clientSales.length === 0) {
-            salesHtml = '<p>Aucun historique d\'achat</p>';
-        } else {
-            salesHtml = '<div style="max-height: 300px; overflow-y: auto;"><table style="width:100%; font-size:0.8rem;"><thead><tr><th>Date</th><th>Produit</th><th>Qté</th><th>Montant</th></tr></thead><tbody>' +
-                clientSales.map(s => `<tr><td>${s.date || '-'}</td><td>${s.product || '-'}</td><td>${s.qty || 0}</td><td>${formatMoney(s.sell_price * s.qty)}</td></tr>`).join('') +
-                '</tbody></table></div>';
-        }
+        const salesHtml = clientSales.length === 0 ? '<p>Aucun historique d\'achat</p>' :
+            `<div style="max-height: 300px; overflow-y: auto;">
+                <table style="width:100%; font-size:0.8rem;">
+                    <thead><tr><th>Date</th><th>Produit</th><th>Qté</th><th>Montant</th></tr></thead>
+                    <tbody>${clientSales.map(s => `
+                        <tr>
+                            <td>${s.date || '-'}</td>
+                            <td>${s.product || '-'}</td>
+                            <td>${s.qty || 0}</td>
+                            <td>${formatMoney((s.sell_price || 0) * (s.qty || 0))}</td>
+                        </tr>
+                    `).join('')}</tbody>
+                </table>
+            </div>`;
         
-        const modalHtml = `
-            <div id="historyModal" class="modal" style="display:flex;">
-                <div class="modal-content" style="max-width: 600px;">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-history"></i> Historique - ${escapeHtml(client.name)}</h3>
-                        <button onclick="closeModal('historyModal')" class="modal-close">&times;</button>
-                    </div>
-                    <div style="background: var(--gray-50); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                            <div><strong>Email:</strong> ${client.email || '-'}</div>
-                            <div><strong>Téléphone:</strong> ${client.phone || '-'}</div>
-                            <div><strong>Adresse:</strong> ${client.address ? escapeHtml(client.address) : '-'}</div>
-                            <div><strong>CA total:</strong> ${formatMoney(totalRevenue)}</div>
-                        </div>
-                    </div>
-                    <div><strong>Historique des achats (${clientSales.length} transaction(s))</strong></div>
-                    ${salesHtml}
-                    <div style="margin-top: 1rem;">
-                        <button class="btn btn-primary" onclick="generateClientInvoicePDF('${clientId}')" style="width:100%;"><i class="fas fa-file-invoice"></i> Générer relevé client</button>
-                    </div>
+        document.getElementById('historyContent').innerHTML = `
+            <div style="background: var(--gray-50); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <div><strong>Nom:</strong> ${escapeHtml(client.name)}</div>
+                    <div><strong>Email:</strong> ${client.email || '-'}</div>
+                    <div><strong>Téléphone:</strong> ${client.phone || '-'}</div>
+                    <div><strong>Adresse:</strong> ${client.address ? escapeHtml(client.address) : '-'}</div>
+                    <div><strong>CA total:</strong> ${formatMoney(totalRevenue)}</div>
+                    <div><strong>Transactions:</strong> ${clientSales.length}</div>
                 </div>
             </div>
+            <div><strong>Historique des achats</strong></div>
+            ${salesHtml}
+            <div style="margin-top: 1rem;">
+                <button class="btn btn-primary" onclick="generateClientInvoicePDF('${clientId}')" style="width:100%;"><i class="fas fa-file-invoice"></i> Générer relevé client</button>
+            </div>
         `;
-        
-        const existing = document.getElementById('historyModal');
-        if (existing) existing.remove();
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        document.getElementById('historyModal').style.display = 'flex';
     }
 
     async function generateClientInvoicePDF(clientId) {
         const client = clientsData.find(c => c.id === clientId);
         if (!client) return;
-        
         const clientSales = salesData.filter(s => s.client_id === clientId);
-        const totalRevenue = clientSales.reduce((sum, s) => sum + (s.sell_price * s.qty), 0);
-        
-        const rows = clientSales.map(s => [s.date || '-', s.product || '-', s.qty || 0, formatMoney(s.sell_price * s.qty)]);
+        const totalRevenue = clientSales.reduce((sum, s) => sum + ((s.sell_price || 0) * (s.qty || 0)), 0);
+        const rows = clientSales.map(s => [s.date || '-', s.product || '-', s.qty || 0, formatMoney((s.sell_price || 0) * (s.qty || 0))]);
         
         if (typeof MoniteoPDF !== 'undefined' && MoniteoPDF.generate) {
             await MoniteoPDF.generate({
@@ -820,24 +892,37 @@
         } else { alert('Module PDF non disponible'); }
     }
 
+    async function sendNewsletter() {
+        const activeClients = clientsData.filter(c => c.email && c.email.trim() !== '');
+        if (activeClients.length === 0) { showToast('Aucun client avec email', 'error'); return; }
+        
+        const emails = activeClients.map(c => c.email).join(',');
+        const subject = prompt("Sujet de la newsletter:", "Nouveautés Moniteo");
+        if (!subject) return;
+        const body = prompt("Message:", "Découvrez nos nouvelles fonctionnalités...");
+        if (!body) return;
+        
+        window.location.href = `mailto:${emails}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        showToast(`Newsletter envoyée à ${activeClients.length} client(s)`, 'success');
+    }
+
     function exportToExcel() {
         const clientRevenue = {};
-        salesData.forEach(sale => {
+        salesData.forEach(sale => { 
             if (sale.client_id) {
-                clientRevenue[sale.client_id] = (clientRevenue[sale.client_id] || 0) + (sale.sell_price * sale.qty);
+                const amount = (sale.sell_price || 0) * (sale.qty || 0);
+                clientRevenue[sale.client_id] = (clientRevenue[sale.client_id] || 0) + amount;
             }
         });
-        
-        const wsData = clientsData.map(c => ({
-            Nom: c.name,
-            Email: c.email,
-            Téléphone: c.phone,
-            Adresse: c.address,
-            Ville: c.city,
-            'NIF': c.tax_number,
-            'CA cumulé': formatMoney(clientRevenue[c.id] || 0)
+        const wsData = clientsData.map(c => ({ 
+            Nom: c.name, 
+            Email: c.email, 
+            Téléphone: c.phone, 
+            Adresse: c.address, 
+            Ville: c.city, 
+            'NIF': c.tax_number, 
+            'CA cumulé': formatMoney(clientRevenue[c.id] || 0) 
         }));
-        
         const ws = XLSX.utils.json_to_sheet(wsData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Clients');
@@ -847,27 +932,26 @@
 
     async function exportToPDF() {
         if (clientsData.length === 0) { showToast('Aucune donnée', 'error'); return; }
-        
         const clientRevenue = {};
-        salesData.forEach(sale => {
+        salesData.forEach(sale => { 
             if (sale.client_id) {
-                clientRevenue[sale.client_id] = (clientRevenue[sale.client_id] || 0) + (sale.sell_price * sale.qty);
+                const amount = (sale.sell_price || 0) * (sale.qty || 0);
+                clientRevenue[sale.client_id] = (clientRevenue[sale.client_id] || 0) + amount;
             }
         });
-        
         const rows = clientsData.map(c => [c.name, c.email || '-', c.phone || '-', formatMoney(clientRevenue[c.id] || 0)]);
-        
         if (typeof MoniteoPDF !== 'undefined' && MoniteoPDF.generate) {
-            await MoniteoPDF.generate({
-                title: 'LISTE DES CLIENTS',
-                subtitle: `Généré le ${new Date().toLocaleDateString()}`,
-                tables: [{ headers: ['NOM', 'EMAIL', 'TÉLÉPHONE', 'CA CUMULÉ'], rows: rows }]
+            await MoniteoPDF.generate({ 
+                title: 'LISTE DES CLIENTS', 
+                subtitle: `Généré le ${new Date().toLocaleDateString()}`, 
+                tables: [{ headers: ['NOM', 'EMAIL', 'TÉLÉPHONE', 'CA CUMULÉ'], rows: rows }] 
             });
         } else { alert('Module PDF non disponible'); }
     }
 
     function filterClients() { renderTable(); }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function toggleActionsDropdown(event) { event.stopPropagation(); const menu = document.getElementById('actionsDropdownMenu'); const isOpen = menu.style.display === 'block'; document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none'); menu.style.display = isOpen ? 'none' : 'block'; }
     function initSidebar() {
         const sidebar = document.getElementById('sidebar');
         const checkScreenSize = () => { if (window.innerWidth <= 768) sidebar.classList.add('collapsed'); else if (window.innerWidth <= 1024) sidebar.classList.add('collapsed'); else sidebar.classList.remove('collapsed'); };
@@ -881,10 +965,11 @@
     function updateDateDisplay() { document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
     async function logout() { if (confirm('Déconnexion ?')) { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; } }
 
-    window.openClientModal = openClientModal; window.saveClient = saveClient; window.deleteClient = deleteClient;
-    window.viewClientHistory = viewClientHistory; window.generateClientInvoicePDF = generateClientInvoicePDF;
+    document.addEventListener('click', () => { document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none'); });
+    window.openClientModal = openClientModal; window.saveClient = saveClient; window.deleteClient = deleteClient; window.deleteAllInactive = deleteAllInactive;
+    window.viewClientHistory = viewClientHistory; window.generateClientInvoicePDF = generateClientInvoicePDF; window.sendNewsletter = sendNewsletter;
     window.exportToExcel = exportToExcel; window.exportToPDF = exportToPDF; window.filterClients = filterClients;
-    window.closeModal = closeModal; window.logout = logout;
+    window.closeModal = closeModal; window.logout = logout; window.toggleActionsDropdown = toggleActionsDropdown;
 </script>
 </body>
 </html>
