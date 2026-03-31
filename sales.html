@@ -366,7 +366,7 @@
             background: white;
             border-radius: var(--radius-xl);
             padding: 1.5rem;
-            max-width: 500px;
+            max-width: 550px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
@@ -388,6 +388,7 @@
             border-radius: var(--radius-md);
             font-size: 0.875rem;
         }
+        .client-select { margin-bottom: 1rem; }
 
         /* Scanner */
         #scannerContainer {
@@ -549,18 +550,16 @@
                     <hr>
                     <button onclick="toggleSelectAll()"><i class="fas fa-check-double"></i> Tout sélectionner</button>
                     <button onclick="clearSelection()"><i class="fas fa-times"></i> Désélectionner tout</button>
-                    <div class="shortcut-hint"><i class="fas fa-keyboard"></i> <kbd>Ctrl+N</kbd> <kbd>Ctrl+F</kbd> <kbd>Ctrl+P</kbd> <kbd>Ctrl+Shift+S</kbd></div>
-    </div>
+                    <div class="shortcut-hint"><i class="fas fa-keyboard"></i> <kbd>Ctrl+N</kbd> <kbd>Ctrl+F</kbd> <kbd>Ctrl+P</kbd> <kbd>Ctrl+Shift+S</kbd></div></div>
                 </div>
             </div>
         </div>
         
-
     <div class="table-container">
         <input type="text" id="searchInput" class="search-input" placeholder="Rechercher un produit..." onkeyup="filterTable()">
         <div style="overflow-x: auto;">
             <table id="salesTable">
-                <thead><tr><th style="width:40px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th><th>Code-barres</th><th>Produit</th><th>Date</th><th>Prix achat</th><th>Prix vente</th><th>Quantité</th><th>Bénéfice</th></tr></thead>
+                <thead><tr><th style="width:40px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th><th>Code-barres</th><th>Produit</th><th>Date</th><th>Prix achat</th><th>Prix vente</th><th>Quantité</th><th>Bénéfice</th><th style="width:80px;">Actions</th></tr></thead>
                 <tbody id="salesTableBody"><tr><td colspan="9" style="text-align:center;">Chargement...</td></tr></tbody>
             </table>
         </div>
@@ -595,7 +594,68 @@
 
 <div id="hsModal" class="modal"><div class="modal-content"><div class="modal-header"><h3><i class="fas fa-plus-circle"></i> Produit hors inventaire</h3><button onclick="closeModal('hsModal')" style="background:none;border:none;font-size:1.5rem;">&times;</button></div><div class="form-group"><label>Nom du produit *</label><input type="text" id="hsName" placeholder="Ex: Frais de port, Service..." autofocus></div><div class="form-group"><label>Code-barres (optionnel)</label><div style="display:flex;gap:0.5rem;"><input type="text" id="hsBarcode" placeholder="Scanner ou saisir" style="flex:1;"><button class="btn btn-outline" onclick="scanForHorsStock()"><i class="fas fa-camera"></i></button></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;"><div class="form-group"><label>Prix d'achat</label><input type="number" id="hsBuy" value="0" step="0.01"></div><div class="form-group"><label>Prix de vente</label><input type="number" id="hsSell" value="0" step="0.01"></div></div><div class="form-group"><label>Quantité en stock</label><input type="number" id="hsQty" value="1" step="1"></div><div style="display:flex;gap:1rem;"><button class="btn btn-primary" style="flex:1;" onclick="saveHorsStock()">Enregistrer</button><button class="btn btn-outline" style="flex:1;" onclick="closeModal('hsModal')">Annuler</button></div></div></div>
 
-<div id="customerModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Facture</h3><button onclick="closeModal('customerModal')" style="background:none;border:none;font-size:1.5rem;">&times;</button></div><div id="invoiceSummary" style="background:var(--gray-50);border-radius:var(--radius-md);padding:1rem;margin-bottom:1rem;"></div><div class="form-group"><label>Nom client</label><input type="text" id="custName" placeholder="Client comptant"></div><div class="form-group"><label>Téléphone</label><input type="text" id="custPhone"></div><div class="form-group"><label>Paiement</label><select id="paymentMethod"><option>ESPECES</option><option>MPESA</option><option>ORANGE_MONEY</option><option>CARTE</option></select></div><div style="display:flex;gap:1rem;"><button class="btn btn-success" style="flex:1;" onclick="confirmInvoice()">Imprimer</button><button class="btn btn-outline" style="flex:1;" onclick="closeModal('customerModal')">Annuler</button></div></div></div>
+<!-- Customer Modal - Version avec gestion des clients -->
+<div id="customerModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-file-invoice"></i> Facturation</h3>
+            <button onclick="closeModal('customerModal')" class="modal-close">&times;</button>
+        </div>
+        
+        <!-- Sélection client existant -->
+        <div class="form-group client-select">
+            <label><i class="fas fa-users"></i> Client fidèle</label>
+            <select id="existingClientSelect" onchange="selectExistingClient()">
+                <option value="">-- Sélectionner un client existant --</option>
+            </select>
+        </div>
+        
+        <div style="text-align: center; margin: 10px 0; color: var(--gray-400);">— OU —</div>
+        
+        <!-- Nouveau client -->
+        <div class="form-group">
+            <label><i class="fas fa-user"></i> Nom du client <span style="color:var(--danger);">*</span></label>
+            <input type="text" id="custName" placeholder="Nom complet ou société">
+        </div>
+        
+        <div class="form-group">
+            <label><i class="fas fa-phone"></i> Téléphone</label>
+            <input type="tel" id="custPhone" placeholder="Numéro de téléphone">
+        </div>
+        
+        <div class="form-group">
+            <label><i class="fas fa-envelope"></i> Email</label>
+            <input type="email" id="custEmail" placeholder="Email professionnel">
+        </div>
+        
+        <div class="form-group">
+            <label><i class="fas fa-map-marker-alt"></i> Adresse</label>
+            <input type="text" id="custAddress" placeholder="Adresse (optionnel)">
+        </div>
+        
+        <div class="form-group">
+            <label><i class="fas fa-credit-card"></i> Mode de paiement</label>
+            <select id="paymentMethod">
+                <option value="ESPECES">Espèces</option>
+                <option value="MPESA">M-Pesa</option>
+                <option value="ORANGE_MONEY">Orange Money</option>
+                <option value="CARTE">Carte bancaire</option>
+                <option value="VIREMENT">Virement</option>
+            </select>
+        </div>
+        
+        <div id="invoiceSummary" style="background: var(--gray-50); border-radius: var(--radius-md); padding: 1rem; margin: 1rem 0;"></div>
+        
+        <div style="display: flex; gap: 1rem;">
+            <button class="btn btn-primary" style="flex:2;" onclick="confirmInvoice()">
+                <i class="fas fa-print"></i> Imprimer la facture
+            </button>
+            <button class="btn btn-outline" style="flex:1;" onclick="closeModal('customerModal')">
+                Annuler
+            </button>
+        </div>
+    </div>
+</div>
 
 <div id="scannerContainer"><div style="background:white;border-radius:20px;width:90%;max-width:500px;overflow:hidden;"><div style="background:var(--primary);color:white;padding:15px;display:flex;justify-content:space-between;"><span><i class="fas fa-qrcode"></i> Scanner un code-barres</span><button onclick="closeScanner()" style="background:none;border:none;color:white;font-size:1.5rem;">&times;</button></div><div id="qr-reader" style="width:100%;padding:20px;"></div><div style="padding:15px;text-align:center;border-top:1px solid var(--gray-200);"><p style="font-size:0.8rem;"><i class="fas fa-info-circle"></i> Placez le code-barres devant la caméra</p><button onclick="closeScanner()" class="btn btn-outline" style="margin-top:10px;">Fermer</button></div></div></div>
 
@@ -606,7 +666,7 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     window._db = supabaseClient;
 
-    let currentUser = null, salesData = [], inventoryData = [], charts = {}, html5QrCode = null, isScanning = false, activeSaleId = null, horsStockScanMode = false;
+    let currentUser = null, salesData = [], inventoryData = [], clientsData = [], charts = {}, html5QrCode = null, isScanning = false, activeSaleId = null, horsStockScanMode = false;
 
     document.addEventListener('DOMContentLoaded', () => { checkAuth(); initSidebar(); initKeyboardShortcuts(); initOfflineMode(); });
 
@@ -632,12 +692,14 @@
     async function loadData() {
         showLoading(true);
         try {
-            const [salesRes, invRes] = await Promise.all([
+            const [salesRes, invRes, clientsRes] = await Promise.all([
                 supabaseClient.from('sales').select('*').eq('user_id', currentUser.id).order('date', { ascending: false }),
-                supabaseClient.from('inventory').select('*').eq('user_id', currentUser.id)
+                supabaseClient.from('inventory').select('*').eq('user_id', currentUser.id),
+                supabaseClient.from('clients').select('*').eq('user_id', currentUser.id).order('name', { ascending: true })
             ]);
             salesData = salesRes.data || [];
             inventoryData = invRes.data || [];
+            clientsData = clientsRes.data || [];
             renderTable();
             updateStats();
             renderAllCharts();
@@ -656,86 +718,50 @@
             const profit = (sale.sell_price - sale.buy_price) * sale.qty;
             const inventoryProduct = inventoryData.find(p => p.product === sale.product);
             const barcodeDisplay = inventoryProduct?.barcode ? `<span style="font-family:monospace;font-size:0.7rem;">${inventoryProduct.barcode}</span>` : '<span style="color:var(--gray-400);">---</span>';
-            return `<tr><td><input type="checkbox" class="row-check" data-id="${sale.id}"></td><td>${barcodeDisplay}</td><td>${escapeHtml(sale.product || '-')}</td><td>${sale.date || '-'}</td><td>${formatMoney(sale.buy_price)}</td><td contenteditable="true" class="cell-editable" onblur="updateField('${sale.id}', 'sell_price', this.innerText)">${sale.sell_price}</td><td contenteditable="true" class="cell-editable" onblur="updateField('${sale.id}', 'qty', this.innerText)">${sale.qty}</td><td style="color:${profit>=0?'var(--success)':'var(--danger)'}">${formatMoney(profit)}</td></td></tr>`;
+            return `<tr><td><input type="checkbox" class="row-check" data-id="${sale.id}"></td><td>${barcodeDisplay}</td><td>${escapeHtml(sale.product || '-')}</td><td>${sale.date || '-'}</td><td>${formatMoney(sale.buy_price)}</td><td contenteditable="true" class="cell-editable" onblur="updateField('${sale.id}', 'sell_price', this.innerText)">${sale.sell_price}</td><td contenteditable="true" class="cell-editable" onblur="updateField('${sale.id}', 'qty', this.innerText)">${sale.qty}</td><td style="color:${profit>=0?'var(--success)':'var(--danger)'}">${formatMoney(profit)}</td><td><button class="btn btn-outline" style="padding:0.25rem 0.5rem;" onclick="printReceipt('${sale.id}')"><i class="fas fa-print"></i></button></td></tr>`;
         }).join('');
     }
 
-    // ========== 4 GRAPHIQUES D'ANALYSE DES VENTES ==========
-    
-    function renderAllCharts() {
-        renderTopProductsByQuantity();
-        renderRevenueDistribution();
-        renderProfitVolumeMatrix();
-        renderProductRadarChart();
-    }
+    // ========== GRAPHIQUES ==========
+    function renderAllCharts() { renderTopProductsByQuantity(); renderRevenueDistribution(); renderProfitVolumeMatrix(); renderProductRadarChart(); }
 
-    // Graphique 1: Top produits par quantité (barres horizontales)
     function renderTopProductsByQuantity() {
         const ctx = document.getElementById('topProductsQtyChart')?.getContext('2d');
         if (!ctx) return;
-        
         const productQty = {};
         salesData.forEach(s => { productQty[s.product] = (productQty[s.product] || 0) + (s.qty || 0); });
         const sorted = Object.entries(productQty).sort((a, b) => b[1] - a[1]).slice(0, 10);
-        
         if (charts.topQty) charts.topQty.destroy();
-        charts.topQty = new Chart(ctx, {
-            type: 'bar',
-            data: { labels: sorted.map(s => s[0]), datasets: [{ label: 'Quantité vendue', data: sorted.map(s => s[1]), backgroundColor: '#3b82f6', borderRadius: 8 }] },
-            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.raw} unités` } } } }
-        });
+        charts.topQty = new Chart(ctx, { type: 'bar', data: { labels: sorted.map(s => s[0]), datasets: [{ label: 'Quantité vendue', data: sorted.map(s => s[1]), backgroundColor: '#3b82f6', borderRadius: 8 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false } });
     }
 
-    // Graphique 2: Répartition du CA (camembert)
     function renderRevenueDistribution() {
         const ctx = document.getElementById('revenueDistributionChart')?.getContext('2d');
         if (!ctx) return;
-        
         const productRevenue = {};
         salesData.forEach(s => { const revenue = (s.sell_price || 0) * (s.qty || 0); productRevenue[s.product] = (productRevenue[s.product] || 0) + revenue; });
         const sorted = Object.entries(productRevenue).sort((a, b) => b[1] - a[1]).slice(0, 8);
         const total = sorted.reduce((sum, [, val]) => sum + val, 0);
-        
         if (charts.revenueDist) charts.revenueDist.destroy();
-        charts.revenueDist = new Chart(ctx, {
-            type: 'doughnut',
-            data: { labels: sorted.map(s => s[0]), datasets: [{ data: sorted.map(s => s[1]), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'] }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx) => { const percentage = ((ctx.raw / total) * 100).toFixed(1); return `${ctx.label}: ${formatMoney(ctx.raw)} (${percentage}%)`; } } }, legend: { position: 'right' } } }
-        });
+        charts.revenueDist = new Chart(ctx, { type: 'doughnut', data: { labels: sorted.map(s => s[0]), datasets: [{ data: sorted.map(s => s[1]), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx) => { const percentage = ((ctx.raw / total) * 100).toFixed(1); return `${ctx.label}: ${formatMoney(ctx.raw)} (${percentage}%)`; } } }, legend: { position: 'right' } } } });
     }
 
-    // Graphique 3: Matrice Profit vs Volume (bulles)
     function renderProfitVolumeMatrix() {
         const ctx = document.getElementById('profitVolumeChart')?.getContext('2d');
         if (!ctx) return;
-        
         const productStats = {};
-        salesData.forEach(s => {
-            if (!productStats[s.product]) productStats[s.product] = { qty: 0, profit: 0, revenue: 0 };
-            productStats[s.product].qty += s.qty || 0;
-            productStats[s.product].profit += ((s.sell_price - s.buy_price) * s.qty) || 0;
-            productStats[s.product].revenue += (s.sell_price * s.qty) || 0;
-        });
-        
+        salesData.forEach(s => { if (!productStats[s.product]) productStats[s.product] = { qty: 0, profit: 0, revenue: 0 }; productStats[s.product].qty += s.qty || 0; productStats[s.product].profit += ((s.sell_price - s.buy_price) * s.qty) || 0; productStats[s.product].revenue += (s.sell_price * s.qty) || 0; });
         const data = Object.entries(productStats).map(([name, stats]) => ({ x: stats.qty, y: stats.profit, r: Math.sqrt(stats.revenue) / 15, label: name, revenue: stats.revenue }));
-        
         if (charts.profitVolume) charts.profitVolume.destroy();
-        charts.profitVolume = new Chart(ctx, {
-            type: 'bubble',
-            data: { datasets: [{ label: 'Produits', data: data, backgroundColor: (ctx) => ctx.raw.y > 0 ? '#10b981' : '#ef4444', borderWidth: 0 }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Quantité vendue' } }, y: { title: { display: true, text: 'Profit généré (FCFA)' } } }, plugins: { tooltip: { callbacks: { label: (ctx) => { const item = ctx.raw; return [`${item.label}`, `Quantité: ${item.x} unités`, `Profit: ${formatMoney(item.y)}`, `CA: ${formatMoney(item.revenue)}`]; } } } } }
-        });
+        charts.profitVolume = new Chart(ctx, { type: 'bubble', data: { datasets: [{ label: 'Produits', data: data, backgroundColor: (ctx) => ctx.raw.y > 0 ? '#10b981' : '#ef4444', borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Quantité vendue' } }, y: { title: { display: true, text: 'Profit généré (FCFA)' } } }, plugins: { tooltip: { callbacks: { label: (ctx) => { const item = ctx.raw; return [`${item.label}`, `Quantité: ${item.x} unités`, `Profit: ${formatMoney(item.y)}`, `CA: ${formatMoney(item.revenue)}`]; } } } } } });
     }
 
-    // Graphique 4: Radar chart multi-critères
     function renderProductRadarChart() {
         const ctx = document.getElementById('productRadarChart')?.getContext('2d');
         if (!ctx) return;
-        
         const productQty = {};
         salesData.forEach(s => { productQty[s.product] = (productQty[s.product] || 0) + (s.qty || 0); });
         const topProducts = Object.entries(productQty).sort((a, b) => b[1] - a[1]).slice(0, 5).map(p => p[0]);
-        
         const metrics = { quantite: [], ca: [], profit: [], marge: [] };
         topProducts.forEach(product => {
             const sales = salesData.filter(s => s.product === product);
@@ -745,20 +771,9 @@
             const marge = ca > 0 ? (profit / ca) * 100 : 0;
             metrics.quantite.push(qty); metrics.ca.push(ca); metrics.profit.push(profit); metrics.marge.push(marge);
         });
-        
         const normalize = (data) => { const max = Math.max(...data); return data.map(v => max > 0 ? (v / max) * 100 : 0); };
-        
         if (charts.radar) charts.radar.destroy();
-        charts.radar = new Chart(ctx, {
-            type: 'radar',
-            data: { labels: topProducts, datasets: [
-                { label: 'Volume vendu', data: normalize(metrics.quantite), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.2)' },
-                { label: 'Chiffre d\'affaires', data: normalize(metrics.ca), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.2)' },
-                { label: 'Profit', data: normalize(metrics.profit), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.2)' },
-                { label: 'Marge %', data: metrics.marge, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.2)' }
-            ] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { r: { beginAtZero: true, max: 100, ticks: { stepSize: 20 } } }, plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.raw.toFixed(1)}` } } } }
-        });
+        charts.radar = new Chart(ctx, { type: 'radar', data: { labels: topProducts, datasets: [{ label: 'Volume vendu', data: normalize(metrics.quantite), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.2)' }, { label: 'Chiffre d\'affaires', data: normalize(metrics.ca), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.2)' }, { label: 'Profit', data: normalize(metrics.profit), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.2)' }, { label: 'Marge %', data: metrics.marge, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.2)' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { r: { beginAtZero: true, max: 100, ticks: { stepSize: 20 } } } } });
     }
 
     function updateStats() {
@@ -802,7 +817,6 @@
         const product = inventoryData.find(p => p.id == productId);
         if (!product) return;
         if (product.qty <= 0) { showToast('Stock insuffisant', 'error'); return; }
-        
         const { error } = await supabaseClient.from('sales').insert([{ user_id: currentUser.id, date: new Date().toISOString().split('T')[0], product: product.product, qty: 1, buy_price: product.buy_price || 0, sell_price: product.sell_price || 0, is_hors_stock: false }]);
         if (error) { showToast(error.message, 'error'); return; }
         await supabaseClient.from('inventory').update({ qty: product.qty - 1 }).eq('id', productId);
@@ -820,7 +834,6 @@
         const barcode = document.getElementById('hsBarcode')?.value || null;
         const qty = parseInt(document.getElementById('hsQty')?.value) || 1;
         if (!productName) { showToast('Nom requis', 'error'); return; }
-        
         const { error: invError } = await supabaseClient.from('inventory').insert([{ user_id: currentUser.id, product: productName, buy_price: buyPrice, sell_price: sellPrice, barcode: barcode, qty: qty }]);
         if (invError) { showToast(invError.message, 'error'); return; }
         await supabaseClient.from('sales').insert([{ user_id: currentUser.id, date: new Date().toISOString().split('T')[0], product: productName, qty: 1, buy_price: buyPrice, sell_price: sellPrice, is_hors_stock: true }]);
@@ -838,6 +851,51 @@
         showToast('Suppression effectuée', 'success');
     }
 
+    // ========== CLIENT MANAGEMENT ==========
+    async function loadExistingClients() {
+        const select = document.getElementById('existingClientSelect');
+        if (!select) return;
+        select.innerHTML = '<option value="">-- Sélectionner un client existant --</option>';
+        clientsData.forEach(client => {
+            const option = document.createElement('option');
+            option.value = client.id;
+            option.textContent = `${client.name}${client.phone ? ' - ' + client.phone : ''}`;
+            select.appendChild(option);
+        });
+    }
+
+    function selectExistingClient() {
+        const select = document.getElementById('existingClientSelect');
+        const clientId = select.value;
+        if (!clientId) return;
+        const client = clientsData.find(c => c.id === clientId);
+        if (client) {
+            document.getElementById('custName').value = client.name;
+            document.getElementById('custPhone').value = client.phone || '';
+            document.getElementById('custEmail').value = client.email || '';
+            document.getElementById('custAddress').value = client.address || '';
+        }
+    }
+
+    async function findOrCreateClient() {
+        const clientName = document.getElementById('custName').value.trim();
+        const clientPhone = document.getElementById('custPhone').value.trim();
+        const clientEmail = document.getElementById('custEmail').value.trim();
+        const clientAddress = document.getElementById('custAddress').value.trim();
+        const selectedClientId = document.getElementById('existingClientSelect').value;
+        
+        if (selectedClientId) return selectedClientId;
+        if (!clientName) return null;
+        
+        const { data: existing } = await supabaseClient.from('clients').select('id').eq('user_id', currentUser.id).or(`name.ilike.%${clientName}%,phone.eq.${clientPhone}`).maybeSingle();
+        if (existing) return existing.id;
+        
+        const { data: newClient, error } = await supabaseClient.from('clients').insert([{ user_id: currentUser.id, name: clientName, phone: clientPhone || null, email: clientEmail || null, address: clientAddress || null }]).select();
+        if (error) { showToast('Erreur création client', 'error'); return null; }
+        showToast(`Nouveau client "${clientName}" ajouté`, 'success');
+        return newClient[0].id;
+    }
+
     function processInvoice() {
         const checks = document.querySelectorAll('.row-check:checked');
         if (checks.length === 0) { showToast('Sélectionnez des produits', 'error'); return; }
@@ -847,23 +905,34 @@
             if (sale) { items.push({ name: sale.product, price: sale.sell_price, qty: sale.qty, total: sale.sell_price * sale.qty }); total += sale.sell_price * sale.qty; }
         });
         document.getElementById('invoiceSummary').innerHTML = `<div><strong>Récapitulatif</strong></div>${items.map(i => `<div style="display:flex;justify-content:space-between;"><span>${i.qty}x ${i.name}</span><span>${formatMoney(i.total)}</span></div>`).join('')}<div style="border-top:1px solid var(--gray-200);margin-top:10px;padding-top:10px;display:flex;justify-content:space-between;font-weight:bold;"><span>Total</span><span>${formatMoney(total)}</span></div>`;
+        loadExistingClients();
+        document.getElementById('custName').value = '';
+        document.getElementById('custPhone').value = '';
+        document.getElementById('custEmail').value = '';
+        document.getElementById('custAddress').value = '';
+        document.getElementById('existingClientSelect').value = '';
         document.getElementById('customerModal').style.display = 'flex';
     }
 
     async function confirmInvoice() {
-        const clientName = document.getElementById('custName').value || 'Client comptant';
+        const clientId = await findOrCreateClient();
         const paymentMethod = document.getElementById('paymentMethod').value;
         const checks = document.querySelectorAll('.row-check:checked');
         const items = [];
         for (let check of checks) {
             const sale = salesData.find(s => s.id == check.dataset.id);
-            if (sale) items.push({ description: sale.product, price: sale.sell_price, qty: sale.qty, total: sale.sell_price * sale.qty });
+            if (sale) {
+                items.push({ description: sale.product, price: sale.sell_price, qty: sale.qty, total: sale.sell_price * sale.qty });
+                await supabaseClient.from('sales').update({ client_id: clientId || null }).eq('id', sale.id);
+            }
         }
+        if (items.length === 0) { showToast('Aucun produit sélectionné', 'error'); return; }
         if (typeof MoniteoPDF !== 'undefined' && MoniteoPDF.generateThermalReceipt) {
-            await MoniteoPDF.generateThermalReceipt({ invoiceNumber: `FAC-${Date.now().toString().slice(-6)}`, date: new Date().toLocaleDateString('fr-FR'), paymentMethod: paymentMethod, customer: { name: clientName }, items: items });
+            await MoniteoPDF.generateThermalReceipt({ invoiceNumber: `FAC-${Date.now().toString().slice(-6)}`, date: new Date().toLocaleDateString('fr-FR'), paymentMethod: paymentMethod, customer: { name: document.getElementById('custName').value || 'Client comptant', phone: document.getElementById('custPhone').value || '' }, items: items });
+            showToast('Facture générée', 'success');
         } else { alert('Module PDF non disponible'); }
         closeModal('customerModal');
-        showToast('Facture générée', 'success');
+        await loadData();
     }
 
     async function closeDay() { if (confirm('Clôturer la journée ?')) { await generateSalesReport(); showToast('Journée clôturée', 'success'); } }
@@ -883,6 +952,7 @@
         showToast('Export Excel réussi', 'success');
     }
 
+    // Scanner functions
     async function toggleScanner() { const container = document.getElementById('scannerContainer'); if (container.style.display === 'flex') { closeScanner(); } else { await openScanner(); } }
     async function openScanner() {
         const container = document.getElementById('scannerContainer');
