@@ -2,576 +2,1392 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#ffffff">
-    <title>Moniteo Umbrella - Reporting & Intelligence</title>
-
-    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
-    <link rel="icon" type="image/png" sizes="16x16" href="assets/icon-16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
-    <link rel="manifest" href="assets/manifest.webmanifest">
-
-    <link rel="stylesheet" href="UI/style.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="theme-color" content="#2563eb">
+    <title>Moniteo | Reporting & Intelligence</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
-    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
-
     <script src="js/auth-check.js"></script>        
     <script src="js/supabase-config.js"></script>   
     <script src="js/common.js"></script>            
     <script src="js/stats-manager.js"></script>    
-     <script src="js/exportPDF.js"></script>         
+    <script src="js/exportPDF.js"></script>         
     <script src="js/copilot-manager.js"></script>
-    <script>
-    /**
-     * INITIALISATION : On attend que window._db soit prêt
-     */
-    async function initReporting() {
-        // Sécurité : Vérifie si window._db (de supabase-config.js) est chargé
-        if (!window._db) {
-            console.warn("Attente de l'initialisation de Supabase...");
-            setTimeout(initReporting, 100); 
-            return;
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --primary-light: #60a5fa;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --sidebar-width: 280px;
+            --sidebar-collapsed-width: 80px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
         }
 
-        // Une fois prêt, on utilise protectPage (de auth-check.js)
-        protectPage(async (user) => {
-            console.log("Accès autorisé :", user.email);
-            // On passe l'ID de l'utilisateur directement à la fonction
-            await fetchReportingData(user.id); 
-        });
-    }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    /**
-     * RÉCUPÉRATION DES DONNÉES
-     */
-    async function fetchReportingData(userId) {
-        try {
-            // CORRECTION : On retire .order('created_at') car la colonne n'existe pas
-            // On peut trier par 'id' ou simplement supprimer l'ordre
-            const { data, error } = await window._db
-                .from('staff') 
-                .select('*')
-                .eq('user_id', userId); // Filtrage par utilisateur
-
-            if (error) throw error;
-
-            if (data) {
-                console.log("Données récupérées :", data.length);
-                window.staffData = data; // Stockage global pour les autres fonctions
-                
-                // Rendu de l'interface
-                if (typeof renderStaff === 'function') renderStaff();
-                if (typeof updateKPIs === 'function') updateKPIs();
-                
-                // Si tu es sur la page reporting spécifique aux ventes
-                if (typeof fetchDataAndRender === 'function') fetchDataAndRender();
-            }
-        } catch (err) {
-            console.error("❌ Erreur de chargement :", err.message);
-            const tbody = document.getElementById('staffTable');
-            if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red;">Erreur : ${err.message}</td></tr>`;
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            overflow-x: hidden;
+            width: 100%;
+            position: relative;
         }
-    }
 
-    // Lancement automatique dès que le DOM est prêt
-    document.addEventListener('DOMContentLoaded', initReporting);
-</script>
-   </head>
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: white;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+            z-index: 100;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .sidebar.collapsed { width: var(--sidebar-collapsed-width); }
+        .sidebar.collapsed .logo-full,
+        .sidebar.collapsed .nav-links span,
+        .sidebar.collapsed .logout-btn span { display: none; }
+        .sidebar.collapsed .logo-short { display: flex; }
+
+        .logo-box {
+            padding: 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid var(--gray-200);
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .logo-full { height: 180px; width: auto; }
+        .logo-short { height: 65px; width: auto; display: none; justify-content: center; align-items: center; margin: 0 auto; }
+
+        .nav-links {
+            list-style: none;
+            padding: 0 0.75rem;
+        }
+        .nav-links li { margin-bottom: 0.5rem; }
+        .nav-links a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--gray-600);
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .nav-links a:hover { background: var(--gray-100); color: var(--primary); }
+        .nav-links a.active { background: var(--primary); color: white; }
+        .nav-links i { width: 20px; font-size: 1.1rem; text-align: center; }
+
+        .logout-box {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            border-top: 1px solid var(--gray-200);
+        }
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--danger);
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .logout-btn:hover { background: rgba(239, 68, 68, 0.1); }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            transition: all 0.3s;
+            min-height: 100vh;
+            width: calc(100% - var(--sidebar-width));
+            overflow-x: hidden;
+            position: relative;
+        }
+        .sidebar.collapsed ~ .main-content { margin-left: var(--sidebar-collapsed-width); width: calc(100% - var(--sidebar-collapsed-width)); }
+
+        /* Header */
+        .dashboard-header {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .header-info h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .header-info p { color: var(--gray-500); font-size: 0.875rem; }
+        .company-badge {
+            background: var(--primary-light);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        /* Period Selector */
+        .period-selector {
+            display: flex;
+            gap: 0.5rem;
+            background: var(--gray-100);
+            padding: 0.25rem;
+            border-radius: var(--radius-lg);
+            flex-wrap: wrap;
+        }
+        .period-btn {
+            padding: 0.4rem 0.8rem;
+            border-radius: var(--radius-md);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .period-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+        .period-btn:hover:not(.active) {
+            background: var(--gray-200);
+        }
+
+        /* Export Dropdown Styles */
+/* Export Dropdown Styles */
+.export-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.export-dropdown .btn-outline {
+    background: transparent;
+    border: 1px solid var(--gray-300);
+    color: var(--gray-600);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.export-dropdown .btn-outline:hover {
+    background: var(--gray-100);
+    border-color: var(--gray-400);
+    transform: translateY(-1px);
+}
+
+.export-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    min-width: 200px;
+    z-index: 100;
+    overflow: hidden;
+    display: none;
+}
+
+.export-menu.show {
+    display: block;
+    animation: dropdownFadeIn 0.2s ease forwards;
+}
+
+.export-menu button {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--gray-700);
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.export-menu button:hover {
+    background: var(--gray-100);
+}
+
+.export-menu button i {
+    width: 20px;
+    font-size: 1rem;
+}
+
+.export-menu button:first-child {
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+}
+
+.export-menu button:last-child {
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: var(--radius-lg);
+}
+
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+        /* Date Range Picker */
+       /* Date Range Picker Styles */
+.date-range-picker {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    background: white;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-lg);
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.date-input {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--gray-50);
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+    transition: all 0.2s ease;
+}
+
+.date-input:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.date-input label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.date-input input {
+    padding: 0.4rem 0.5rem;
+    border: none;
+    background: transparent;
+    font-size: 0.8rem;
+    font-family: inherit;
+    color: var(--gray-800);
+    outline: none;
+}
+
+.date-input input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.date-input input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+.date-range-picker .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+}
+
+.date-range-picker .btn-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+}
+
+.date-range-picker .btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+.date-range-picker .btn-outline {
+    background: transparent;
+    border: 1px solid var(--gray-300);
+    color: var(--gray-600);
+}
+
+.date-range-picker .btn-outline:hover {
+    background: var(--gray-100);
+    border-color: var(--gray-400);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .date-range-picker {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1rem;
+    }
+    
+    .date-input {
+        justify-content: space-between;
+    }
+    
+    .date-input input {
+        flex: 1;
+        text-align: right;
+    }
+    
+    .date-range-picker .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+/* Date Range Picker - Version Compacte */
+.date-range-picker {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    background: white;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-lg);
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+}
+
+.date-input {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--gray-50);
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+}
+
+.date-input label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--gray-500);
+}
+
+.date-input input {
+    padding: 0.3rem 0.4rem;
+    border: none;
+    background: transparent;
+    font-size: 0.75rem;
+    font-family: inherit;
+    color: var(--gray-800);
+    outline: none;
+}
+
+.date-range-picker .btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.7rem;
+}
+
+@media (max-width: 640px) {
+    .date-range-picker {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .date-input {
+        justify-content: space-between;
+    }
+    
+    .date-input input {
+        flex: 1;
+        text-align: right;
+    }
+    
+    .date-range-picker .btn {
+        width: 100%;
+    }
+}
+
+        /* Filters Bar */
+        .filters-bar {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+        .filters-bar select {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            background: white;
+            font-size: 0.8rem;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1.25rem;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .stat-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
+        }
+        .stat-info h3 { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--gray-500); margin-bottom: 0.25rem; letter-spacing: 0.5px; }
+        .stat-info p { font-size: 1.3rem; font-weight: 800; color: var(--gray-900); }
+        .stat-trend { font-size: 0.7rem; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.25rem; }
+        .trend-up { color: var(--success); }
+        .trend-down { color: var(--danger); }
+
+        /* Scorecard */
+        .scorecard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .scorecard {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            color: white;
+            text-align: center;
+        }
+        .scorecard-value {
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 0.5rem 0;
+        }
+        .scorecard-trend {
+            font-size: 0.7rem;
+            opacity: 0.8;
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .chart-card {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .chart-container { height: 280px; position: relative; }
+
+        /* Executive Summary */
+        .executive-summary {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .summary-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .summary-item {
+            background: var(--gray-50);
+            padding: 0.75rem;
+            border-radius: var(--radius-md);
+        }
+
+        /* Alerts Card */
+        .alerts-card {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .alert-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 0.5rem;
+        }
+        .alert-item.critical { background: rgba(239,68,68,0.1); border-left: 3px solid var(--danger); }
+        .alert-item.warning { background: rgba(245,158,11,0.1); border-left: 3px solid var(--warning); }
+        .alert-item.info { background: rgba(59,130,246,0.1); border-left: 3px solid var(--info); }
+
+        /* Forecast Table */
+        .forecast-card {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            margin-top: 1.5rem;
+        }
+        .forecast-table-wrapper {
+            overflow-x: auto;
+        }
+        .forecast-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .forecast-table th, .forecast-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .forecast-table th {
+            background: var(--gray-50);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--gray-500);
+        }
+        .badge-urgent, .badge-alert, .badge-ok {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-lg);
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .badge-urgent { background: rgba(239,68,68,0.15); color: var(--danger); }
+        .badge-alert { background: rgba(245,158,11,0.15); color: var(--warning); }
+        .badge-ok { background: rgba(16,185,129,0.15); color: var(--success); }
+
+        /* Loading & Toast */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 1100;
+        }
+        .toast {
+            background: white;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: slideUp 0.3s ease;
+        }
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--danger); }
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Responsive */
+        @media (max-width: 1024px) { .charts-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; bottom: 0; top: auto; left: 0; right: 0; width: 100% !important; height: auto; flex-direction: row; padding: 0.5rem; }
+            .sidebar .logo-box, .sidebar .logout-box { display: none; }
+            .sidebar .nav-links { display: flex; flex-direction: row; width: 100%; padding: 0; }
+            .sidebar .nav-links li { flex: 1; margin: 0; }
+            .sidebar .nav-links a { flex-direction: column; padding: 0.5rem; font-size: 0.7rem; }
+            .sidebar .nav-links i { font-size: 1.2rem; margin: 0; }
+            .main-content { margin-left: 0 !important; width: 100% !important; padding: 1rem; padding-bottom: 80px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .summary-content { grid-template-columns: 1fr; }
+            .period-selector { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
 <body>
 
+<!-- Sidebar -->
 <nav class="sidebar" id="sidebar">
     <div class="logo-box">
-        <img src="https://i.postimg.cc/bJjy56Lq/Moniteo-1-removebg-preview.png" class="logo-full" alt="Moniteo">
+        <img src="https://oysdycuouodarfkmdtop.supabase.co/storage/v1/object/public/LOGO/Moniteo-20260115-205657-0000-removebg-preview.png" class="logo-full" alt="Moniteo">
         <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
-    </div>   
-    <ul class="nav-links">
-        <li><a href="dashboard.html"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> <span>Accueil</span></a></li>
-        <li><a href="sales.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
-        <li><a href="inventory.html"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> <span>Inventaire</span></a></li>
-        <li><a href="expenses.html" ><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> <span>Dépenses</span></a></li>
-        <li><a href="staff.html" ><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> <span>Staff</span></a></li>
-        <li><a href="reporting.html" class="active"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> <span>Reporting</span></a></li>
-        <li><a href="history.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>Historique</span></a></li>
-        <li><a href="setting.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> <span>Paramètres</span></a></li>
-        
-        <li class="help-item">
-            <a href="#" onclick="startMoniteoCopilot(); return false;">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                </svg>
-                <span>Besoin d'aide ?</span>
-            </a>
-        </li>
-    </ul>    
+    </div>
+        <ul class="nav-links">
+        <li><a href="dashboard.html"><i class="fas fa-chart-line"></i><span>Accueil</span></a></li>
+        <li><a href="sales.html"><i class="fas fa-shopping-cart"></i><span>Ventes</span></a></li>
+        <li><a href="inventory.html"><i class="fas fa-boxes"></i><span>Inventaire</span></a></li>
+        <li><a href="expenses.html"><i class="fas fa-receipt"></i><span>Dépenses</span></a></li>
+        <li><a href="staff.html"><i class="fas fa-users"></i><span>Staff</span></a></li>
+        <li><a href="clients.html"><i class="fas fa-user-friends"></i><span>Clients</span></a></li>
+        <li><a href="reporting.html" class="active"><i class="fas fa-chart-bar"></i><span>Reporting</span></a></li>
+        <li><a href="history.html"><i class="fas fa-history"></i><span>Historique</span></a></li>
+        <li><a href="setting.html"><i class="fas fa-cog"></i><span>Paramètres</span></a></li>
+    </ul>
     <div class="logout-box">
-        <a href="#" onclick="logout(); return false;" class="logout-btn">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-            <span>Déconnexion</span>
-        </a>
+        <a href="#" onclick="logout()" class="logout-btn"><i class="fas fa-sign-out-alt"></i><span>Déconnexion</span></a>
     </div>
 </nav>
 
-
-
-    <main class="main-content" id="printableArea">
-        
-        <header class="header-flex" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); margin-bottom: 25px; position: relative;">
-    
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <div id="dynamicLogoContainer" style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px;"></div>
-        <div style="border-left: 2px solid var(--border-soft); padding-left: 15px;">
-            <h2 id="pageTitle" style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">RAPPORT ET ANALYSE</h2>
-            <div id="dateDisplay" style="color: var(--text-light); font-size: 0.75rem;"></div>
+<!-- Main Content -->
+<main class="main-content">
+    <div class="dashboard-header">
+        <div class="header-info">
+            <h1>Reporting & Intelligence</h1>
+            <p id="dateDisplay"></p>
         </div>
-    </div>
-    
-    <div style="display: flex; align-items: center; gap: 20px;">
-        <div id="loading-state" style="display: none; align-items: center; gap: 8px;">
-            <svg class="loader-icon-spin" viewBox="0 0 24 24" style="width: 20px; height: 20px; color: var(--primary); animation: spin 1s linear infinite;">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle>
-            </svg>
-            <span style="font-size: 0.8rem; color: var(--text-light); font-weight: 500;">Récupération...</span>
-        </div>
-
-        <button onclick="generateInventoryPDF()" class="pdf-action" style="display: flex; align-items: center; gap: 8px; padding: 10px 15px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; cursor: pointer; font-weight: 600;">
-            <svg viewBox="0 0 24 24" width="18" height="18" stroke="#ef4444" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-            Générer PDF
-        </button>
-    </div>
-</header>
-        <section class="summary-banner" style="display: grid; grid-gap: 20px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 2.5rem;">
-    
-    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #3b82f6; display: flex; align-items: center; gap: 15px;">
-        <div style="background: #eff6ff; padding: 10px; border-radius: 10px; color: #3b82f6;">
-            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-        </div>
-        <div>
-            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Chiffre d'Affaires</small>
-            <p id="statRev" style="margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--text-main);">-</p>
-        </div>
-    </div>
-
-    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #10b981; display: flex; align-items: center; gap: 15px;">
-        <div style="background: #ecfdf5; padding: 10px; border-radius: 10px; color: #10b981;">
-            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
-        </div>
-        <div>
-            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Profit Net estimé</small>
-            <p id="statProf" style="margin: 0; font-size: 1.3rem; font-weight: 800; color: #10b981;">-</p>
-        </div>
-    </div>
-
-    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #f59e0b; display: flex; align-items: center; gap: 15px;">
-        <div style="background: #fffbeb; padding: 10px; border-radius: 10px; color: #f59e0b;">
-            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-        </div>
-        <div>
-            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Santé du Stock</small>
-            <p id="statStockHealth" style="margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--text-main);">%</p>
-        </div>
-    </div>
-
-    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #8b5cf6; display: flex; align-items: center; gap: 15px;">
-        <div style="background: #f5f3ff; padding: 10px; border-radius: 10px; color: #8b5cf6;">
-            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-        </div>
-        <div>
-            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Pic d'activité</small>
-            <p id="statPeak" style="margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--text-main);">-</p>
-        </div>
-    </div>
-
-</section>
-
-        <div class="dashboard-grid">
-            <div class="card">
-                <h3 class="card-title">Évolution des revenus</h3>
-                <div class="chart-container"><canvas id="chartSales"></canvas></div>
+        <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+            <div id="companyLogoContainer" style="width: 45px; height: 45px; border-radius: 50%; overflow: hidden; background: var(--gray-100); display: flex; align-items: center; justify-content: center;">
+                <img id="companyLogo" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
             </div>
-            <div class="card">
-                <h3 class="card-title">Flux de fréquentation (Heures)</h3>
-                <div class="chart-container"><canvas id="chartHours"></canvas></div>
+            <div class="company-badge" id="companyBadge">Chargement...</div>
+            <div id="loading-state" style="display: none;"><div class="spinner" style="width: 20px; height: 20px;"></div></div>
+            <div class="period-selector" id="periodSelector">
+                <button class="period-btn" data-period="7">7 jours</button>
+                <button class="period-btn active" data-period="30">30 jours</button>
+                <button class="period-btn" data-period="90">3 mois</button>
+                <button class="period-btn" data-period="365">1 an</button>
+                <button class="period-btn custom" data-period="custom">Personnalisé</button>
             </div>
-            <div class="card">
-                <h3 class="card-title">Top 5 Produits (Volume)</h3>
-                <div class="chart-container"><canvas id="chartTopProd"></canvas></div>
-            </div>
-            <div class="card">
-                <h3 class="card-title">Répartition de la Marge</h3>
-                <div class="chart-container"><canvas id="chartMargin"></canvas></div>
-            </div>
+            <div class="export-dropdown">
+    <button class="btn btn-outline" onclick="toggleExportMenu()">
+        <i class="fas fa-download"></i> Exporter
+    </button>
+    <div class="export-menu" id="exportMenu">
+        <button onclick="exportToPDF()"><i class="fas fa-file-pdf"></i> PDF Rapport</button>
+        <button onclick="exportToExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+        <button onclick="exportToCSV()"><i class="fas fa-file-csv"></i> CSV</button>
+        <button onclick="printReport()"><i class="fas fa-print"></i> Imprimer</button>
+    </div>
+</div>
         </div>
+    </div>
 
-        <section style="margin-top: 1rem;">
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <h3 class="card-title" style="margin-bottom: 0;">Intelligence Réapprovisionnement</h3>
-                    <span class="badge badge-success">Analyse IA Active</span>
-                </div>
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Produit</th>
-                                <th>Stock Actuel</th>
-                                <th>Vitesse de vente (/j)</th>
-                                <th>Autonomie estimée</th>
-                                <th>Niveau d'urgence</th>
-                            </tr>
-                        </thead>
-                        <tbody id="forecastBody">
-                            </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-    </main>
+    <!-- Date Range Picker (caché par défaut) -->
+    <div id="dateRangePicker" class="date-range-picker" style="display: none;">
+        <div class="date-input"><label>Du</label><input type="date" id="dateFrom"></div>
+        <div class="date-input"><label>Au</label><input type="date" id="dateTo"></div>
+        <button onclick="applyDateRange()" class="btn btn-primary">Appliquer</button>
+        <button onclick="cancelDateRange()" class="btn btn-outline">Annuler</button>
+    </div>
 
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon" style="background:#eff6ff;color:#3b82f6;"><i class="fas fa-chart-line"></i></div><div class="stat-info"><h3>Chiffre d'affaires</h3><p id="statRev">0</p><div class="stat-trend" id="caTrend"></div></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#ecfdf5;color:#10b981;"><i class="fas fa-chart-simple"></i></div><div class="stat-info"><h3>Profit net</h3><p id="statProf">0</p><div class="stat-trend" id="profitTrend"></div></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#fffbeb;color:#f59e0b;"><i class="fas fa-shield-alt"></i></div><div class="stat-info"><h3>Santé du stock</h3><p id="statStockHealth">0%</p></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#f5f3ff;color:#8b5cf6;"><i class="fas fa-clock"></i></div><div class="stat-info"><h3>Pic d'activité</h3><p id="statPeak">-</p></div></div>
+    </div>
+
+    <!-- Scorecard -->
+    <div class="scorecard-grid">
+        <div class="scorecard"><div class="scorecard-value" id="performanceScore">0</div><div class="scorecard-label">Score de performance</div><div class="scorecard-trend" id="performanceTrend">-</div></div>
+    </div>
+
+    <!-- Executive Summary -->
+    <div class="executive-summary">
+        <div class="summary-header"><h3><i class="fas fa-chart-simple"></i> Résumé exécutif</h3><span id="summaryPeriod" class="summary-date"></span></div>
+        <div class="summary-content" id="executiveSummary"></div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="alerts-card" id="alertsCard">
+        <h3><i class="fas fa-bell"></i> Alertes et recommandations</h3>
+        <div id="alertsList"></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+        <div class="chart-card"><div class="chart-title"><i class="fas fa-chart-line" style="color:var(--primary);"></i> Évolution des revenus</div><div class="chart-container"><canvas id="chartSales"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title"><i class="fas fa-clock" style="color:var(--warning);"></i> Flux par heure</div><div class="chart-container"><canvas id="chartHours"></canvas></div></div>
+    </div>
+    <div class="charts-grid">
+        <div class="chart-card"><div class="chart-title"><i class="fas fa-chart-simple" style="color:var(--success);"></i> Top 5 produits (volume)</div><div class="chart-container"><canvas id="chartTopProd"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title"><i class="fas fa-chart-pie" style="color:var(--danger);"></i> Répartition financière</div><div class="chart-container"><canvas id="chartMargin"></canvas></div></div>
+    </div>
+    <div class="charts-grid">
+        <div class="chart-card"><div class="chart-title"><i class="fas fa-trophy" style="color:var(--warning);"></i> Top 5 clients (CA)</div><div class="chart-container"><canvas id="topClientsChart"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title"><i class="fas fa-chart-simple" style="color:var(--info);"></i> Performance par catégorie</div><div class="chart-container"><canvas id="categoryPerformanceChart"></canvas></div></div>
+    </div>
+
+    <!-- Forecast -->
+    <div class="forecast-card">
+        <div class="summary-header"><h3><i class="fas fa-robot"></i> Intelligence Réapprovisionnement</h3><span class="badge-ai">Analyse IA Active</span></div>
+        <div class="forecast-table-wrapper">
+            <table class="forecast-table">
+                <thead><tr><th>Produit</th><th>Stock actuel</th><th>Vitesse de vente</th><th>Autonomie</th><th>Niveau d'urgence</th></tr></thead>
+                <tbody id="forecastBody"><tr><td colspan="5" style="text-align:center;">Chargement...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<!-- Loading & Toast -->
+<div id="loadingOverlay" class="loading-overlay" style="display:none;"><div class="spinner"></div></div>
+<div id="toastContainer" class="toast-container"></div>
 
 <script>
-    let charts = {};
-    let globalRate = 2200;
-
-    // --- 2. INITIALISATION ---
-    document.addEventListener('DOMContentLoaded', async () => {
-        applyGlobalSettings();
-        handleResponsiveSidebar();
-        await fetchDataAndRender();
-        
-        // Ecouter le changement de période si le select existe
-        const periodSelect = document.getElementById('analysisPeriod');
-        if(periodSelect) periodSelect.addEventListener('change', fetchDataAndRender);
-    });
-
-    // --- 3. APPLICATION DES RÉGLAGES (CACHE & UI) ---
-function applyGlobalSettings() {
-    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
     
-    // 1. Variables Globales
-    if (typeof globalRate !== 'undefined') globalRate = config.rate || 2800;
-    if (typeof currentCurrency !== 'undefined') currentCurrency = config.currency || "FC";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    window._db = supabaseClient;
 
-    // 2. Mode Sombre
-    if (config.darkMode) {
-        document.body.classList.add('dark-mode');
-    } else {
-        document.body.classList.remove('dark-mode');
+    let currentUser = null, charts = {}, globalRate = 2800, salesData = [], inventoryData = [], expensesData = [], clientsData = [], currentPeriod = 30, customStartDate = null, customEndDate = null;
+
+    document.addEventListener('DOMContentLoaded', () => { checkAuth(); initSidebar(); initPeriodSelector(); });
+
+    async function checkAuth() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { window.location.href = 'index.html'; return; }
+        currentUser = session.user;
+        await loadCompanyInfo();
+        await loadData();
+        updateDateDisplay();
     }
 
-    // 3. Titre et Nom de l'entreprise
-    const title = document.getElementById('companyTitle');
-    if (title && config.name) {
-        title.innerHTML = `Tableau de Bord <small style="font-size:0.6em; color:var(--secondary)">| ${config.name}</small>`;
+    async function loadCompanyInfo() {
+        try {
+            const { data } = await supabaseClient.from('settings').select('logo_url, company_name, currency').eq('user_id', currentUser.id).single();
+            if (data) {
+                document.getElementById('companyBadge').textContent = data.company_name || 'Mon entreprise';
+                if (data.logo_url) { document.getElementById('companyLogo').src = data.logo_url; document.getElementById('companyLogo').style.display = 'block'; }
+                if (currency) globalRate = currency;
+            }
+        } catch(e) {}
     }
 
-    // 4. Logo Dynamique
-    const logoCont = document.getElementById('dynamicLogoContainer');
-    if (logoCont) {
-        if (config.logo) {
-            logoCont.innerHTML = `<img src="${config.logo}" style="height: 40px; width: auto; border-radius: 4px; object-fit: contain;">`;
+    async function loadData() {
+        showLoading(true);
+        try {
+            const [salesRes, invRes, expensesRes, clientsRes] = await Promise.all([
+                supabaseClient.from('sales').select('*').eq('user_id', currentUser.id),
+                supabaseClient.from('inventory').select('*').eq('user_id', currentUser.id),
+                supabaseClient.from('expenses').select('*').eq('user_id', currentUser.id),
+                supabaseClient.from('clients').select('*').eq('user_id', currentUser.id)
+            ]);
+            salesData = salesRes.data || [];
+            inventoryData = invRes.data || [];
+            expensesData = expensesRes.data || [];
+            clientsData = clientsRes.data || [];
+            renderReporting();
+        } catch(e) { showToast(e.message, 'error'); }
+        finally { showLoading(false); }
+    }
+
+    function getFilteredData() {
+        let filteredSales = [...salesData];
+        let filteredExpenses = [...expensesData];
+        const now = new Date();
+        let startDate = null;
+        
+        if (customStartDate && customEndDate) {
+            startDate = new Date(customStartDate);
+            const endDate = new Date(customEndDate);
+            filteredSales = filteredSales.filter(s => s.date && new Date(s.date) >= startDate && new Date(s.date) <= endDate);
+            filteredExpenses = filteredExpenses.filter(e => e.date && new Date(e.date) >= startDate && new Date(e.date) <= endDate);
         } else {
-            logoCont.innerHTML = ""; // Vide si pas de logo
+            startDate = new Date();
+            startDate.setDate(startDate.getDate() - currentPeriod);
+            filteredSales = filteredSales.filter(s => s.date && new Date(s.date) >= startDate);
+            filteredExpenses = filteredExpenses.filter(e => e.date && new Date(e.date) >= startDate);
         }
+        
+        return { filteredSales, filteredExpenses, startDate };
     }
 
-    // 5. Affichages spécifiques (Matricule, etc.)
-    const displayMat = document.getElementById('displayMatricule');
-    if (displayMat && config.matricule) displayMat.innerText = config.matricule;
-
-    const displayComp = document.getElementById('company-display');
-    if (displayComp && config.name) displayComp.innerText = config.name;
-}
-
-
-    // --- 3. RÉCUPÉRATION DES DONNÉES (SUPABASE) ---
-    async function fetchDataAndRender() {
-    const period = parseInt(document.getElementById('analysisPeriod')?.value || 7);
-    
-    // --- ÉTAPE A: AFFICHER LE SPINNER ---
-    const loader = document.getElementById('loading-state');
-    if (loader) loader.style.display = 'flex';
-
-    try {
-        // Calcul de la date limite
-        const dateLimit = new Date();
-        dateLimit.setDate(dateLimit.getDate() - period);
-        const isoDateLimit = dateLimit.toISOString().split('T')[0];
-         
-        // --- ÉTAPE B: RÉCUPÉRATION PARALLÈLE (Plus rapide) ---
-        const [rSales, rInventory, rExpenses] = await Promise.all([
-            _db.from('sales').select('*').gte('date', isoDateLimit),
-            _db.from('inventory').select('*'),
-            _db.from('expenses').select('*').gte('date', isoDateLimit)
-        ]);
-
-        // Vérification des erreurs
-        if (rSales.error) throw rSales.error;
-        if (rInventory.error) throw rInventory.error;
-        if (rExpenses.error) throw rExpenses.error;
-
-        // --- ÉTAPE C: RENDU ---
-        renderReporting(rSales.data || [], rInventory.data || [], rExpenses.data || [], period);
-
-    } catch (err) {
-        console.error("Erreur Reporting:", err.message);
-        alert("Impossible de charger les données du reporting.");
-    } finally {
-        // --- ÉTAPE D: CACHER LE SPINNER ---
-        if (loader) loader.style.display = 'none';
+    function calculatePreviousPeriodData() {
+        const { filteredSales: currentSales, startDate } = getFilteredData();
+        if (!startDate) return { ca: 0, profit: 0, sales: 0 };
+        
+        const previousStart = new Date(startDate);
+        const periodDays = customStartDate && customEndDate ? 
+            (new Date(customEndDate) - new Date(customStartDate)) / (1000 * 60 * 60 * 24) : currentPeriod;
+        previousStart.setDate(previousStart.getDate() - periodDays);
+        const previousEnd = new Date(startDate);
+        previousEnd.setDate(previousEnd.getDate() - 1);
+        
+        const previousSales = salesData.filter(s => s.date && new Date(s.date) >= previousStart && new Date(s.date) <= previousEnd);
+        const previousExpenses = expensesData.filter(e => e.date && new Date(e.date) >= previousStart && new Date(e.date) <= previousEnd);
+        
+        const previousCA = previousSales.reduce((sum, s) => sum + ((s.sell_price || 0) * (s.qty || 0)), 0);
+        const previousCost = previousSales.reduce((sum, s) => sum + ((s.buy_price || 0) * (s.qty || 0)), 0);
+        const previousExp = previousExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+        const previousProfit = (previousCA - previousCost) - previousExp;
+        
+        return { ca: previousCA, profit: previousProfit, sales: previousSales.reduce((sum, s) => sum + (s.qty || 0), 0) };
     }
-}
-    
-    // --- 4. LOGIQUE DE CALCUL DU REPORTING ---
-    function renderReporting(salesData, inventoryData, expensesData, period) {
-        let totalRev = 0, totalCost = 0, totalExp = 0;
-        let hourMap = Array(24).fill(0);
-        let productMap = {};
-        let dailyMap = {};
 
-        // Analyse des ventes
-        salesData.forEach(s => {
-            const qty = parseInt(s.qty) || 0;
-            const sellPrice = parseFloat(s.sell_price) || 0;
-            const buyPrice = parseFloat(s.buy_price) || 0;
+    function calculateEvolution(current, previous) {
+        if (previous === 0) return current > 0 ? { text: '+100%', class: 'trend-up' } : { text: '0%', class: '' };
+        const evolution = ((current - previous) / previous) * 100;
+        return { text: `${evolution > 0 ? '+' : ''}${evolution.toFixed(1)}%`, class: evolution >= 0 ? 'trend-up' : 'trend-down' };
+    }
+
+    function renderReporting() {
+        const { filteredSales, filteredExpenses, startDate } = getFilteredData();
+        const currency = window.currentCurrency || 'FCFA';
+        
+        let totalRevenue = 0, totalCost = 0, totalExpenses = 0;
+        const hourMap = Array(24).fill(0);
+        const productVolume = {};
+        const dailyRevenue = {};
+        const categoryRevenue = { Fixe: 0, Variable: 0, RH: 0, Stock: 0 };
+        
+        filteredSales.forEach(sale => {
+            const qty = sale.qty || 0;
+            const sellPrice = sale.sell_price || 0;
+            const buyPrice = sale.buy_price || 0;
+            totalRevenue += sellPrice * qty;
+            totalCost += buyPrice * qty;
             
-            totalRev += (sellPrice * qty);
-            totalCost += (buyPrice * qty);
-
-            // Heures de pointe (On utilise created_at si timestamp absent)
-            const hour = new Date(s.created_at || s.date).getHours();
+            const hour = sale.created_at ? new Date(sale.created_at).getHours() : (sale.date ? new Date(sale.date).getHours() : 12);
             hourMap[hour] += qty;
-
-            if (s.product) productMap[s.product] = (productMap[s.product] || 0) + qty;
-            if (s.date) dailyMap[s.date] = (dailyMap[s.date] || 0) + (sellPrice * qty);
-        });
-
-        // Analyse des dépenses
-        expensesData.forEach(e => {
-            // Conversion si la dépense n'est pas dans la devise cible
-            let amt = parseFloat(e.amount) || 0;
-            if (e.currency === "$" && currentCurrency === "FC") amt *= globalRate;
-            if (e.currency === "FC" && currentCurrency === "$") amt /= globalRate;
-            totalExp += amt;
+            if (sale.product) productVolume[sale.product] = (productVolume[sale.product] || 0) + qty;
+            if (sale.date) dailyRevenue[sale.date] = (dailyRevenue[sale.date] || 0) + (sellPrice * qty);
         });
         
-        // Mise à jour des Widgets
-        document.getElementById('statRev').textContent = totalRev.toLocaleString() + " " + currentCurrency;
-        // Profit Net = (Ventes - Coût d'achat) - Dépenses opérationnelles
-        const netProfit = (totalRev - totalCost) - totalExp;
-        document.getElementById('statProf').textContent = netProfit.toLocaleString() + " " + currentCurrency;
+        filteredExpenses.forEach(expense => {
+            let amount = expense.amount || 0;
+            if (expense.currency === "$" && currency === "FCFA") amount *= globalRate;
+            totalExpenses += amount;
+            if (expense.category) categoryRevenue[expense.category] = (categoryRevenue[expense.category] || 0) + amount;
+        });
         
+        const grossProfit = totalRevenue - totalCost;
+        const netProfit = grossProfit - totalExpenses;
         const peakHour = hourMap.indexOf(Math.max(...hourMap));
-        document.getElementById('statPeak').textContent = peakHour + "h";
-
-        // --- PRÉVISIONS DE STOCK ---
-        const forecastBody = document.getElementById('forecastBody');
-        if (forecastBody) {
-            forecastBody.innerHTML = "";
-            let criticals = 0;
-            
-            inventoryData.forEach(item => {
-                const totalSold = productMap[item.product] || 0;
-                const dailyRate = totalSold / period;
-                const stock = parseInt(item.qty) || 0;
-                
-                let days = dailyRate > 0 ? Math.floor(stock / dailyRate) : "∞";
-                let status = '<span class="badge" style="background:#10b98122; color:#10b981; padding:4px 8px; border-radius:4px;">Ok</span>';
-                
-                if(stock === 0 || (days !== "∞" && days <= 3)) { 
-                    status = '<span class="badge" style="background:#ef444422; color:#ef4444; padding:4px 8px; border-radius:4px;">Urgent</span>'; 
-                    criticals++; 
-                } else if(days !== "∞" && days <= 7) { 
-                    status = '<span class="badge" style="background:#f59e0b22; color:#f59e0b; padding:4px 8px; border-radius:4px;">Alerte</span>'; 
-                }
-                
-                forecastBody.innerHTML += `<tr>
-                    <td><b>${item.product}</b></td>
-                    <td>${stock}</td>
-                    <td>${dailyRate.toFixed(1)}/j</td>
-                    <td>${days === "∞" ? "Stable" : days + " j"}</td>
-                    <td>${status}</td>
-                </tr>`;
-            });
-
-            const health = inventoryData.length ? Math.round(((inventoryData.length - criticals) / inventoryData.length) * 100) : 100;
-            document.getElementById('statStockHealth').textContent = health + "%";
-        }
-
-        updateCharts(dailyMap, hourMap, productMap, totalRev, totalCost, totalExp);
+        
+        const previousData = calculatePreviousPeriodData();
+        const caEvolution = calculateEvolution(totalRevenue, previousData.ca);
+        const profitEvolution = calculateEvolution(netProfit, previousData.profit);
+        
+        document.getElementById('statRev').textContent = formatMoney(totalRevenue);
+        document.getElementById('statProf').textContent = formatMoney(netProfit);
+        document.getElementById('statPeak').textContent = peakHour !== -1 ? `${peakHour}h` : '-';
+        document.getElementById('caTrend').innerHTML = `<i class="fas fa-arrow-${caEvolution.class === 'trend-up' ? 'up' : 'down'}"></i> ${caEvolution.text}`;
+        document.getElementById('caTrend').className = `stat-trend ${caEvolution.class}`;
+        document.getElementById('profitTrend').innerHTML = `<i class="fas fa-arrow-${profitEvolution.class === 'trend-up' ? 'up' : 'down'}"></i> ${profitEvolution.text}`;
+        document.getElementById('profitTrend').className = `stat-trend ${profitEvolution.class}`;
+        
+        const forecastData = calculateStockHealth(productVolume);
+        document.getElementById('statStockHealth').textContent = `${forecastData.health}%`;
+        
+        const performanceScore = calculatePerformanceScore(totalRevenue, netProfit, forecastData.health);
+        document.getElementById('performanceScore').textContent = performanceScore.score;
+        document.getElementById('performanceTrend').textContent = performanceScore.trend;
+        
+        const periodText = customStartDate && customEndDate ? `${new Date(customStartDate).toLocaleDateString()} - ${new Date(customEndDate).toLocaleDateString()}` : `${currentPeriod} jours`;
+        document.getElementById('summaryPeriod').textContent = `Période: ${periodText}`;
+        
+        renderExecutiveSummary(totalRevenue, netProfit, grossProfit, forecastData.health, productVolume);
+        renderAlerts(totalRevenue, netProfit, forecastData, productVolume);
+        renderSalesChart(dailyRevenue);
+        renderHoursChart(hourMap);
+        renderTopProductsChart(productVolume);
+        renderMarginChart(totalCost, totalExpenses, netProfit);
+        renderTopClientsChart();
+        renderCategoryPerformanceChart(categoryRevenue);
+        renderForecastTable(forecastData.products);
     }
 
-    // --- 5. GESTION DES GRAPHIQUES ---
-    function updateCharts(daily, hours, products, rev, cost, expenses) {
-    const isDark = document.body.classList.contains('dark-mode');
-    const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-    const textColor = isDark ? '#94a3b8' : '#64748b';
+    function calculateStockHealth(productVolume) {
+        let critical = 0, alert = 0, ok = 0;
+        const products = [];
+        inventoryData.forEach(item => {
+            const stock = item.qty || 0;
+            const sold = productVolume[item.product] || 0;
+            const dailyRate = sold / (currentPeriod || 30);
+            let days = dailyRate > 0 ? Math.floor(stock / dailyRate) : Infinity;
+            let status = 'ok';
+            if (stock === 0 || (days !== Infinity && days <= 3)) { status = 'urgent'; critical++; }
+            else if (days !== Infinity && days <= 7) { status = 'alert'; alert++; }
+            else ok++;
+            products.push({ name: item.product, stock, dailyRate, days: days === Infinity ? 'Stable' : `${days} j`, status });
+        });
+        const total = inventoryData.length || 1;
+        const health = Math.round(((total - critical - alert) / total) * 100);
+        return { health, products: products.sort((a,b) => a.status === 'urgent' ? -1 : b.status === 'urgent' ? 1 : a.status === 'alert' ? -1 : 1) };
+    }
 
-    Chart.defaults.color = textColor;
-    Chart.defaults.borderColor = gridColor;
+    function calculatePerformanceScore(revenue, profit, stockHealth) {
+        const revenueScore = Math.min((revenue / 1000000) * 100, 100);
+        const profitScore = profit >= 0 ? Math.min((profit / 500000) * 100, 100) : 0;
+        const score = Math.round((revenueScore * 0.4 + profitScore * 0.4 + stockHealth * 0.2));
+        return { score, trend: score > 70 ? 'Excellent' : score > 50 ? 'Bon' : score > 30 ? 'Moyen' : 'Critique' };
+    }
 
-    // 1. Ventes Quotidiennes (Line Chart)
-    if(charts.s) charts.s.destroy();
-    const days = Object.keys(daily).sort();
-    charts.s = new Chart(document.getElementById('chartSales'), {
-        type: 'line',
-        data: { 
-            labels: days, 
-            datasets: [{ 
-                label: 'Chiffre d\'Affaires', 
-                data: days.map(d=>daily[d]), 
-                borderColor: '#3b82f6', 
-                tension: 0.4, 
-                fill: true, 
-                backgroundColor: 'rgba(59, 130, 246, 0.1)' 
-            }] 
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-    });
+    function renderExecutiveSummary(totalRevenue, netProfit, grossProfit, stockHealth, productVolume) {
+        const topProduct = Object.entries(productVolume).sort((a,b) => b[1] - a[1])[0];
+        const marginRate = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+        const activeClients = [...new Set(salesData.filter(s => s.client_id).map(s => s.client_id))].length;
+        const container = document.getElementById('executiveSummary');
+        container.innerHTML = `
+            <div class="summary-item"><strong>Chiffre d'affaires</strong><br>${formatMoney(totalRevenue)}</div>
+            <div class="summary-item"><strong>Profit net</strong><br>${formatMoney(netProfit)}</div>
+            <div class="summary-item"><strong>Marge brute</strong><br>${marginRate.toFixed(1)}%</div>
+            <div class="summary-item"><strong>Clients actifs</strong><br>${activeClients}</div>
+            <div class="summary-item"><strong>Produit star</strong><br>${topProduct ? topProduct[0] : '-'}</div>
+            <div class="summary-item"><strong>Santé stock</strong><br>${stockHealth}%</div>
+        `;
+    }
 
-    // 2. Heures de Pointe (Bar Chart) - NOUVEAU
-    if(document.getElementById('chartHours')) {
-        if(charts.h) charts.h.destroy();
-        const maxHourVal = Math.max(...hours);
-        charts.h = new Chart(document.getElementById('chartHours'), {
+    function renderAlerts(totalRevenue, netProfit, forecast, productVolume) {
+        const alerts = [];
+        if (netProfit < 0) alerts.push({ type: 'critical', icon: 'fa-exclamation-triangle', message: 'Profit net négatif - Examinez vos charges' });
+        if (forecast.health < 50) alerts.push({ type: 'critical', icon: 'fa-box', message: 'Santé du stock critique - Réapprovisionnez rapidement' });
+        const lowStockProducts = forecast.products.filter(p => p.status === 'urgent').slice(0, 3);
+        lowStockProducts.forEach(p => alerts.push({ type: 'warning', icon: 'fa-box-open', message: `Stock critique: ${p.name} (${p.stock} unités restantes)` }));
+        const topProduct = Object.entries(productVolume).sort((a,b) => b[1] - a[1])[0];
+        if (topProduct) alerts.push({ type: 'info', icon: 'fa-lightbulb', message: `Recommandation: Réapprovisionner "${topProduct[0]}" en priorité` });
+        const container = document.getElementById('alertsList');
+        if (alerts.length === 0) container.innerHTML = '<div class="alert-item info"><i class="fas fa-check-circle"></i><span>Aucune alerte à signaler</span></div>';
+        else container.innerHTML = alerts.map(a => `<div class="alert-item ${a.type}"><i class="fas ${a.icon}"></i><span>${a.message}</span></div>`).join('');
+    }
+
+    function renderSalesChart(dailyRevenue) {
+        const ctx = document.getElementById('chartSales')?.getContext('2d');
+        if (!ctx) return;
+        const dates = Object.keys(dailyRevenue).sort().slice(-30);
+        const revenues = dates.map(d => dailyRevenue[d] || 0);
+        if (charts.sales) charts.sales.destroy();
+        charts.sales = new Chart(ctx, {
+            type: 'line',
+            data: { labels: dates, datasets: [{ label: 'CA journalier', data: revenues, borderColor: '#3b82f6', fill: true, backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.4, pointRadius: 3 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${formatMoney(ctx.raw)}` } } }, scales: { y: { ticks: { callback: (v) => formatMoney(v) } } } }
+        });
+    }
+
+    function renderHoursChart(hourMap) {
+        const ctx = document.getElementById('chartHours')?.getContext('2d');
+        if (!ctx) return;
+        const maxVal = Math.max(...hourMap);
+        if (charts.hours) charts.hours.destroy();
+        charts.hours = new Chart(ctx, {
             type: 'bar',
-            data: {
-                labels: Array.from({length: 24}, (_, i) => i + "h"),
-                datasets: [{
-                    label: 'Articles vendus',
-                    data: hours,
-                    // La barre la plus haute devient bleue foncée, les autres bleues claires
-                    backgroundColor: hours.map(v => (v === maxHourVal && v > 0) ? '#1d4ed8' : '#3b82f6'),
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            data: { labels: Array.from({length: 24}, (_, i) => `${i}h`), datasets: [{ label: 'Articles vendus', data: hourMap, backgroundColor: hourMap.map(v => v === maxVal && v > 0 ? '#1d4ed8' : '#3b82f6'), borderRadius: 4 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    function renderTopProductsChart(productVolume) {
+        const ctx = document.getElementById('chartTopProd')?.getContext('2d');
+        if (!ctx) return;
+        const sorted = Object.entries(productVolume).sort((a,b) => b[1] - a[1]).slice(0, 5);
+        if (charts.topProducts) charts.topProducts.destroy();
+        charts.topProducts = new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: sorted.map(p => p[0]), datasets: [{ data: sorted.map(p => p[1]), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] }] },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'right' } } }
+        });
+    }
+
+    function renderMarginChart(cost, expenses, profit) {
+        const ctx = document.getElementById('chartMargin')?.getContext('2d');
+        if (!ctx) return;
+        if (charts.margin) charts.margin.destroy();
+        charts.margin = new Chart(ctx, {
+            type: 'pie',
+            data: { labels: ['Achat marchandises', 'Dépenses opérationnelles', 'Profit net'], datasets: [{ data: [cost, expenses, Math.max(0, profit)], backgroundColor: ['#94a3b8', '#ef4444', '#10b981'] }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${formatMoney(ctx.raw)}` } } } }
+        });
+    }
+
+    function renderTopClientsChart() {
+        const ctx = document.getElementById('topClientsChart')?.getContext('2d');
+        if (!ctx) return;
+        const clientRevenue = {};
+        salesData.forEach(sale => { if (sale.client_id) clientRevenue[sale.client_id] = (clientRevenue[sale.client_id] || 0) + ((sale.sell_price || 0) * (sale.qty || 0)); });
+        const topClients = Object.entries(clientRevenue).sort((a,b) => b[1] - a[1]).slice(0,5).map(([id, revenue]) => ({ name: clientsData.find(c => c.id === id)?.name || 'Inconnu', revenue }));
+        if (charts.topClients) charts.topClients.destroy();
+        charts.topClients = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: topClients.map(c => c.name), datasets: [{ label: 'CA', data: topClients.map(c => c.revenue), backgroundColor: '#10b981', borderRadius: 8 }] },
+            options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y' }
+        });
+    }
+
+    function renderCategoryPerformanceChart(categoryRevenue) {
+        const ctx = document.getElementById('categoryPerformanceChart')?.getContext('2d');
+        if (!ctx) return;
+        const filtered = Object.entries(categoryRevenue).filter(([_, v]) => v > 0);
+        if (charts.category) charts.category.destroy();
+        charts.category = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: filtered.map(c => c[0]), datasets: [{ label: 'Dépenses', data: filtered.map(c => c[1]), backgroundColor: '#f59e0b', borderRadius: 8 }] },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    function renderForecastTable(products) {
+        const tbody = document.getElementById('forecastBody');
+        if (!tbody) return;
+        if (products.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Aucune donnée</td></tr>'; return; }
+        tbody.innerHTML = products.map(p => {
+            let badgeClass = '', badgeText = '';
+            if (p.status === 'urgent') { badgeClass = 'badge-urgent'; badgeText = 'Urgent'; }
+            else if (p.status === 'alert') { badgeClass = 'badge-alert'; badgeText = 'Alerte'; }
+            else { badgeClass = 'badge-ok'; badgeText = 'OK'; }
+            return `<tr><td><strong>${escapeHtml(p.name)}</strong></td><td>${p.stock}</td><td>${p.dailyRate.toFixed(1)}/j</td><td>${p.days}</td><td><span class="${badgeClass}">${badgeText}</span></td></tr>`;
+        }).join('');
+    }
+
+    function initPeriodSelector() {
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const period = btn.dataset.period;
+                if (period === 'custom') {
+                    document.getElementById('dateRangePicker').style.display = 'flex';
+                    currentPeriod = null;
+                } else {
+                    document.getElementById('dateRangePicker').style.display = 'none';
+                    currentPeriod = parseInt(period);
+                    customStartDate = null;
+                    customEndDate = null;
+                    renderReporting();
+                }
+            });
+        });
+    }
+
+    function applyDateRange() {
+        customStartDate = document.getElementById('dateFrom').value;
+        customEndDate = document.getElementById('dateTo').value;
+        if (customStartDate && customEndDate) {
+            document.getElementById('dateRangePicker').style.display = 'none';
+            renderReporting();
+        } else showToast('Veuillez sélectionner les deux dates', 'warning');
+    }
+
+    function cancelDateRange() { document.getElementById('dateRangePicker').style.display = 'none'; }
+
+    function toggleExportMenu() {
+    const menu = document.getElementById('exportMenu');
+    const isOpen = menu.classList.contains('show');
+    
+    // Fermer tous les autres dropdowns
+    document.querySelectorAll('.export-menu').forEach(m => m.classList.remove('show'));
+    
+    if (!isOpen) {
+        menu.classList.add('show');
+        // Fermer le menu si on clique ailleurs
+        const closeMenu = (e) => {
+            if (!e.target.closest('.export-dropdown')) {
+                menu.classList.remove('show');
+                document.removeEventListener('click', closeMenu);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeMenu), 0);
+    }
+}
+
+// Version simplifiée si vous voulez garder la logique existante
+function toggleExportMenu() {
+    const menu = document.getElementById('exportMenu');
+    if (menu.style.display === 'block') {
+        menu.style.display = 'none';
+    } else {
+        // Fermer les autres menus
+        document.querySelectorAll('.export-menu').forEach(m => m.style.display = 'none');
+        menu.style.display = 'block';
+    }
+}
+
+// Fermer le menu si on clique ailleurs
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.export-dropdown')) {
+        document.querySelectorAll('.export-menu').forEach(menu => {
+            menu.style.display = 'none';
+            menu.classList.remove('show');
+        });
+    }
+});
+    async function exportToPDF() {
+    const btn = document.querySelector('.export-dropdown button');
+    const originalText = btn.innerHTML;
+    
+    showLoading(true);
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération...';
+    btn.disabled = true;
+    
+    try {
+        // Récupérer les données du tableau
+        const forecastRows = [];
+        document.querySelectorAll('#forecastBody tr').forEach(tr => {
+            forecastRows.push(Array.from(tr.querySelectorAll('td')).map(td => td.innerText));
+        });
+        
+        // Capturer les graphiques canvas en images
+        const chartIds = ['chartSales', 'chartHours', 'chartTopProd', 'chartMargin', 'topClientsChart', 'categoryPerformanceChart'];
+        const chartImages = [];
+        
+        for (const chartId of chartIds) {
+            const canvas = document.getElementById(chartId);
+            if (canvas) {
+                try {
+                    const imageData = canvas.toDataURL('image/png');
+                    chartImages.push({ id: chartId, image: imageData });
+                } catch (e) {
+                    console.warn(`Erreur capture ${chartId}:`, e);
                 }
             }
-        });
-    }
-
-    // 3. Top Produits (Doughnut Chart)
-    if(charts.t) charts.t.destroy();
-    const top = Object.entries(products).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    charts.t = new Chart(document.getElementById('chartTopProd'), {
-        type: 'doughnut',
-        data: { 
-            labels: top.map(p=>p[0]), 
-            datasets: [{ 
-                data: top.map(p=>p[1]), 
-                backgroundColor: ['#1f3c63','#3b82f6','#10b981','#f59e0b','#ef4444'] 
-            }] 
-        },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '75%' }
-    });
-
-    // 4. Répartition financière (Pie Chart)
-    if(charts.m) charts.m.destroy();
-    charts.m = new Chart(document.getElementById('chartMargin'), {
-        type: 'pie',
-        data: { 
-            labels: ['Achat Marchandises', 'Dépenses Opé.', 'Profit Net'], 
-            datasets: [{ 
-                data: [cost, expenses, Math.max(0, rev - cost - expenses)], 
-                backgroundColor: ['#e2e8f0', '#ef4444', '#10b981'] 
-            }] 
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-    });
-}   
-    // --- 6. UTILITAIRES ---
-    function handleResponsiveSidebar() {
-        const width = window.innerWidth;
-        const sb = document.getElementById('sidebar');
-        if (sb) {
-            if (width <= 1024) sb.classList.add('collapsed');
-            else sb.classList.remove('collapsed');
         }
-    }
-
-   async function generateInventoryPDF() {
-    const btn = document.querySelector('.pdf-action');
-    
-    // VERIFICATION : Est-ce que le module est là ?
-    if (!window.MoniteoPDF) {
-        console.error("Le module MoniteoPDF n'est pas chargé. Vérifiez l'inclusion de exportPDF.js");
-        alert("Erreur système : Module d'exportation introuvable.");
-        return;
-    }
-
-    // VERIFICATION : Est-ce que jsPDF est là ? (Requis par ton module)
-    if (!window.jspdf) {
-        alert("Erreur : La bibliothèque jsPDF est manquante.");
-        return;
-    }
-
-    const rows = [];
-    const tableBody = document.getElementById('forecastBody');
-    if (tableBody) {
-        tableBody.querySelectorAll('tr').forEach(tr => {
-            rows.push(Array.from(tr.querySelectorAll('td')).map(td => td.innerText));
-        });
-    }
-
-    const pdfOptions = {
-        title: "RAPPORT ET ANALYSE",
-        subtitle: "Intelligence commerciale & Gestion des stocks",
-        tables: [{
-            headers: ["Produit", "Stock", "Vitesse/j", "Autonomie", "Urgence"],
-            rows: rows,
-            color: [31, 60, 99]
-        }],
-        charts: ['chartSales', 'chartHours', 'chartTopProd', 'chartMargin']
-    };
-
-    try {
-        btn.innerHTML = "Génération...";
-        btn.disabled = true;
-
-        // Appel sécurisé
-        await window.MoniteoPDF.generate(pdfOptions);
-
-    } catch (err) {
-        console.error("Erreur durant la génération :", err);
-        alert("Erreur lors de la création du PDF : " + err.message);
+        
+        // Préparer le contenu du PDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        let y = 20;
+        
+        // En-tête
+        const config = await MoniteoPDF._getConfig();
+        doc.setFontSize(18).setFont("helvetica", "bold").setTextColor(31, 60, 99);
+        doc.text("RAPPORT D'ANALYSE STRATÉGIQUE", pageWidth / 2, y, { align: 'center' });
+        y += 8;
+        
+        doc.setFontSize(10).setFont("helvetica", "normal").setTextColor(100);
+        doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, y, { align: 'center' });
+        y += 15;
+        
+        // Résumé exécutif
+        const revenue = document.getElementById('statRev')?.innerText || '0';
+        const profit = document.getElementById('statProf')?.innerText || '0';
+        const stockHealth = document.getElementById('statStockHealth')?.innerText || '0%';
+        
+        doc.setFontSize(12).setFont("helvetica", "bold");
+        doc.text("Résumé exécutif", 14, y);
+        y += 8;
+        
+        doc.setFontSize(9).setFont("helvetica", "normal");
+        doc.text(`Chiffre d'affaires: ${revenue}`, 14, y);
+        y += 5;
+        doc.text(`Profit net: ${profit}`, 14, y);
+        y += 5;
+        doc.text(`Santé du stock: ${stockHealth}`, 14, y);
+        y += 5;
+        
+        // Tableau des prévisions
+        if (forecastRows.length > 0) {
+            y += 5;
+            doc.setFontSize(12).setFont("helvetica", "bold");
+            doc.text("Prévisions réapprovisionnement", 14, y);
+            y += 5;
+            
+            doc.autoTable({
+                startY: y,
+                head: [['Produit', 'Stock', 'Vitesse/j', 'Autonomie', 'Urgence']],
+                body: forecastRows,
+                styles: { fontSize: 7, cellPadding: 2 },
+                headStyles: { fillColor: [31, 60, 99], textColor: [255, 255, 255] }
+            });
+            y = doc.lastAutoTable.finalY + 10;
+        }
+        
+        // Ajouter les graphiques
+        for (const chart of chartImages) {
+            if (y > 250) {
+                doc.addPage();
+                y = 20;
+            }
+            
+            // Ajouter le titre du graphique
+            const chartTitle = getChartTitle(chart.id);
+            doc.setFontSize(10).setFont("helvetica", "bold");
+            doc.text(chartTitle, 14, y);
+            y += 5;
+            
+            // Ajouter l'image du graphique
+            try {
+                const imgWidth = 170;
+                const imgHeight = (imgWidth * 80) / 170;
+                doc.addImage(chart.image, 'PNG', 20, y, imgWidth, imgHeight);
+                y += imgHeight + 15;
+            } catch (e) {
+                console.warn(`Erreur ajout image ${chart.id}:`, e);
+            }
+        }
+        
+        // Footer
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(7).setTextColor(150);
+            doc.text(`Page ${i} / ${pageCount}`, pageWidth / 2, 287, { align: 'center' });
+            doc.text("Moniteo - Intelligence Commerciale", pageWidth / 2, 292, { align: 'center' });
+        }
+        
+        doc.save(`rapport_analyse_${new Date().toISOString().split('T')[0]}.pdf`);
+        showToast('PDF généré avec succès', 'success');
+        
+    } catch (error) {
+        console.error('Erreur PDF:', error);
+        showToast('Erreur lors de la génération du PDF: ' + error.message, 'error');
     } finally {
-        btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="#ef4444" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Générer PDF`;
+        showLoading(false);
+        btn.innerHTML = originalText;
         btn.disabled = false;
     }
 }
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    if (!sidebar) return;
 
-    // 1. Basculer la classe
-    sidebar.classList.toggle('collapsed');
-
-    // 2. Sauvegarder l'état (BI/UX)
-    const isCollapsed = sidebar.classList.contains('collapsed');
-    localStorage.setItem('sidebarStatus', isCollapsed ? 'collapsed' : 'expanded');
-
-    // 3. Redessiner les graphiques (Important !)
-    // Comme la taille du conteneur change, Chart.js a besoin d'un petit refresh
-    if (typeof mainChartObj !== 'undefined' && mainChartObj) mainChartObj.resize();
-    if (typeof stockChartObj !== 'undefined' && stockChartObj) stockChartObj.resize();
+function getChartTitle(chartId) {
+    const titles = {
+        'chartSales': 'Évolution des revenus',
+        'chartHours': 'Flux par heure',
+        'chartTopProd': 'Top 5 produits (volume)',
+        'chartMargin': 'Répartition financière',
+        'topClientsChart': 'Top 5 clients (CA)',
+        'categoryPerformanceChart': 'Performance par catégorie'
+    };
+    return titles[chartId] || 'Graphique';
 }
+    function exportToExcel() {
+        const ws = XLSX.utils.json_to_sheet(salesData.map(s => ({ Date: s.date, Produit: s.product, Quantité: s.qty, 'Prix vente': s.sell_price, Total: s.sell_price * s.qty })));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Ventes');
+        XLSX.writeFile(wb, `reporting_${new Date().toISOString().split('T')[0]}.xlsx`);
+        showToast('Export Excel réussi', 'success');
+    }
+
+    function exportToCSV() {
+        const headers = ['Date', 'Produit', 'Quantité', 'Prix vente', 'Total'];
+        const rows = salesData.map(s => [s.date, s.product, s.qty, s.sell_price, (s.sell_price * s.qty)]);
+        const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `reporting_${new Date().toISOString().split('T')[0]}.csv`; a.click(); URL.revokeObjectURL(url);
+        showToast('Export CSV réussi', 'success');
+    }
+
+    function printReport() { window.print(); }
+
+    function initSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const checkScreenSize = () => { if (window.innerWidth <= 768) sidebar.classList.add('collapsed'); else if (window.innerWidth <= 1024) sidebar.classList.add('collapsed'); else sidebar.classList.remove('collapsed'); };
+        window.addEventListener('resize', checkScreenSize);
+        checkScreenSize();
+    }
+
+    function showLoading(show) { document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
+    function showToast(message, type = 'success') { const container = document.getElementById('toastContainer'); const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${message}`; container.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+    function formatMoney(amount) { const config = JSON.parse(localStorage.getItem('moniteo_config') || '{}'); const currency = config.currency || 'FCFA'; return (amount || 0).toLocaleString() + ' ' + currency; }
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
+    function updateDateDisplay() { document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
+    async function logout() { if (confirm('Déconnexion ?')) { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; } }
+
+    window.toggleExportMenu = toggleExportMenu; window.exportToPDF = exportToPDF; window.exportToExcel = exportToExcel; window.exportToCSV = exportToCSV; window.printReport = printReport; window.applyDateRange = applyDateRange; window.cancelDateRange = cancelDateRange; window.logout = logout;
 </script>
 </body>
 </html>
