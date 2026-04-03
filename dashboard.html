@@ -365,28 +365,124 @@
         }
         .refresh-btn:hover { background: var(--gray-200); transform: rotate(180deg); }
 
+        /* ========== LOADER ORBITAL ÉLÉGANT - SANS FOND ========== */
         .loading-overlay {
             position: fixed;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.9);
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
             display: flex;
-            align-items: center;
             justify-content: center;
-            z-index: 1000;
-            backdrop-filter: blur(4px);
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
         }
+
+        .loading-overlay.hide {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* Conteneur principal du loader - plus petit */
         .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid var(--gray-200);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+            position: relative;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Mode orbital */
+        .spinner.orbit-mode .logo-center {
+            width: 30px;
+            height: auto;
+            position: relative;
+            z-index: 2;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+            animation: logoPulse 1.8s ease-in-out infinite;
+            border-radius: 12px;
+        }
+
+        /* Anneau orbital principal - plus fin et élégant */
+        .spinner.orbit-mode::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            right: -8px;
+            bottom: -8px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: #3b82f6;
+            border-right-color: #8b5cf6;
+            border-bottom-color: #ec489a;
+            animation: orbitSpin 1s linear infinite;
+        }
+
+        /* Deuxième anneau (orbite secondaire) */
+        .spinner.orbit-mode::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border-radius: 50%;
+            border: 1px dashed rgba(59, 130, 246, 0.4);
+            animation: orbitSpinReverse 2s linear infinite;
+        }
+
+        /* Particules autour - plus discrètes */
+        .orbit-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .orbit-particle {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 50%;
+            opacity: 0;
+            animation: particleFloat 1.2s ease-in-out infinite;
+        }
+
+        @keyframes orbitSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes orbitSpinReverse {
+            0% { transform: rotate(360deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.03); opacity: 0.95; }
+        }
+
+        @keyframes particleFloat {
+            0% {
+                transform: translate(0, 0) scale(0);
+                opacity: 0;
+            }
+            40% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translate(var(--tx, 40px), var(--ty, -40px)) scale(1);
+                opacity: 0;
+            }
+        }
 
         @media (max-width: 1024px) { .charts-grid { grid-template-columns: 1fr; } }
         @media (max-width: 768px) {
@@ -556,7 +652,9 @@
     <div class="recent-sales"><div class="list-header"><span class="chart-title">Dernières ventes</span><a href="sales.html" style="color: var(--primary); font-size: 0.8rem;">Voir tout →</a></div><div id="recentSalesList" class="recent-sales-list"><p style="color: var(--gray-500); text-align: center;">Chargement...</p></div></div>
 </main>
 
-<div id="loadingOverlay" class="loading-overlay"><div class="spinner"></div></div>
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner"></div>
+</div>
 
 <script src="js/supabase-config.js"></script>
 <script src="js/auth-check.js"></script>
@@ -566,6 +664,73 @@
 <script src="js/copilot-manager.js"></script>
 
 <script>
+// ========== CONFIGURATION DU LOADER ORBITAL ÉLÉGANT ==========
+const LOGO_URLS = {
+    orbit: 'https://oysdycuouodarfkmdtop.supabase.co/storage/v1/object/public/LOGO/apple-touch-icon-removebg-preview.png'
+};
+
+// Initialisation du loader orbital
+function initOrbitLoader() {
+    const spinner = document.querySelector('.spinner');
+    if (!spinner) return;
+    
+    // Vider le spinner
+    spinner.innerHTML = '';
+    
+    // Configurer la classe
+    spinner.className = 'spinner orbit-mode';
+    
+    // Ajouter le logo (plus petit)
+    const logo = document.createElement('img');
+    logo.src = LOGO_URLS.orbit;
+    logo.alt = 'Logo Moniteo';
+    logo.className = 'logo-center';
+    spinner.appendChild(logo);
+    
+    // Ajouter des particules orbitantes (moins nombreuses et plus discrètes)
+    const particlesContainer = document.createElement('div');
+    particlesContainer.className = 'orbit-particles';
+    
+    for (let i = 0; i < 8; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'orbit-particle';
+        const angle = (i / 8) * Math.PI * 2;
+        const radius = 45;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        particle.style.setProperty('--tx', `${x}px`);
+        particle.style.setProperty('--ty', `${y}px`);
+        particle.style.animationDelay = `${i * 0.15}s`;
+        particlesContainer.appendChild(particle);
+    }
+    
+    spinner.appendChild(particlesContainer);
+}
+
+// Fonction pour cacher le loader
+function hideLoader() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.classList.add('hide');
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 300);
+    }
+}
+
+// Fonction pour montrer le loader
+function showLoader() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        setTimeout(() => {
+            overlay.classList.remove('hide');
+        }, 10);
+    }
+}
+
+// ========== FIN CONFIGURATION LOADER ==========
+
 let salesChart = null;
 let stockChart = null;
 let currentUser = null;
@@ -616,8 +781,7 @@ async function loadCompanyInfo() {
 }
 
 async function loadDashboardData() {
-    const overlay = document.getElementById('loadingOverlay');
-    overlay.style.display = 'flex';
+    showLoader();
 
     try {
         const [salesRes, inventoryRes, expensesRes, staffRes, settingsRes] = await Promise.all([
@@ -652,13 +816,13 @@ async function loadDashboardData() {
         document.getElementById('stockValue').textContent = formatMoney(stockValue, userCurrency);
         document.getElementById('averageBasket').textContent = formatMoney(averageBasket, userCurrency);
         
-        // GRAPHIQUES - Appel avec les bons paramètres
+        // GRAPHIQUES
         renderSalesChart(sales, userCurrency);
         renderStockChart(inventory);
         renderTopProductsChart(sales, userCurrency);
         renderDailyPerformanceChart(sales, userCurrency);
         
-        // LISTES - Appel avec les bonnes données
+        // LISTES
         renderStaffList(staff);
         renderStockAlerts(inventory);
         renderRecentSales(sales, userCurrency);
@@ -667,10 +831,11 @@ async function loadDashboardData() {
         console.error("Erreur:", error);
     } finally {
         setTimeout(() => {
-            if (overlay) overlay.style.display = 'none';
+            hideLoader();
         }, 500);
     }
 }
+
 function formatNumber(num) {
     return new Intl.NumberFormat('fr-FR').format(num);
 }
@@ -797,6 +962,7 @@ function renderStockChart(inventory) {
         }
     });
 }
+
 function renderTopProductsChart(sales, currency) {
     const canvas = document.getElementById('topProductsChart');
     if (!canvas) {
@@ -814,7 +980,6 @@ function renderTopProductsChart(sales, currency) {
     
     const sorted = Object.entries(productSales).sort((a, b) => b[1] - a[1]).slice(0, 5);
     
-    // Vérifier si c'est une instance Chart avant de détruire
     if (window.topProductsChart && typeof window.topProductsChart.destroy === 'function') {
         window.topProductsChart.destroy();
     }
@@ -866,7 +1031,6 @@ function renderDailyPerformanceChart(sales, currency) {
     const dates = Object.keys(dailyData).sort().slice(-7);
     const amounts = dates.map(d => dailyData[d]);
     
-    // Vérifier si c'est une instance Chart avant de détruire
     if (window.dailyChart && typeof window.dailyChart.destroy === 'function') {
         window.dailyChart.destroy();
     }
@@ -910,6 +1074,7 @@ function renderDailyPerformanceChart(sales, currency) {
         }
     });
 }
+
 function renderRecentSales(sales, currency) {
     const container = document.getElementById('recentSalesList');
     if (!container) return;
@@ -972,6 +1137,7 @@ function renderStockAlerts(inventory) {
         `;
     }).join('');
 }
+
 function updateDateDisplay() {
     const now = new Date();
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -1033,15 +1199,23 @@ window.logout = async function() {
     }
 };
 
-protectPage(async (user) => {
-    currentUser = user;
-    console.log("✅ Connecté:", user.email);
-    await loadCompanyInfo();
-    await loadDashboardData();
-    updateDateDisplay();
+// ========== INITIALISATION PRINCIPALE ==========
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialiser le loader orbital
+    initOrbitLoader();
+    
+    // Initialiser la sidebar
+    initSidebar();
+    
+    // Protéger la page et charger les données
+    protectPage(async (user) => {
+        currentUser = user;
+        console.log("✅ Connecté:", user.email);
+        await loadCompanyInfo();
+        await loadDashboardData();
+        updateDateDisplay();
+    });
 });
-
-document.addEventListener('DOMContentLoaded', initSidebar);
 </script>
 </body>
 </html>
