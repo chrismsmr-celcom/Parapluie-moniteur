@@ -1,523 +1,1257 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-   <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#ffffff">
-    <title>Moniteo Umbrella - Historique Pro</title>
-
-    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
-    <link rel="icon" type="image/png" sizes="16x16" href="assets/icon-16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
-    <link rel="manifest" href="assets/manifest.webmanifest">
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="theme-color" content="#2563eb">
+    <title>Moniteo | Centre d'audit & traçabilité</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <script src="js/auth-check.js"></script>        
     <script src="js/supabase-config.js"></script>   
-    <script src="js/settings-manager.js"></script>  
     <script src="js/common.js"></script>            
-    <script src="js/exportPDF.js"></script>        
-     
-     </head>
+    <script src="js/exportPDF.js"></script>         
+    
+    <style>
+        :root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #60a5fa;
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --info: #3b82f6;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+    --sidebar-width: 280px;
+    --sidebar-collapsed-width: 80px;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+}
 
-<script>
-    // Sécurité : On attend que le DOM et _db soient prêts
-    document.addEventListener('DOMContentLoaded', () => {
-        initPage();
-    });
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-    async function initPage() {
-        if (!window._db) {
-            console.warn("⏳ Attente de Supabase...");
-            setTimeout(initPage, 100);
-            return;
-        }
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--gray-50);
+    color: var(--gray-900);
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+}
 
-        // On utilise protectPage qui vient de auth-check.js
-        protectPage((user) => {
-            console.log("✅ Accès autorisé :", user.email);
-            fetchStaffData(user.id); 
-        });
+/* Boutons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    font-family: inherit;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--gray-300);
+    color: var(--gray-600);
+}
+
+.btn-outline:hover {
+    background: var(--gray-100);
+    border-color: var(--gray-400);
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+
+/* Sidebar */
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: var(--sidebar-width);
+    background: white;
+    box-shadow: var(--shadow-lg);
+    transition: all 0.3s ease;
+    z-index: 100;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.sidebar.collapsed { width: var(--sidebar-collapsed-width); }
+.sidebar.collapsed .logo-full,
+.sidebar.collapsed .nav-links span,
+.sidebar.collapsed .logout-btn span { display: none; }
+.sidebar.collapsed .logo-short { display: flex; }
+
+.logo-box {
+    padding: 1.5rem;
+    text-align: center;
+    border-bottom: 1px solid var(--gray-200);
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.logo-full { height: 180px; width: auto; }
+.logo-short { 
+    height: 65px; 
+    width: auto; 
+    display: none;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto;
+}
+
+.nav-links {
+    list-style: none;
+    padding: 0 0.75rem;
+}
+.nav-links li { margin-bottom: 0.5rem; }
+.nav-links a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    color: var(--gray-600);
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    transition: all 0.2s;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.nav-links a:hover { background: var(--gray-100); color: var(--primary); }
+.nav-links a.active { background: var(--primary); color: white; }
+.nav-links i { width: 20px; font-size: 1.1rem; text-align: center; }
+
+.logout-box {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem;
+    border-top: 1px solid var(--gray-200);
+}
+.logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    color: var(--danger);
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    transition: all 0.2s;
+    font-weight: 500;
+}
+.logout-btn:hover { background: rgba(239, 68, 68, 0.1); }
+
+/* Main Content */
+.main-content {
+    margin-left: var(--sidebar-width);
+    padding: 2rem;
+    transition: all 0.3s;
+    min-height: 100vh;
+    width: calc(100% - var(--sidebar-width));
+    overflow-x: hidden;
+    position: relative;
+}
+.sidebar.collapsed ~ .main-content { 
+    margin-left: var(--sidebar-collapsed-width);
+    width: calc(100% - var(--sidebar-collapsed-width));
+}
+
+/* Header */
+.dashboard-header {
+    background: white;
+    border-radius: var(--radius-xl);
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.header-info h1 { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.25rem; }
+.header-info p { color: var(--gray-500); font-size: 0.75rem; }
+.company-badge {
+    background: var(--primary-light);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: var(--radius-lg);
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+/* Stats Cards */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.stat-card {
+    background: white;
+    border-radius: var(--radius-xl);
+    padding: 1rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+.stat-info h3 { font-size: 0.6rem; font-weight: 600; text-transform: uppercase; color: var(--gray-500); margin-bottom: 0.25rem; }
+.stat-info p { font-size: 1.1rem; font-weight: 800; }
+
+/* Trends Dashboard */
+.trends-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.trend-card {
+    background: white;
+    border-radius: var(--radius-xl);
+    padding: 0.8rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.trend-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--gray-100);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: var(--primary);
+}
+.trend-info { flex: 1; }
+.trend-label { font-size: 0.6rem; color: var(--gray-500); display: block; }
+.trend-value { font-size: 0.8rem; font-weight: 700; }
+
+/* Filters Bar */
+.filters-bar {
+    background: white;
+    border-radius: var(--radius-xl);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-end;
+}
+.filter-group {
+    flex: 1;
+    min-width: 140px;
+}
+.filter-group label {
+    display: block;
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 0.25rem;
+}
+.filter-group input, .filter-group select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    font-size: 0.75rem;
+}
+.btn-reset {
+    background: transparent;
+    border: 1px solid var(--gray-300);
+    color: var(--gray-600);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: 0.7rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.btn-reset:hover { background: var(--gray-100); }
+
+/* Table */
+.table-container {
+    background: white;
+    border-radius: var(--radius-xl);
+    padding: 1rem;
+    box-shadow: var(--shadow-sm);
+    overflow-x: auto;
+}
+table { width: 100%; border-collapse: collapse; min-width: 900px; }
+th, td { padding: 0.7rem; text-align: left; border-bottom: 1px solid var(--gray-200); }
+th { background: var(--gray-50); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; color: var(--gray-500); }
+td { font-size: 0.75rem; }
+.badge-market {
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-lg);
+    font-size: 0.6rem;
+    font-weight: 600;
+}
+.badge-local { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.badge-export { background: rgba(16,185,129,0.1); color: #10b981; }
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: var(--radius-md);
+    transition: all 0.2s;
+}
+.btn-icon:hover { background: var(--gray-100); }
+.btn-delete { color: var(--danger); }
+.btn-view { color: var(--primary); }
+
+/* Charts */
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+.chart-card {
+    background: white;
+    border-radius: var(--radius-xl);
+    padding: 1rem;
+    box-shadow: var(--shadow-sm);
+}
+.chart-title { font-size: 0.8rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+.chart-container { height: 220px; position: relative; }
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+.modal-content {
+    background: white;
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+.modal-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--gray-500);
+    transition: all 0.2s;
+}
+.modal-close:hover {
+    color: var(--danger);
+    transform: scale(1.1);
+}
+
+/* Form Group */
+.form-group {
+    margin-bottom: 1rem;
+}
+.form-group label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 0.25rem;
+    letter-spacing: 0.5px;
+}
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-family: inherit;
+}
+.form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+/* Modal footer buttons */
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--gray-200);
+}
+.modal-footer .btn {
+    padding: 0.5rem 1rem;
+}
+
+/* Detail Row */
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--gray-100);
+    font-size: 0.8rem;
+}
+.detail-label { font-weight: 600; color: var(--gray-600); }
+
+/* Loading & Toast */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--gray-200);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.toast-container {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 1100;
+}
+.toast {
+    background: white;
+    padding: 0.5rem 0.8rem;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    animation: slideUp 0.3s ease;
+    font-size: 0.75rem;
+}
+.toast.success { border-left: 3px solid var(--success); }
+.toast.error { border-left: 3px solid var(--danger); }
+@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* Responsive */
+@media (max-width: 1024px) { 
+    .charts-grid { grid-template-columns: 1fr; } 
+}
+@media (max-width: 768px) {
+    .sidebar { 
+        position: fixed; 
+        bottom: 0; 
+        top: auto; 
+        left: 0; 
+        right: 0; 
+        width: 100% !important; 
+        height: auto; 
+        flex-direction: row; 
+        padding: 0.5rem; 
     }
-
-    async function fetchStaffData(userId) {
-        try {
-            // CORRECTION : On utilise window._db et on vérifie la table
-            // J'enlève le .order() car 'date' ou 'created_at' font planter si absents
-            const { data, error } = await window._db
-                .from('staff') // Table correcte pour le personnel
-                .select('*')
-                .eq('user_id', userId);
-
-            if (error) throw error;
-
-            if (data) {
-                console.log("📊 Données reçues :", data.length);
-                
-                // On stocke dans la variable globale attendue par tes fonctions de rendu
-                window.staffData = data;
-                
-                // Exécution du rendu
-                if (typeof renderStaff === 'function') {
-                    renderStaff();
-                } else if (typeof renderTable === 'function') {
-                    renderTable();
-                }
-
-                // Mise à jour des stats si le manager est chargé
-                if (typeof updateKPIs === 'function') {
-                    updateKPIs();
-                }
-            }
-        } catch (err) {
-            console.error("❌ Erreur de chargement :", err.message);
-            const tbody = document.getElementById('staffTable');
-            if(tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red;">Erreur : ${err.message}</td></tr>`;
-        }
+    .sidebar .logo-box, .sidebar .logout-box { display: none; }
+    .sidebar .nav-links { 
+        display: flex; 
+        flex-direction: row; 
+        width: 100%; 
+        padding: 0; 
     }
-</script>
-
-<script src="js/stats-manager.js"></script>
-<link rel="stylesheet" href="UI/style.css">
-    </head>
+    .sidebar .nav-links li { flex: 1; margin: 0; }
+    .sidebar .nav-links a { 
+        flex-direction: column; 
+        padding: 0.5rem; 
+        font-size: 0.6rem; 
+    }
+    .sidebar .nav-links i { font-size: 0.9rem; margin: 0; }
+    .main-content { 
+        margin-left: 0 !important; 
+        width: 100% !important; 
+        padding: 1rem; 
+        padding-bottom: 80px; 
+    }
+    .stats-grid { grid-template-columns: 1fr; }
+    .trends-dashboard { grid-template-columns: 1fr; }
+    .filters-bar { flex-direction: column; }
+    .filter-group { width: 100%; }
+    .dashboard-header { flex-direction: column; text-align: center; }
+    .dashboard-header > div:last-child { justify-content: center; }
+    .btn { padding: 0.4rem 0.8rem; font-size: 0.7rem; }
+    .modal-content { width: 95%; padding: 1rem; }
+}
+@media (max-width: 480px) {
+    .main-content { padding: 0.75rem; padding-bottom: 80px; }
+    .stat-info p { font-size: 0.9rem; }
+    .trend-value { font-size: 0.7rem; }
+    .btn { padding: 0.3rem 0.6rem; font-size: 0.65rem; }
+}
+    </style>
+</head>
 <body>
 
-   <nav class="sidebar" id="sidebar">
+<nav class="sidebar" id="sidebar">
     <div class="logo-box">
-        <img src="https://i.postimg.cc/bJjy56Lq/Moniteo-1-removebg-preview.png" class="logo-full" alt="Moniteo">
+        <img src="https://oysdycuouodarfkmdtop.supabase.co/storage/v1/object/public/LOGO/Moniteo-20260115-205657-0000-removebg-preview.png" class="logo-full" alt="Moniteo">
         <img src="https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png" class="logo-short" alt="M">
-    </div>   
+    </div>
+    
     <ul class="nav-links">
-        <li><a href="dashboard.html"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> <span>Accueil</span></a></li>
-        <li><a href="sales.html"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> <span>Ventes</span></a></li>
-        <li><a href="inventory.html"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> <span>Inventaire</span></a></li>
-        <li><a href="expenses.html" ><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> <span>Dépenses</span></a></li>
-        <li><a href="staff.html" ><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> <span>Staff</span></a></li>
-        <li><a href="reporting.html" ><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> <span>Reporting</span></a></li>
-        <li><a href="history.html" class="active"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>Historique</span></a></li>
-        <li><a href="setting.html" ><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> <span>Paramètres</span></a></li>
-    </ul>    
+        <li><a href="dashboard.html"><i class="fas fa-chart-line"></i><span>Tableau de bord</span></a></li>
+        <li><a href="sales.html" ><i class="fas fa-shopping-cart"></i><span>Ventes</span></a></li>
+        <li><a href="inventory.html" ><i class="fas fa-boxes"></i><span>Inventaire</span></a></li>
+        <li><a href="expenses.html"><i class="fas fa-receipt"></i><span>Dépenses</span></a></li>
+        <li><a href="staff.html"><i class="fas fa-users"></i><span>Staff</span></a></li>
+        <li><a href="clients.html" ><i class="fas fa-user-friends"></i><span>Clients</span></a></li>
+        <li><a href="reporting.html" ><i class="fas fa-chart-bar"></i><span>Rapports</span></a></li>
+        <li><a href="history.html" class="active"><i class="fas fa-history"></i><span>Historique</span></a></li>
+        <li><a href="setting.html"><i class="fas fa-cog"></i><span>Paramètres</span></a></li>
+        <li><a href="#" onclick="startMoniteoCopilot(); return false;"><i class="fas fa-question-circle"></i><span>Besoin d'aide ?</span></a></li>
+    </ul>
+    
     <div class="logout-box">
-        <a href="#" onclick="logout(); return false;" class="logout-btn">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        <a href="#" onclick="logout()" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i>
             <span>Déconnexion</span>
         </a>
     </div>
 </nav>
 
-
-
-   <main class="main-content">
-    <header class="header-flex" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); margin-bottom: 25px; position: relative;">
-    
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <div id="dynamicLogoContainer" style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px;"></div>
-        <div style="border-left: 2px solid var(--border-soft); padding-left: 15px;">
-            <h2 id="pageTitle" style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">HISTORIQUE DE TRANSACTION</h2>
-            <div id="dateDisplay" style="color: var(--text-light); font-size: 0.75rem;"></div>
+<main class="main-content">
+    <div class="dashboard-header">
+        <div class="header-info">
+            <h1>Centre d'audit & traçabilité</h1>
+            <p id="dateDisplay"></p>
         </div>
-    </div>
-    
-    <div style="display: flex; align-items: center; gap: 20px;">
-        <div id="loading-state" style="display: none; align-items: center; gap: 8px;">
-            <svg class="loader-icon-spin" viewBox="0 0 24 24" style="width: 20px; height: 20px; color: var(--primary); animation: spin 1s linear infinite;">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="31.4" stroke-linecap="round"></circle>
-            </svg>
-            <span style="font-size: 0.8rem; color: var(--text-light); font-weight: 500;">Récupération...</span>
-        </div>
-
-        <button onclick="generateHistoryPDF()" class="pdf-action" style="display: flex; align-items: center; gap: 8px; padding: 10px 15px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; cursor: pointer; font-weight: 600;">
-            <svg viewBox="0 0 24 24" width="18" height="18" stroke="#ef4444" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-            Générer PDF
-        </button>
-    </div>
-</header>
-
-   <div class="summary-banner" style="display: grid; grid-gap: 20px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 25px;">
-    
-    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #3b82f6; display: flex; align-items: center; gap: 15px;">
-        <div style="background: #eff6ff; padding: 10px; border-radius: 10px; color: #3b82f6;">
-            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-        </div>
-        <div>
-            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Chiffre d'Affaire</small>
-            <p style="margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text-main);">
-                <span id="caTotal">0</span> <small style="font-size: 0.9rem; color: var(--text-light);">$</small>
-            </p>
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <div id="companyLogoContainer" style="width: 35px; height: 35px; border-radius: 50%; overflow: hidden; background: var(--gray-100); display: flex; align-items: center; justify-content: center;">
+                <img id="companyLogo" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+            </div>
+            <div class="company-badge" id="companyBadge">Chargement...</div>
+            <button onclick="exportHistoryToExcel()" class="btn btn-outline" style="padding: 0.3rem 0.7rem;"><i class="fas fa-file-excel"></i> Excel</button>
+            <button onclick="exportAdvancedHistoryPDF()" class="btn btn-outline" style="padding: 0.3rem 0.7rem;"><i class="fas fa-file-pdf" style="color:#ef4444;"></i> Audit PDF</button>
+            <button onclick="showClientStatementModal()" class="btn btn-primary" style="padding: 0.3rem 0.7rem;"><i class="fas fa-user"></i> Relevé client</button>
         </div>
     </div>
 
-    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #10b981; display: flex; align-items: center; gap: 15px;">
-        <div style="background: #ecfdf5; padding: 10px; border-radius: 10px; color: #10b981;">
-            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
-        </div>
-        <div>
-            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Bénéfice Net</small>
-            <p style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #10b981;">
-                <span id="profitTotal">0</span> <small style="font-size: 0.9rem; color: #10b981;">$</small>
-            </p>
-        </div>
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon" style="background:#eff6ff;color:#3b82f6;"><i class="fas fa-chart-line"></i></div><div class="stat-info"><h3>Chiffre d'affaires</h3><p id="statCA">0</p></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#ecfdf5;color:#10b981;"><i class="fas fa-chart-simple"></i></div><div class="stat-info"><h3>Bénéfice net</h3><p id="statProfit">0</p></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#fffbeb;color:#f59e0b;"><i class="fas fa-box"></i></div><div class="stat-info"><h3>Articles vendus</h3><p id="statQty">0</p></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#f5f3ff;color:#8b5cf6;"><i class="fas fa-receipt"></i></div><div class="stat-info"><h3>Transactions</h3><p id="statTrans">0</p></div></div>
     </div>
 
-    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #f59e0b; display: flex; align-items: center; gap: 15px;">
-        <div style="background: #fffbeb; padding: 10px; border-radius: 10px; color: #f59e0b;">
-            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><line x1="3" y1="6" x2="21" y2="6"></line></svg>
-        </div>
-        <div>
-            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Volume Articles</small>
-            <p id="qtyTotal" style="margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text-main);">0</p>
-        </div>
+    <div class="trends-dashboard">
+        <div class="trend-card"><div class="trend-icon"><i class="fas fa-arrow-up"></i></div><div class="trend-info"><span class="trend-label">Meilleur jour</span><span class="trend-value" id="bestDay">-</span></div></div>
+        <div class="trend-card"><div class="trend-icon"><i class="fas fa-chart-line"></i></div><div class="trend-info"><span class="trend-label">Panier moyen</span><span class="trend-value" id="avgBasket">-</span></div></div>
+        <div class="trend-card"><div class="trend-icon"><i class="fas fa-calendar-week"></i></div><div class="trend-info"><span class="trend-label">Jour le plus actif</span><span class="trend-value" id="busiestDay">-</span></div></div>
+        <div class="trend-card"><div class="trend-icon"><i class="fas fa-percent"></i></div><div class="trend-info"><span class="trend-label">Marge moyenne</span><span class="trend-value" id="avgMargin">-</span></div></div>
     </div>
 
-    <div class="stat-card" style="background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid #8b5cf6; display: flex; align-items: center; gap: 15px;">
-        <div style="background: #f5f3ff; padding: 10px; border-radius: 10px; color: #8b5cf6;">
-            <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-        </div>
-        <div>
-            <small style="color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px;">Transactions</small>
-            <p id="transCount" style="margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text-main);">0</p>
-        </div>
-    </div>
-</div>
-
-    <div class="action-bar" style="display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap;">
-    <div style="flex: 3; min-width: 250px; position: relative;">
-        <input type="text" id="searchProd" class="search-input" placeholder="Rechercher un produit..." oninput="applyFilters()" style="width: 100%; margin: 0; height: 100%;">
-    </div>
-    
-    <div class="date-range" style="display: flex; align-items: center; gap: 8px; background: var(--bg-body); padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border-soft); flex: 2;">
-        <small style="color:var(--text-light); font-weight: bold; white-space: nowrap;">PÉRIODE</small>
-        <input type="date" id="dateStart" onchange="applyFilters()" style="background:transparent; border:none; color:var(--text-main); font-size: 0.85rem; width: 110px;">
-        <span style="color: var(--border-soft)">|</span>
-        <input type="date" id="dateEnd" onchange="applyFilters()" style="background:transparent; border:none; color:var(--text-main); font-size: 0.85rem; width: 110px;">
+    <div class="filters-bar">
+        <div class="filter-group"><label><i class="fas fa-search"></i> Produit</label><input type="text" id="searchProduct" placeholder="Nom du produit..." oninput="applyFilters()"></div>
+        <div class="filter-group"><label><i class="fas fa-calendar"></i> Date début</label><input type="date" id="dateStart" onchange="applyFilters()"></div>
+        <div class="filter-group"><label><i class="fas fa-calendar"></i> Date fin</label><input type="date" id="dateEnd" onchange="applyFilters()"></div>
+        <div class="filter-group"><label><i class="fas fa-chart-line"></i> Marché</label><select id="marketFilter" onchange="applyFilters()"><option value="all">Tous</option><option value="local">Local</option><option value="export">Export</option></select></div>
+        <div class="filter-group"><label><i class="fas fa-filter"></i> CA min</label><input type="number" id="minAmount" placeholder="Minimum" oninput="applyFilters()"></div>
+        <div class="filter-group"><label><i class="fas fa-filter"></i> CA max</label><input type="number" id="maxAmount" placeholder="Maximum" oninput="applyFilters()"></div>
+        <div class="filter-group"><label>&nbsp;</label><button class="btn-reset" onclick="resetFilters()"><i class="fas fa-undo-alt"></i> Réinitialiser</button></div>
     </div>
 
-    <select id="marketFilter" class="filter-input" onchange="applyFilters()" style="flex: 1; min-width: 130px; margin: 0;">
-        <option value="all">Tous Marchés</option>
-        <option value="local">Local</option>
-        <option value="export">Export</option>
-    </select>
-    
-    <button class="btn-outline" onclick="resetFilters()" style="color: var(--danger); border-color: var(--danger); padding: 0 15px; height: 45px; display: flex; align-items: center; gap: 5px;">
-        <svg style="width:16px; height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        Réinitialiser
-    </button>
-</div>
-
-    <div class="card">
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Produit</th>
-                        <th>Marché</th>
-                        <th>Qté</th>
-                        <th>P.U (<span class="currency-label">$</span>)</th>
-                        <th>Total (<span class="currency-label">$</span>)</th>
-                        <th>Bénéfice (<span class="currency-label">$</span>)</th>
-                        <th style="text-align: right;">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="historyBody">
-                    </tbody>
+    <div class="table-container">
+        <div style="overflow-x: auto;">
+            <table id="historyTable">
+                <thead><tr><th>Date</th><th>Produit</th><th>Marché</th><th>Qté</th><th>Prix unitaire</th><th>Total</th><th>Bénéfice</th><th>Marge</th><th style="text-align:center;">Traçabilité</th></tr></thead>
+                <tbody id="historyBody"><tr><td colspan="9" style="text-align:center;">Chargement...</tr></table></tbody>
             </table>
         </div>
     </div>
+
+    <div class="charts-grid">
+        <div class="chart-card"><div class="chart-title"><i class="fas fa-chart-line" style="color:var(--primary);"></i> Évolution des ventes</div><div class="chart-container"><canvas id="salesTrendChart"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title"><i class="fas fa-chart-pie" style="color:var(--success);"></i> Répartition par marché</div><div class="chart-container"><canvas id="marketChart"></canvas></div></div>
+    </div>
 </main>
 
+<!-- Modals -->
+<div id="detailModal" class="modal"><div class="modal-content"><div class="modal-header"><h3><i class="fas fa-info-circle"></i> Détail de la transaction</h3><button onclick="closeModal('detailModal')" class="modal-close" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button></div><div id="detailContent"></div></div></div>
+
+<div id="productModal" class="modal"><div class="modal-content"><div class="modal-header"><h3><i class="fas fa-box"></i> Analyse produit</h3><button onclick="closeModal('productModal')" class="modal-close">&times;</button></div><div id="productDetailContent"></div><div style="margin-top:1rem;"><button class="btn btn-primary" onclick="exportProductPDF()">Exporter PDF</button></div></div></div>
+
+<div id="clientStatementModal" class="modal"><div class="modal-content"><div class="modal-header"><h3><i class="fas fa-user"></i> Relevé de compte client</h3><button onclick="closeModal('clientStatementModal')" class="modal-close">&times;</button></div><div class="form-group"><label>Client</label><select id="clientForStatement" class="form-control"></select></div><div class="form-group"><label>Période</label><div style="display:flex; gap:0.5rem;"><input type="date" id="statementDateStart" placeholder="Début"><input type="date" id="statementDateEnd" placeholder="Fin"></div></div><div style="display:flex; gap:0.5rem; margin-top:1rem;"><button class="btn btn-primary" onclick="generateClientStatementPDF()">Générer PDF</button><button class="btn btn-outline" onclick="closeModal('clientStatementModal')">Annuler</button></div></div></div>
+
+<div id="loadingOverlay" class="loading-overlay" style="display:none;"><div class="spinner"></div></div>
+<div id="toastContainer" class="toast-container"></div>
 
 <script>
-    let salesHistory = [];
-    // --- 2. INITIALISATION ---
-    document.addEventListener('DOMContentLoaded', async () => {
-        applyGlobalSettings();
-        handleResponsiveSidebar();
-        await fetchSalesHistory(); // Charger depuis Supabase
-    });
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    window._db = supabaseClient;
 
-    // --- 3. APPLICATION DES RÉGLAGES (CACHE & UI) ---
-function applyGlobalSettings() {
-    const config = JSON.parse(localStorage.getItem('moniteo_config')) || {};
-    
-    // 1. Variables Globales
-    if (typeof globalRate !== 'undefined') globalRate = config.rate || 2800;
-    if (typeof currentCurrency !== 'undefined') currentCurrency = config.currency || "FC";
+    let currentUser = null, salesData = [], clientsData = [], filteredData = [], charts = {}, currentProductAnalysis = null;
 
-    // 2. Mode Sombre
-    if (config.darkMode) {
-        document.body.classList.add('dark-mode');
-    } else {
-        document.body.classList.remove('dark-mode');
+    document.addEventListener('DOMContentLoaded', () => { checkAuth(); initSidebar(); });
+
+    async function checkAuth() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { window.location.href = 'index.html'; return; }
+        currentUser = session.user;
+        await loadCompanyInfo();
+        await loadData();
+        updateDateDisplay();
     }
 
-    // 3. Titre et Nom de l'entreprise
-    const title = document.getElementById('companyTitle');
-    if (title && config.name) {
-        title.innerHTML = `Tableau de Bord <small style="font-size:0.6em; color:var(--secondary)">| ${config.name}</small>`;
+    async function loadCompanyInfo() {
+        try {
+            const { data } = await supabaseClient.from('settings').select('logo_url, company_name, currency').eq('user_id', currentUser.id).single();
+            if (data) {
+                document.getElementById('companyBadge').textContent = data.company_name || 'Mon entreprise';
+                if (data.logo_url) { document.getElementById('companyLogo').src = data.logo_url; document.getElementById('companyLogo').style.display = 'block'; }
+                window.currentCurrency = data.currency || 'FCFA';
+            }
+        } catch(e) {}
     }
 
-    // 4. Logo Dynamique
-    const logoCont = document.getElementById('dynamicLogoContainer');
-    if (logoCont) {
-        if (config.logo) {
-            logoCont.innerHTML = `<img src="${config.logo}" style="height: 40px; width: auto; border-radius: 4px; object-fit: contain;">`;
-        } else {
-            logoCont.innerHTML = ""; // Vide si pas de logo
-        }
+    async function loadData() {
+        showLoading(true);
+        try {
+            const [salesRes, clientsRes] = await Promise.all([
+                supabaseClient.from('sales').select('*').eq('user_id', currentUser.id).order('date', { ascending: false }),
+                supabaseClient.from('clients').select('*').eq('user_id', currentUser.id)
+            ]);
+            salesData = salesRes.data || [];
+            clientsData = clientsRes.data || [];
+            filteredData = [...salesData];
+            renderTable();
+            updateStats();
+            calculateTrends();
+            renderCharts();
+            loadClientsForStatement();
+        } catch(e) { showToast(e.message, 'error'); }
+        finally { showLoading(false); }
     }
 
-    // 5. Affichages spécifiques (Matricule, etc.)
-    const displayMat = document.getElementById('displayMatricule');
-    if (displayMat && config.matricule) displayMat.innerText = config.matricule;
-
-    const displayComp = document.getElementById('company-display');
-    if (displayComp && config.name) displayComp.innerText = config.name;
-}
-
-
-    // --- 3. RÉCUPÉRATION SUPABASE ---
-async function fetchSalesHistory() {
-    const loader = document.getElementById('loading-state');
-    
-    try {
-        // 1. Affichage immédiat du loader
-        if (loader) loader.style.display = 'flex';
-
-        const { data, error } = await _db
-            .from('sales')
-            .select('*')
-            .order('date', { ascending: false });
-
-        if (error) {
-            console.error("Erreur chargement historique:", error.message);
-            // Optionnel : notifier l'utilisateur ici
-        } else {
-            salesHistory = data || [];
-            applyFilters(); // Affiche les données avec les filtres actuels
-            console.log("Données récupérées :", salesHistory.length);
-        }
-    } catch (err) {
-        // Capture les erreurs réseau ou de code inattendues
-        console.error("Erreur critique lors du fetch :", err);
-    } finally {
-        // 2. Le loader disparait TOUJOURS, même en cas d'erreur
-        if (loader) loader.style.display = 'none';
-    }
-}
-    // --- 4. FILTRAGE ---
-    function applyFilters() {
-        const query = document.getElementById('searchProd').value.toLowerCase();
-        const market = document.getElementById('marketFilter')?.value || 'all';
-        const start = document.getElementById('dateStart').value;
-        const end = document.getElementById('dateEnd').value;
-
-        const filtered = salesHistory.filter(item => {
-            const matchName = item.product.toLowerCase().includes(query);
-            const matchMarket = (market === 'all' || item.market === market);
-            const matchStart = !start || item.date >= start;
-            const matchEnd = !end || item.date <= end;
-            return matchName && matchMarket && matchStart && matchEnd;
-        });
-
-        renderHistory(filtered);
-    }
-
-    function resetFilters() {
-        document.getElementById('searchProd').value = '';
-        if(document.getElementById('marketFilter')) document.getElementById('marketFilter').value = 'all';
-        document.getElementById('dateStart').value = '';
-        document.getElementById('dateEnd').value = '';
-        renderHistory(salesHistory);
-    }
-
-    // --- 5. RENDU DU TABLEAU ---
-    function renderHistory(data) {
+    function renderTable() {
         const tbody = document.getElementById('historyBody');
-        if(!tbody) return;
-        tbody.innerHTML = '';
+        const search = document.getElementById('searchProduct')?.value.toLowerCase() || '';
+        const startDate = document.getElementById('dateStart')?.value;
+        const endDate = document.getElementById('dateEnd')?.value;
+        const market = document.getElementById('marketFilter')?.value || 'all';
+        const minAmount = parseFloat(document.getElementById('minAmount')?.value) || 0;
+        const maxAmount = parseFloat(document.getElementById('maxAmount')?.value) || Infinity;
         
-        let ca = 0, profit = 0, qtyCount = 0;
-
-        data.forEach((item) => {
-            const sPrice = parseFloat(item.sell_price) || 0;
-            const bPrice = parseFloat(item.buy_price) || 0;
-            const sQty = parseInt(item.qty) || 0;
-
-            const itemTotal = sPrice * sQty;
-            const itemProfit = (sPrice - bPrice) * sQty;
-
-            ca += itemTotal;
-            profit += itemProfit;
-            qtyCount += sQty;
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="font-weight:500">${formatDate(item.date)}</td>
-                <td style="font-weight:600; color:var(--primary)">${item.product}</td>
-                <td><span class="badge-market ${item.market || 'local'}">${item.market || 'local'}</span></td>
-                <td>${sQty}</td>
-                <td>${sPrice.toLocaleString()}</td>
-                <td style="font-weight:700">${itemTotal.toLocaleString()}</td>
-                <td style="color:var(--success); font-weight:600">+${itemProfit.toLocaleString()}</td>
-                <td>
-                    <button class="btn-danger" style="padding:5px 10px; cursor:pointer; border:none; border-radius:4px; background:var(--danger); color:white;" 
-                        onclick="deleteEntry('${item.id}')">🗑</button>
+        filteredData = salesData.filter(item => {
+            const total = (item.sell_price || 0) * (item.qty || 0);
+            if (search && !item.product?.toLowerCase().includes(search)) return false;
+            if (market !== 'all' && item.market !== market) return false;
+            if (startDate && item.date < startDate) return false;
+            if (endDate && item.date > endDate) return false;
+            if (total < minAmount) return false;
+            if (total > maxAmount) return false;
+            return true;
+        });
+        
+        if (filteredData.length === 0) { tbody.innerHTML = '(\s*<td colspan="9" style="text-align:center;">Aucune transaction(\s*)'; return; }
+        
+        const currency = window.currentCurrency || 'FCFA';
+        tbody.innerHTML = filteredData.map(item => {
+            const total = (item.sell_price || 0) * (item.qty || 0);
+            const profit = ((item.sell_price || 0) - (item.buy_price || 0)) * (item.qty || 0);
+            const margin = total > 0 ? (profit / total) * 100 : 0;
+            const client = clientsData.find(c => c.id === item.client_id);
+            return `
+                <tr>
+                    <td>${formatDate(item.date)}</td>
+                    <td><strong>${escapeHtml(item.product)}</strong></td>
+                    <td><span class="badge-market ${item.market === 'export' ? 'badge-export' : 'badge-local'}">${item.market === 'export' ? 'Export' : 'Local'}</span></td>
+                    <td>${item.qty || 0}</td>
+                    <td>${formatMoney(item.sell_price)}</td>
+                    <td>${formatMoney(total)}</td>
+                    <td style="color:${profit>=0?'var(--success)':'var(--danger)'}">${formatMoney(profit)}</td>
+                    <td>${margin.toFixed(1)}%</td>
+                    <td style="text-align:center;">
+                        <button class="btn-icon btn-view" onclick="viewDetail('${item.id}')" title="Détail"><i class="fas fa-eye"></i></button>
+                        <button class="btn-icon" onclick="showProductAnalysis('${escapeHtml(item.product)}')" title="Analyser produit"><i class="fas fa-chart-simple"></i></button>
+                        ${client ? `<button class="btn-icon" onclick="showClientTransactions('${item.client_id}')" title="Voir client"><i class="fas fa-user"></i></button>` : ''}
+                        <button class="btn-icon btn-delete" onclick="deleteTransaction('${item.id}')" title="Supprimer"><i class="fas fa-trash-alt"></i></button>
+                    </td>
                 </td>
             `;
-            tbody.appendChild(tr);
-        });
-
-        // Mise à jour des KPI
-        document.getElementById('caTotal').textContent = ca.toLocaleString() + " " + currentCurrency;
-        document.getElementById('profitTotal').textContent = profit.toLocaleString() + " " + currentCurrency;
-        document.getElementById('qtyTotal').textContent = qtyCount;
-        document.getElementById('transCount').textContent = data.length;
+        }).join('');
+        updateStats();
+        calculateTrends();
+        renderCharts();
     }
 
-    // --- 6. ACTIONS & UTILITAIRES ---
-    async function deleteEntry(id) {
-        if(confirm("Supprimer définitivement cette transaction ?")) {
-            const { error } = await _db.from('sales').delete().eq('id', id);
-            
-            if (error) {
-                alert("Erreur lors de la suppression: " + error.message);
-            } else {
-                fetchSalesHistory(); // Recharger la liste
+    function updateStats() {
+        let totalCA = 0, totalProfit = 0, totalQty = 0;
+        filteredData.forEach(item => {
+            totalCA += (item.sell_price || 0) * (item.qty || 0);
+            totalProfit += ((item.sell_price || 0) - (item.buy_price || 0)) * (item.qty || 0);
+            totalQty += item.qty || 0;
+        });
+        document.getElementById('statCA').textContent = formatMoney(totalCA);
+        document.getElementById('statProfit').textContent = formatMoney(totalProfit);
+        document.getElementById('statQty').textContent = totalQty;
+        document.getElementById('statTrans').textContent = filteredData.length;
+    }
+
+    function calculateTrends() {
+        const dailyData = {};
+        const dailyCount = {};
+        filteredData.forEach(s => {
+            if (s.date) {
+                const amount = (s.sell_price || 0) * (s.qty || 0);
+                dailyData[s.date] = (dailyData[s.date] || 0) + amount;
+                dailyCount[s.date] = (dailyCount[s.date] || 0) + 1;
             }
-        }
-    }
-
-    function formatDate(d) {
-        if(!d) return "-";
-        const parts = d.split('-');
-        return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
-    }
-
-    function handleResponsiveSidebar() {
-        const width = window.innerWidth;
-        const sb = document.getElementById('sidebar');
-        if (sb) {
-            if (width <= 1024) sb.classList.add('collapsed');
-            else sb.classList.remove('collapsed');
-        }
-    }
-
-    function exportExcel() {
-        if (salesHistory.length === 0) {
-            alert("Aucune donnée à exporter.");
-            return;
-        }
-
-        const dataToExport = salesHistory.map(item => ({
-            "Date": item.date || "",
-            "Produit": item.product || "Sans nom",
-            "Marché": item.market || "Local",
-            "Quantité": parseInt(item.qty) || 0,
-            "Prix Vente": parseFloat(item.sell_price) || 0,
-            "Total Vente": (parseFloat(item.sell_price) * parseInt(item.qty)),
-            "Profit": ((parseFloat(item.sell_price) - parseFloat(item.buy_price)) * parseInt(item.qty))
-        }));
-
-        const ws = XLSX.utils.json_to_sheet(dataToExport);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Historique");
-        XLSX.writeFile(wb, `Historique_Ventes_${new Date().toISOString().split('T')[0]}.xlsx`);
-    }
-
-    function logout() {
-        if(confirm("Se déconnecter ?")) { sessionStorage.clear(); window.location.href = "index.html"; }
-    }
-
-    window.addEventListener('resize', handleResponsiveSidebar);
-    function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const mainContent = document.getElementById('mainContent');
-    
-    sidebar.classList.toggle('collapsed');
-    
-    // Optionnel : Sauvegarder l'état dans le navigateur
-    const isCollapsed = sidebar.classList.contains('collapsed');
-    localStorage.setItem('sidebarStatus', isCollapsed ? 'collapsed' : 'expanded');
-}
-
-// Au chargement de la page, appliquer l'état sauvegardé
-window.addEventListener('DOMContentLoaded', () => {
-    const status = localStorage.getItem('sidebarStatus');
-    const sidebar = document.getElementById('sidebar');
-    if (status === 'collapsed') {
-        sidebar.classList.add('collapsed');
-    }
-});
-async function generateHistoryPDF() {
-    const btn = document.querySelector('.pdf-action');
-    
-    // 1. VERIFICATIONS STANDARDS
-    if (!window.MoniteoPDF) {
-        console.error("Le module MoniteoPDF n'est pas chargé.");
-        alert("Erreur système : Module d'exportation introuvable.");
-        return;
-    }
-
-    if (!window.jspdf) {
-        alert("Erreur : La bibliothèque jsPDF est manquante.");
-        return;
-    }
-
-    // 2. CAPTURE DES DONNÉES DU TABLEAU (On exclut la colonne "Action")
-    const rows = [];
-    const tableBody = document.getElementById('historyBody');
-    if (tableBody) {
-        tableBody.querySelectorAll('tr').forEach(tr => {
-            const cells = Array.from(tr.querySelectorAll('td'));
-            // On prend tout sauf la dernière colonne (le bouton supprimer)
-            const rowData = cells.slice(0, -1).map(td => td.innerText);
-            rows.push(rowData);
         });
+        
+        const bestDay = Object.entries(dailyData).sort((a,b) => b[1] - a[1])[0];
+        const busiestDay = Object.entries(dailyCount).sort((a,b) => b[1] - a[1])[0];
+        const totalCA = filteredData.reduce((s, i) => s + (i.sell_price || 0) * (i.qty || 0), 0);
+        const totalProfit = filteredData.reduce((s, i) => s + ((i.sell_price || 0) - (i.buy_price || 0)) * (i.qty || 0), 0);
+        const avgBasket = filteredData.length > 0 ? totalCA / filteredData.length : 0;
+        const avgMargin = totalCA > 0 ? (totalProfit / totalCA) * 100 : 0;
+        
+        document.getElementById('bestDay').innerHTML = bestDay ? `${formatDate(bestDay[0])}<br>${formatMoney(bestDay[1])}` : '-';
+        document.getElementById('busiestDay').innerHTML = busiestDay ? `${formatDate(busiestDay[0])}<br>${busiestDay[1]} trans` : '-';
+        document.getElementById('avgBasket').innerHTML = formatMoney(avgBasket);
+        document.getElementById('avgMargin').innerHTML = `${avgMargin.toFixed(1)}%`;
     }
 
-    // 3. RECUPERATION DES VALEURS KPI (Pour le sous-titre ou l'en-tête)
-    const totalCA = document.getElementById('caTotal')?.innerText || "0";
-    const totalProfit = document.getElementById('profitTotal')?.innerText || "0";
-    const totalTrans = document.getElementById('transCount')?.innerText || "0";
+    function renderCharts() {
+        const dailyData = {};
+        filteredData.forEach(item => {
+            if (item.date) {
+                const amount = (item.sell_price || 0) * (item.qty || 0);
+                dailyData[item.date] = (dailyData[item.date] || 0) + amount;
+            }
+        });
+        const dates = Object.keys(dailyData).sort().slice(-30);
+        const amounts = dates.map(d => dailyData[d]);
+        
+        const ctx1 = document.getElementById('salesTrendChart')?.getContext('2d');
+        if (ctx1) { if (charts.trend) charts.trend.destroy(); charts.trend = new Chart(ctx1, { type: 'line', data: { labels: dates, datasets: [{ label: 'CA journalier', data: amounts, borderColor: '#3b82f6', fill: true, backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx) => formatMoney(ctx.raw) } } } } }); }
+        
+        let localCA = 0, exportCA = 0;
+        filteredData.forEach(item => {
+            const amount = (item.sell_price || 0) * (item.qty || 0);
+            if (item.market === 'export') exportCA += amount;
+            else localCA += amount;
+        });
+        const ctx2 = document.getElementById('marketChart')?.getContext('2d');
+        if (ctx2) { if (charts.market) charts.market.destroy(); charts.market = new Chart(ctx2, { type: 'doughnut', data: { labels: ['Local', 'Export'], datasets: [{ data: [localCA, exportCA], backgroundColor: ['#3b82f6', '#10b981'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx) => formatMoney(ctx.raw) } } } } }); }
+    }
 
-    // 4. CONFIGURATION DU PDF
-    const pdfOptions = {
-        title: "HISTORIQUE DES TRANSACTIONS",
-        subtitle: `Volume: ${totalTrans} transactions | CA Total: ${totalCA} | Profit: ${totalProfit}`,
-        tables: [{
-            headers: ["Date", "Produit", "Marché", "Qté", "P.U", "Total", "Bénéfice"],
-            rows: rows,
-            color: [31, 60, 99], // Ton Bleu Marine Pro
-            fontSize: 9 // Un peu plus petit pour faire tenir 7 colonnes proprement
-        }]
-    };
+    function viewDetail(id) {
+        const item = salesData.find(s => s.id === id);
+        if (!item) return;
+        const client = clientsData.find(c => c.id === item.client_id);
+        document.getElementById('detailContent').innerHTML = `
+            <div class="detail-row"><span class="detail-label">ID transaction:</span><span>${item.id.substring(0,8)}...</span></div>
+            <div class="detail-row"><span class="detail-label">Date:</span><span>${formatDate(item.date)}</span></div>
+            <div class="detail-row"><span class="detail-label">Produit:</span><span><strong>${escapeHtml(item.product)}</strong></span></div>
+            <div class="detail-row"><span class="detail-label">Marché:</span><span>${item.market === 'export' ? 'Export' : 'Local'}</span></div>
+            <div class="detail-row"><span class="detail-label">Quantité:</span><span>${item.qty || 0}</span></div>
+            <div class="detail-row"><span class="detail-label">Prix d'achat:</span><span>${formatMoney(item.buy_price)}</span></div>
+            <div class="detail-row"><span class="detail-label">Prix de vente:</span><span>${formatMoney(item.sell_price)}</span></div>
+            <div class="detail-row"><span class="detail-label">Total vente:</span><span>${formatMoney((item.sell_price||0)*(item.qty||0))}</span></div>
+            <div class="detail-row"><span class="detail-label">Bénéfice:</span><span style="color:var(--success);">${formatMoney(((item.sell_price||0)-(item.buy_price||0))*(item.qty||0))}</span></div>
+            <div class="detail-row"><span class="detail-label">Marge:</span><span>${((item.sell_price||0)-(item.buy_price||0))/(item.sell_price||1)*100}%</span></div>
+            <div class="detail-row"><span class="detail-label">Client:</span><span>${client ? escapeHtml(client.name) : '-'}</span></div>
+            <div class="detail-row"><span class="detail-label">Email client:</span><span>${client?.email || '-'}</span></div>
+            <div class="detail-row"><span class="detail-label">Téléphone:</span><span>${client?.phone || '-'}</span></div>
+            <div class="detail-row"><span class="detail-label">Créé le:</span><span>${new Date(item.created_at).toLocaleString()}</span></div>
+        `;
+        document.getElementById('detailModal').style.display = 'flex';
+    }
 
-    // 5. EXECUTION
+    function showProductAnalysis(productName) {
+        currentProductAnalysis = productName;
+        const productSales = salesData.filter(s => s.product === productName);
+        const totalQty = productSales.reduce((s, i) => s + i.qty, 0);
+        const totalCA = productSales.reduce((s, i) => s + i.sell_price * i.qty, 0);
+        const totalProfit = productSales.reduce((s, i) => s + (i.sell_price - i.buy_price) * i.qty, 0);
+        const avgPrice = totalCA / totalQty || 0;
+        document.getElementById('productDetailContent').innerHTML = `
+            <div style="background:var(--gray-50); padding:0.8rem; border-radius:var(--radius-md); margin-bottom:1rem;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+                    <div><strong>Quantité totale:</strong> ${totalQty}</div><div><strong>CA total:</strong> ${formatMoney(totalCA)}</div>
+                    <div><strong>Bénéfice:</strong> ${formatMoney(totalProfit)}</div><div><strong>Prix moyen:</strong> ${formatMoney(avgPrice)}</div>
+                    <div><strong>Marge moyenne:</strong> ${totalCA > 0 ? ((totalProfit / totalCA) * 100).toFixed(1) : 0}%</div>
+                    <div><strong>Transactions:</strong> ${productSales.length}</div>
+                </div>
+            </div>
+            <div><strong>Historique des ventes</strong></div>
+            <div style="max-height:250px; overflow-y:auto;">
+                <table style="width:100%; font-size:0.7rem;"><thead><tr><th>Date</th><th>Qté</th><th>Prix</th><th>Total</th></thead><tbody>${productSales.map(s => `<tr><td>${formatDate(s.date)}</td><td>${s.qty}</td><td>${formatMoney(s.sell_price)}</td><td>${formatMoney(s.sell_price * s.qty)}</td></tr>`).join('')}</tbody></table>
+            </div>
+        `;
+        document.getElementById('productModal').style.display = 'flex';
+    }
+
+    function showClientTransactions(clientId) {
+        const client = clientsData.find(c => c.id === clientId);
+        if (!client) return;
+        const clientSales = salesData.filter(s => s.client_id === clientId);
+        const totalCA = clientSales.reduce((s, i) => s + i.sell_price * i.qty, 0);
+        const modalHtml = `
+            <div id="clientDetailModal" class="modal" style="display:flex;">
+                <div class="modal-content" style="max-width:600px;">
+                    <div class="modal-header"><h3><i class="fas fa-user"></i> Transactions - ${escapeHtml(client.name)}</h3><button onclick="closeModal('clientDetailModal')" class="modal-close">&times;</button></div>
+                    <div><strong>Total: ${formatMoney(totalCA)} | ${clientSales.length} transaction(s)</strong></div>
+                    <div style="max-height:300px; overflow-y:auto; margin-top:0.5rem;">
+                        <table style="width:100%; font-size:0.7rem;"><thead><tr><th>Date</th><th>Produit</th><th>Qté</th><th>Total</th></thead><tbody>${clientSales.map(s => `<tr><td>${formatDate(s.date)}</td><td>${s.product}</td><td>${s.qty}</td><td>${formatMoney(s.sell_price * s.qty)}</td></tr>`).join('')}</tbody></table>
+                    </div>
+                    <div style="margin-top:1rem;"><button class="btn btn-primary" onclick="generateClientStatementPDF('${clientId}')">Générer relevé</button></div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    async function deleteTransaction(id) {
+        if (!confirm('Supprimer définitivement cette transaction ? Cette action est irréversible.')) return;
+        const { error } = await supabaseClient.from('sales').delete().eq('id', id);
+        if (error) { showToast(error.message, 'error'); return; }
+        await loadData();
+        showToast('Transaction supprimée', 'success');
+    }
+
+    function applyFilters() { renderTable(); }
+    function resetFilters() {
+        document.getElementById('searchProduct').value = '';
+        document.getElementById('dateStart').value = '';
+        document.getElementById('dateEnd').value = '';
+        document.getElementById('marketFilter').value = 'all';
+        document.getElementById('minAmount').value = '';
+        document.getElementById('maxAmount').value = '';
+        renderTable();
+    }
+
+    function exportHistoryToExcel() {
+        const wsData = filteredData.map(s => ({ Date: s.date, Produit: s.product, Marché: s.market === 'export' ? 'Export' : 'Local', Quantité: s.qty, 'Prix unitaire': s.sell_price, Total: (s.sell_price||0)*(s.qty||0), Bénéfice: ((s.sell_price||0)-(s.buy_price||0))*(s.qty||0), Marge: `${((s.sell_price||0)-(s.buy_price||0))/(s.sell_price||1)*100}%` }));
+        const ws = XLSX.utils.json_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Traçabilité');
+        XLSX.writeFile(wb, `traçabilité_${new Date().toISOString().split('T')[0]}.xlsx`);
+        showToast('Export Excel réussi', 'success');
+    }
+
+    async function exportAdvancedHistoryPDF() {
+    if (filteredData.length === 0) { 
+        showToast('Aucune donnée à exporter', 'error'); 
+        return; 
+    }
+    
+    showLoading(true);
+    
     try {
-        btn.innerHTML = "Génération...";
-        btn.disabled = true;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const config = await MoniteoPDF._getConfig();
+        const mainBlue = [31, 60, 99];
+        const umbrellaLogo = "https://i.postimg.cc/xjgBzxr0/Moniteo-3-removebg-preview.png";
 
-        // Note : On ne passe pas de 'charts' ici car la page historique 
-        // est principalement basée sur les données tabulaires.
-        await window.MoniteoPDF.generate(pdfOptions);
+        // === FOOTER LÉGAL ===
+        const addLegalFooter = (doc, pageWidth, config, pageNum, totalPages) => {
+            const pageHeight = doc.internal.pageSize.getHeight();
+            
+            doc.setDrawColor(200, 200, 200);
+            doc.line(14, pageHeight - 18, pageWidth - 14, pageHeight - 18);
+            
+            doc.setFontSize(6).setTextColor(150);
+            doc.text(config.companyName || 'Mon entreprise', 14, pageHeight - 12);
+            doc.text(`RCCM: ${config.rccm || 'Non renseigné'} | NIF: ${config.nif || 'Non renseigné'} | ID NAT: ${config.id_nat || 'Non renseigné'}`, 14, pageHeight - 7);
+            doc.text(new Date().toLocaleString(), pageWidth - 14, pageHeight - 12, { align: 'right' });
+            doc.text(`Page ${pageNum} / ${totalPages}`, pageWidth - 14, pageHeight - 7, { align: 'right' });
+        };
 
-    } catch (err) {
-        console.error("Erreur durant la génération :", err);
-        alert("Erreur lors de la création du PDF : " + err.message);
+        // === QR CODE ===
+        const addVerificationQR = async (doc, pageWidth, config) => {
+            if (typeof QRCode === 'undefined') return;
+            
+            const verificationData = {
+                company: config.companyName,
+                date: new Date().toISOString(),
+                reportId: Date.now().toString(36).toUpperCase(),
+                transactions: filteredData.length,
+                totalCA: filteredData.reduce((s, i) => s + ((i.sell_price || 0) * (i.qty || 0)), 0)
+            };
+            
+            const qrText = JSON.stringify(verificationData);
+            const qrImage = await MoniteoPDF._generateQRCodeImage(qrText);
+            
+            if (qrImage) {
+                const pageHeight = doc.internal.pageSize.getHeight();
+                const qrSize = 30;
+                const x = pageWidth - qrSize - 15;
+                const y = pageHeight - qrSize - 45;
+                doc.addImage(qrImage, 'PNG', x, y, qrSize, qrSize);
+                doc.setFontSize(5).setTextColor(150);
+                doc.text("Document certifié", x + qrSize/2, y + qrSize + 4, { align: 'center' });
+            }
+        };
+
+        // === FILIGRANE UMBRELLA DISCRET ===
+        const applyWatermark = (doc) => {
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({ opacity: 0.02 }));
+            const iconSize = 25;
+            const spacing = 55;
+            for (let x = 15; x < pageWidth; x += spacing) {
+                for (let y = 20; y < pageHeight - 20; y += spacing) {
+                    try {
+                        doc.addImage(umbrellaLogo, 'PNG', x, y, iconSize, iconSize);
+                    } catch(e) {}
+                }
+            }
+            doc.restoreGraphicsState();
+        };
+
+        // ==========================================
+        // PAGE 1 : GARDE INSTITUTIONNELLE
+        // ==========================================
+        applyWatermark(doc);
+        
+        doc.setFillColor(mainBlue[0], mainBlue[1], mainBlue[2]);
+        doc.rect(0, 0, 8, pageHeight, 'F'); 
+
+        if (config.logo) {
+            try { doc.addImage(config.logo, 'PNG', (pageWidth / 2) - 25, 45, 50, 50); } catch(e) {}
+        }
+
+        doc.setFont("helvetica", "bold").setFontSize(26).setTextColor(mainBlue[0], mainBlue[1], mainBlue[2]);
+        doc.text("RAPPORT DE TRAÇABILITÉ", pageWidth / 2, 105, { align: 'center' });
+        doc.setFontSize(14).setTextColor(100).setFont("helvetica", "normal");
+        doc.text("HISTORIQUE COMPLET DES TRANSACTIONS", pageWidth / 2, 118, { align: 'center' });
+        
+        doc.setDrawColor(mainBlue[0], mainBlue[1], mainBlue[2]).setLineWidth(0.8);
+        doc.line(pageWidth / 2 - 25, 128, pageWidth / 2 + 25, 128);
+
+        doc.setFontSize(10).setTextColor(80);
+        doc.text(config.companyName.toUpperCase(), pageWidth / 2, 150, { align: 'center' });
+        doc.text(`Document généré le ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 158, { align: 'center' });
+        
+        const periodStart = document.getElementById('dateStart')?.value || 'Début';
+        const periodEnd = document.getElementById('dateEnd')?.value || 'Aujourd\'hui';
+        doc.setFontSize(9).setTextColor(100);
+        doc.text(`Période analysée: ${periodStart} - ${periodEnd}`, pageWidth / 2, 175, { align: 'center' });
+        doc.text(`${filteredData.length} transactions analysées`, pageWidth / 2, 183, { align: 'center' });
+
+        // QR Code sur page de garde
+        await addVerificationQR(doc, pageWidth, config);
+
+        // ==========================================
+        // PAGE 2 : RÉSUMÉ ANALYTIQUE
+        // ==========================================
+        doc.addPage();
+        applyWatermark(doc);
+        
+        doc.setFontSize(16).setFont("helvetica", "bold").setTextColor(mainBlue[0], mainBlue[1], mainBlue[2]);
+        doc.text("RÉSUMÉ ANALYTIQUE", 14, 25);
+        doc.line(14, 30, 70, 30);
+        
+        const totalCA = filteredData.reduce((s, i) => s + ((i.sell_price || 0) * (i.qty || 0)), 0);
+        const totalProfit = filteredData.reduce((s, i) => s + (((i.sell_price || 0) - (i.buy_price || 0)) * (i.qty || 0)), 0);
+        const totalQty = filteredData.reduce((s, i) => s + (i.qty || 0), 0);
+        const avgBasket = filteredData.length > 0 ? totalCA / filteredData.length : 0;
+        const avgMargin = totalCA > 0 ? (totalProfit / totalCA) * 100 : 0;
+
+        doc.autoTable({
+            startY: 40,
+            body: [
+                ['Volume de transactions', `${filteredData.length} opérations`],
+                ['Unités vendues', `${totalQty} articles`],
+                ['Chiffre d\'affaires total', `${MoniteoPDF._formatNumber(totalCA)} ${config.currency}`],
+                ['Bénéfice net consolidé', `${MoniteoPDF._formatNumber(totalProfit)} ${config.currency}`],
+                ['Panier moyen', `${MoniteoPDF._formatNumber(avgBasket)} ${config.currency}`],
+                ['Marge moyenne', `${avgMargin.toFixed(1)}%`]
+            ],
+            theme: 'striped',
+            styles: { fontSize: 10, cellPadding: 6 },
+            columnStyles: { 0: { fontStyle: 'bold', textColor: mainBlue, cellWidth: 70 } }
+        });
+
+        let finalY = doc.lastAutoTable.finalY + 15;
+        doc.setFillColor(245, 247, 250);
+        doc.roundedRect(14, finalY, pageWidth - 28, 35, 4, 4, 'F');
+        doc.setDrawColor(mainBlue[0], mainBlue[1], mainBlue[2]);
+        doc.roundedRect(14, finalY, pageWidth - 28, 35, 4, 4, 'S');
+        
+        doc.setFontSize(10).setTextColor(mainBlue[0], mainBlue[1], mainBlue[2]).setFont("helvetica", "bold");
+        doc.text("CONCLUSION DE L'AUDIT", 20, finalY + 10);
+        doc.setFont("helvetica", "normal").setTextColor(60);
+        
+        let auditMessage = "";
+        if (totalProfit > 0 && avgMargin > 20) {
+            auditMessage = "Performance EXCELLENTE : Rentabilité positive, marge confortable. La traçabilité des flux est conforme.";
+        } else if (totalProfit > 0) {
+            auditMessage = "Performance CORRECTE : Rentabilité positive. Surveillez l'évolution des marges.";
+        } else if (totalProfit <= 0) {
+            auditMessage = "ALERTE : Rentabilité négative. Analysez vos coûts d'achat et vos prix de vente.";
+        } else {
+            auditMessage = "Période stable : Tous les indicateurs sont dans la norme. Continuez ce rythme.";
+        }
+        
+        doc.text(doc.splitTextToSize(auditMessage, pageWidth - 45), 20, finalY + 22);
+
+        // ==========================================
+        // PAGE 3 : DÉTAIL DES TRANSACTIONS
+        // ==========================================
+        doc.addPage();
+        applyWatermark(doc);
+        
+        doc.setFontSize(14).setFont("helvetica", "bold").setTextColor(mainBlue[0], mainBlue[1], mainBlue[2]);
+        doc.text("DÉTAIL DES TRANSACTIONS", 14, 25);
+        doc.line(14, 30, 70, 30);
+        
+        const tableRows = filteredData.map(s => [
+            s.date,
+            s.product.length > 30 ? s.product.substring(0, 27) + '...' : s.product,
+            s.market === 'export' ? 'EXP' : 'LOC',
+            s.qty || 0,
+            MoniteoPDF._formatNumber(s.sell_price || 0),
+            MoniteoPDF._formatNumber((s.sell_price || 0) * (s.qty || 0)),
+            MoniteoPDF._formatNumber(((s.sell_price || 0) - (s.buy_price || 0)) * (s.qty || 0))
+        ]);
+        
+        doc.autoTable({
+            startY: 40,
+            head: [['Date', 'Produit', 'Mkt', 'Qté', 'P.U', 'Total', 'Bénéfice']],
+            body: tableRows,
+            headStyles: { fillColor: mainBlue, textColor: [255, 255, 255], fontSize: 8 },
+            styles: { fontSize: 7, cellPadding: 3 },
+            columnStyles: {
+                0: { cellWidth: 22 },
+                2: { cellWidth: 12, halign: 'center' },
+                3: { cellWidth: 12, halign: 'center' },
+                4: { cellWidth: 22, halign: 'right' },
+                5: { cellWidth: 25, halign: 'right', fontStyle: 'bold' },
+                6: { cellWidth: 25, halign: 'right', textColor: [16, 185, 129] }
+            }
+        });
+
+        // ==========================================
+        // PAGE 4 : GRAPHIQUES
+        // ==========================================
+        const canvas = document.getElementById('salesTrendChart') || document.getElementById('chartSales');
+        if (canvas) {
+            doc.addPage();
+            applyWatermark(doc);
+            doc.setFontSize(14).setFont("helvetica", "bold").setTextColor(mainBlue[0], mainBlue[1], mainBlue[2]);
+            doc.text("ANALYSE GRAPHIQUE", 14, 25);
+            doc.line(14, 30, 70, 30);
+            try {
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                doc.addImage(imgData, 'PNG', 20, 45, pageWidth - 40, 90);
+            } catch(e) {}
+        }
+        
+        const marketCanvas = document.getElementById('marketChart');
+        if (marketCanvas) {
+            doc.addPage();
+            applyWatermark(doc);
+            doc.setFontSize(14).setFont("helvetica", "bold").setTextColor(mainBlue[0], mainBlue[1], mainBlue[2]);
+            doc.text("RÉPARTITION PAR MARCHÉ", 14, 25);
+            doc.line(14, 30, 70, 30);
+            try {
+                const imgData = marketCanvas.toDataURL('image/png', 1.0);
+                doc.addImage(imgData, 'PNG', 20, 45, pageWidth - 40, 90);
+            } catch(e) {}
+        }
+
+        // ==========================================
+        // FOOTER LÉGAL POUR TOUTES LES PAGES
+        // ==========================================
+        const totalPages = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            doc.setPage(i);
+            addLegalFooter(doc, pageWidth, config, i, totalPages);
+        }
+
+        doc.save(`Tracabilite_${config.companyName.replace(/\s/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+        showToast('Rapport de traçabilité exporté', 'success');
+
+    } catch(e) {
+        console.error('Erreur PDF:', e);
+        showToast('Erreur lors de la génération: ' + e.message, 'error');
     } finally {
-        btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="#ef4444" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> Générer PDF`;
-        btn.disabled = false;
+        showLoading(false);
     }
 }
+    function loadClientsForStatement() {
+        const select = document.getElementById('clientForStatement');
+        if (!select) return;
+        select.innerHTML = '<option value="">-- Sélectionner --</option>';
+        clientsData.forEach(c => { const option = document.createElement('option'); option.value = c.id; option.textContent = c.name; select.appendChild(option); });
+    }
+
+    function showClientStatementModal() { document.getElementById('clientStatementModal').style.display = 'flex'; }
+
+    async function generateClientStatementPDF(clientId = null) {
+        const id = clientId || document.getElementById('clientForStatement')?.value;
+        if (!id) { showToast('Sélectionnez un client', 'error'); return; }
+        const client = clientsData.find(c => c.id === id);
+        const startDate = document.getElementById('statementDateStart')?.value;
+        const endDate = document.getElementById('statementDateEnd')?.value;
+        let clientSales = salesData.filter(s => s.client_id === id);
+        if (startDate) clientSales = clientSales.filter(s => s.date >= startDate);
+        if (endDate) clientSales = clientSales.filter(s => s.date <= endDate);
+        if (clientSales.length === 0) { showToast('Aucune transaction', 'error'); return; }
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const config = await MoniteoPDF._getConfig();
+        const totalCA = clientSales.reduce((s, i) => s + i.sell_price * i.qty, 0);
+        
+        doc.setFontSize(16).setFont("helvetica", "bold"); doc.text("RELEVÉ DE COMPTE CLIENT", 105, 20, { align: 'center' });
+        doc.setFontSize(9); doc.text(config.companyName, 105, 28, { align: 'center' });
+        doc.setFontSize(10).setFont("helvetica", "bold"); doc.text("Client:", 14, 45);
+        doc.setFont("helvetica", "normal"); doc.text(client.name, 45, 45);
+        doc.text(`Email: ${client.email || '-'}`, 14, 52); doc.text(`Téléphone: ${client.phone || '-'}`, 14, 59);
+        doc.text(`Période: ${startDate || 'Début'} - ${endDate || 'Aujourd\'hui'}`, 14, 66);
+        
+        const rows = clientSales.map(s => [formatDate(s.date), s.product, s.qty, formatMoney(s.sell_price), formatMoney(s.sell_price * s.qty)]);
+        doc.autoTable({ startY: 80, head: [['Date', 'Produit', 'Qté', 'P.U', 'Total']], body: rows, headStyles: { fillColor: [31, 60, 99], textColor: [255, 255, 255] } });
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.setFontSize(10).setFont("helvetica", "bold"); doc.text(`TOTAL À PAYER: ${formatMoney(totalCA)}`, 14, finalY);
+        doc.text("Merci de votre confiance", 105, finalY + 20, { align: 'center' });
+        doc.save(`Releve_${client.name.replace(/\s/g, '_')}.pdf`);
+        closeModal('clientStatementModal');
+        showToast('Relevé client généré', 'success');
+    }
+
+    function exportProductPDF() {
+        if (!currentProductAnalysis) return;
+        const productSales = salesData.filter(s => s.product === currentProductAnalysis);
+        const totalCA = productSales.reduce((s, i) => s + i.sell_price * i.qty, 0);
+        const totalProfit = productSales.reduce((s, i) => s + (i.sell_price - i.buy_price) * i.qty, 0);
+        const rows = productSales.map(s => [formatDate(s.date), s.qty, formatMoney(s.sell_price), formatMoney(s.sell_price * s.qty), formatMoney((s.sell_price - s.buy_price) * s.qty)]);
+        MoniteoPDF.generate({ title: `ANALYSE PRODUIT - ${currentProductAnalysis}`, subtitle: `Total CA: ${formatMoney(totalCA)} | Bénéfice: ${formatMoney(totalProfit)}`, tables: [{ headers: ['DATE', 'QTÉ', 'P.U', 'TOTAL', 'BÉNÉFICE'], rows: rows }] });
+        showToast('Analyse produit exportée', 'success');
+    }
+
+    function initSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const checkScreenSize = () => { if (window.innerWidth <= 768) sidebar.classList.add('collapsed'); else if (window.innerWidth <= 1024) sidebar.classList.add('collapsed'); else sidebar.classList.remove('collapsed'); };
+        window.addEventListener('resize', checkScreenSize);
+        checkScreenSize();
+    }
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function showLoading(show) { document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
+    function showToast(message, type = 'success') { const container = document.getElementById('toastContainer'); const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${message}`; container.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+    function formatMoney(amount) { const currency = window.currentCurrency || 'FCFA'; return (amount || 0).toLocaleString() + ' ' + currency; }
+    function formatDate(dateStr) { if (!dateStr) return '-'; const parts = dateStr.split('-'); return `${parts[2]}/${parts[1]}/${parts[0]}`; }
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
+    function updateDateDisplay() { document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
+    async function logout() { if (confirm('Déconnexion ?')) { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; } }
+
+    window.applyFilters = applyFilters; window.resetFilters = resetFilters; window.viewDetail = viewDetail;
+    window.showProductAnalysis = showProductAnalysis; window.showClientTransactions = showClientTransactions;
+    window.deleteTransaction = deleteTransaction; window.exportHistoryToExcel = exportHistoryToExcel;
+    window.exportAdvancedHistoryPDF = exportAdvancedHistoryPDF; window.showClientStatementModal = showClientStatementModal;
+    window.generateClientStatementPDF = generateClientStatementPDF; window.exportProductPDF = exportProductPDF;
+    window.closeModal = closeModal; window.logout = logout;
 </script>
 </body>
 </html>
