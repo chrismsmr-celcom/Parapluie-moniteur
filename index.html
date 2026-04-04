@@ -2,352 +2,1019 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#ffffff">
-    <title>Moniteo Umbrella | Portail SaaS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="theme-color" content="#7c3aed">
+    <title>Moniteo | Portail SaaS Professionnel</title>
 
-    <link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/V5QdCkrY/Moniteo-20260115-205758-0000.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
-        :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg-body: #f1f5f9;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --radius: 12px;
-            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        * { box-sizing: border-box; }
-        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif; background: var(--bg-body); color: var(--text-main); overflow: hidden; }
-
-        .saas-wrapper { display: flex; height: 100vh; width: 100vw; }
-
-        .vanta-side { flex: 1.4; position: relative; display: flex; align-items: center; justify-content: center; color: white; padding: 4rem; }
-        .vanta-content { z-index: 2; max-width: 520px; }
-        .vanta-content h1 { font-size: 3.5rem; font-weight: 800; margin-bottom: 1.5rem; line-height: 1; letter-spacing: -0.02em; }
-        .vanta-content p { font-size: 1.25rem; opacity: 0.85; line-height: 1.6; font-weight: 300; }
-
-        .form-side { flex: 1; background: white; display: flex; justify-content: center; align-items: center; padding: 2rem; z-index: 10; }
-        .login-box { width: 100%; max-width: 500px; padding: 2.5rem; border-radius: var(--radius); }
-        .logo-saas { width: 160px; margin-bottom: 2rem; display: block; }
-
-        h2 { font-size: 1.85rem; font-weight: 700; margin: 0 0 0.5rem 0; }
-        .subtitle { color: var(--text-muted); margin-bottom: 2rem; font-size: 1rem; }
-
-        .input-group { margin-bottom: 1.5rem; position: relative; }
-        .input-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
-        label { font-size: 0.875rem; font-weight: 600; color: var(--text-main); }
-        
-        input {
-            width: 100%; padding: 0.9rem 1rem; border: 1.5px solid var(--border);
-            border-radius: var(--radius); font-size: 1rem; transition: all 0.2s;
-            background: #ffffff; color: var(--text-main);
+        body {
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
         }
-        input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1); }
 
-        .password-wrapper { position: relative; }
-        .toggle-password { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); }
+        .split-screen {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Vanta Side - Animated Background */
+        .vanta-side {
+            flex: 1.2;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            overflow: hidden;
+        }
+
+        #vanta-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .vanta-content {
+            position: relative;
+            z-index: 2;
+            max-width: 500px;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .vanta-logo {
+            width: 100px;
+            margin-bottom: 2rem;
+            background: white;
+            border-radius: 24px;
+            padding: 10px;
+            display: inline-block;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .vanta-content h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            background: linear-gradient(135deg, #ffffff, #e0d5ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .vanta-content p {
+            font-size: 1rem;
+            opacity: 0.9;
+            line-height: 1.6;
+            text-shadow: 0 1px 5px rgba(0,0,0,0.1);
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 2rem;
+            text-align: left;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.85rem;
+            background: rgba(255,255,255,0.1);
+            padding: 0.6rem 1rem;
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+        }
+
+        .feature-item i {
+            font-size: 1rem;
+            width: 24px;
+            color: #c4b5fd;
+        }
+
+        /* Form Side */
+        .form-side {
+            flex: 0.8;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 2rem;
+            overflow-y: auto;
+            box-shadow: -5px 0 30px rgba(0,0,0,0.05);
+        }
+
+        .login-container {
+            max-width: 400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .logo-mobile {
+            display: none;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo-mobile img {
+            width: 80px;
+            background: #7c3aed;
+            border-radius: 20px;
+            padding: 8px;
+        }
+
+        .form-header {
+            margin-bottom: 2rem;
+        }
+
+        .form-header h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-header p {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i:first-child {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 1rem;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 12px 40px 12px 42px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .input-wrapper input:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 1rem;
+            transition: color 0.2s;
+        }
+
+        .toggle-password:hover {
+            color: #7c3aed;
+        }
+
+        .input-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .forgot-link {
+            font-size: 0.8rem;
+            color: #7c3aed;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
 
         .btn-primary {
-            width: 100%; padding: 1rem; background: var(--primary); color: white;
-            border: none; border-radius: var(--radius); font-weight: 700; font-size: 1.05rem;
-            cursor: pointer; transition: all 0.2s; margin-top: 0.5rem;
+            width: 100%;
+            padding: 12px;
+            background: #0f172a;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 0.5rem;
         }
-        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
 
-        .forgot-link { font-size: 0.85rem; color: var(--primary); cursor: pointer; font-weight: 600; text-decoration: none; }
-        .footer-note { text-align: center; margin-top: 1.5rem; font-size: 0.95rem; color: var(--text-muted); }
-        .footer-note span { color: var(--primary); cursor: pointer; font-weight: 700; }
-
-        /* --- MODAL RESET PASSWORD --- */
-        #reset-modal {
-            display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 20px;
+        .btn-primary:hover:not(:disabled) {
+            background: #7c3aed;
+            transform: translateY(-1px);
         }
-        .modal-content { background: white; padding: 2.5rem; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
 
-        @keyframes nameEntry { 0% { opacity: 0; transform: translateY(5px); } 100% { opacity: 1; transform: translateY(0); } }
-        .name-animate { display: inline-block; animation: nameEntry 0.6s ease forwards; }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
 
-        @media (max-width: 1024px) { .vanta-side { display: none; } .login-box { box-shadow: var(--shadow); } }
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 1.5rem 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .divider span {
+            padding: 0 10px;
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+
+        /* Social Buttons */
+        .social-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-social {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1.5px solid #e2e8f0;
+            background: white;
+            color: #334155;
+        }
+
+        .btn-social:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+        }
+
+        .btn-social i {
+            font-size: 1.2rem;
+        }
+
+        .btn-social.google i {
+    /* On crée un dégradé circulaire avec des arrêts nets */
+    background: conic-gradient(
+        #4285F4 0deg 90deg, 
+        #34A853 90deg 180deg, 
+        #FBBC05 180deg 270deg, 
+        #EA4335 270deg 360deg
+    );
+    
+    /* On applique le dégradé uniquement sur la forme de l'icône */
+    -webkit-background-clip: text;
+    background-clip: text;
+    
+    /* On rend le texte transparent pour laisser voir le dégradé dessous */
+    color: transparent;
+    
+    /* Optionnel : ajustement de la taille pour bien voir les couleurs */
+    font-size: 14px;
+    display: inline-block;
+}
+        .btn-social.facebook i { color: #1877f2; }
+        .btn-social.phone i { color: #10b981; }
+        .btn-social.microsoft i { color: #00a4ef; }
+
+        .footer-note {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .footer-note span {
+            color: #7c3aed;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .footer-note span:hover {
+            text-decoration: underline;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .modal-content h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1100;
+        }
+
+        .toast {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
+            font-size: 0.85rem;
+            border-left: 3px solid;
+        }
+
+        .toast.success { border-left-color: #10b981; }
+        .toast.error { border-left-color: #ef4444; }
+        .toast.warning { border-left-color: #f59e0b; }
+        .toast.info { border-left-color: #7c3aed; }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @media (max-width: 900px) {
+            .vanta-side { display: none; }
+            .form-side { flex: 1; }
+            .logo-mobile { display: block; }
+        }
     </style>
 </head>
 <body>
 
-<div id="reset-modal">
-    <div class="modal-content">
-        <h2>Nouveau mot de passe</h2>
-        <p class="subtitle">Sécurisez votre accès Moniteo.</p>
-        <div class="input-group">
-            <label>Nouveau mot de passe</label>
-            <input type="password" id="newPass" placeholder="6 caractères minimum">
-        </div>
-        <button class="btn-primary" id="btnUpdatePass" onclick="AppAuth.confirmNewPassword()">Mettre à jour</button>
-    </div>
-</div>
-
-<div class="saas-wrapper">
-    <div class="vanta-side" id="vanta-bg">
+<div class="split-screen">
+    <!-- Vanta Waves Side -->
+    <div class="vanta-side">
+        <div id="vanta-bg"></div>
         <div class="vanta-content">
-            <h1>Pilotez votre croissance.</h1>
-            <p>Une interface sécurisée pour maîtriser vos KPI, vos ventes et votre inventaire en temps réel.</p>
+            <img src="https://oysdycuouodarfkmdtop.supabase.co/storage/v1/object/public/LOGO/Moniteo-20260115-205657-0000-removebg-preview.png" alt="Moniteo" class="vanta-logo">
+            <h1>Moniteo</h1>
+            <p>La solution SaaS complète pour piloter votre entreprise en temps réel</p>
+            
+            <div class="features-grid">
+                <div class="feature-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Tableau de bord KPI</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Gestion des ventes</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-boxes"></i>
+                    <span>Inventaire temps réel</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Analyses avancées</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-users"></i>
+                    <span>Gestion du personnel</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-file-invoice"></i>
+                    <span>Facturation automatique</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-qrcode"></i>
+                    <span>Scan code-barres</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-robot"></i>
+                    <span>Assistant IA intégré</span>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- Form Side -->
     <div class="form-side">
-        <div class="login-box">
-            <img src="https://oysdycuouodarfkmdtop.supabase.co/storage/v1/object/public/LOGO/Moniteo-20260115-205657-0000-removebg-preview.png" class="logo-saas" alt="Moniteo Logo">
-            
-            <div id="auth-container">
-                <div id="login-view">
-                    <h2>Bon retour !</h2>
-                    <p class="subtitle">Accédez à votre espace <b id="dynamic-company">votre entreprise</b>.</p>                    
-                    <div class="input-group">
-                        <label>Adresse Email</label>
-                        <input type="email" id="loginEmail" placeholder="nom@entreprise.com" onblur="AppAuth.detectCompanyByEmail(this.value)">
+        <div class="login-container">
+            <div class="logo-mobile">
+                <img src="https://oysdycuouodarfkmdtop.supabase.co/storage/v1/object/public/LOGO/Moniteo-20260115-205657-0000-removebg-preview.png" alt="Moniteo">
+            </div>
+
+            <div class="form-header">
+                <h2>Connexion</h2>
+                <p>Accédez à votre espace de gestion</p>
+            </div>
+
+            <form id="loginForm" onsubmit="return false;">
+                <div class="input-group">
+                    <label>Email professionnel</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="loginEmail" placeholder="nom@entreprise.com" autocomplete="email">
                     </div>
-                    <div class="input-group">
-                        <div class="input-header">
-                            <label>Mot de passe</label>
-                            <span class="forgot-link" onclick="AppAuth.handleForgotPassword()">Oublié ?</span>
-                        </div>
-                        <div class="password-wrapper">
-                            <input type="password" id="loginPass" placeholder="••••••••">
-                            <i data-lucide="eye" class="toggle-password" onclick="AppAuth.togglePassword('loginPass', this)"></i>
-                        </div>
-                    </div>
-                    <button class="btn-primary" id="btnLogin" onclick="AppAuth.handleLogin()">Se connecter</button>
-                    <p class="footer-note">Nouveau ici ? <span onclick="AppAuth.toggleView(true)">Créer un compte</span></p>
                 </div>
 
-                <div id="register-view" style="display:none;">
-                    <h2>Démarrer Moniteo</h2>
-                    <p class="subtitle">Créez votre instance SaaS en 1 minute.</p>
-                    <div class="input-group">
-                        <label>Email Professionnel</label>
-                        <input type="email" id="regEmail" placeholder="nom@expert.com">
-                    </div>
-                    <div class="input-group">
+                <div class="input-group">
+                    <div class="input-header">
                         <label>Mot de passe</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="regPass" placeholder="Minimum 6 caractères">
-                            <i data-lucide="eye" class="toggle-password" onclick="AppAuth.togglePassword('regPass', this)"></i>
-                        </div>
+                        <span class="forgot-link" onclick="Auth.handleForgotPassword()">Mot de passe oublié ?</span>
                     </div>
-                    <div class="input-group">
-                        <label>Nom de l'Entreprise</label>
-                        <input type="text" id="compName" placeholder="Ex: MakMus SARL">
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+                        <i class="fas fa-eye toggle-password" onclick="Auth.togglePassword('loginPass', this)"></i>
                     </div>
-                    <button class="btn-primary" id="btnReg" onclick="AppAuth.handleRegister()">Créer mon accès</button>
-                    <p class="footer-note">Déjà inscrit ? <span onclick="AppAuth.toggleView(false)">Se connecter</span></p>
                 </div>
+
+                <button type="submit" class="btn-primary" id="btnLogin">Se connecter</button>
+            </form>
+
+            <div class="divider">
+                <span>ou</span>
+            </div>
+
+            <div class="social-buttons">
+                <button class="btn-social google" onclick="Auth.socialLogin('google')">
+                    <i class="fab fa-google"></i> Continuer avec Google
+                </button>
+                <button class="btn-social facebook" onclick="Auth.socialLogin('facebook')">
+                    <i class="fab fa-facebook-f"></i> Continuer avec Facebook
+                </button>
+                
+            <div class="footer-note">
+                Pas encore de compte ? <span onclick="Auth.showRegister()">Créer un compte</span>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Register Modal -->
+<div id="registerModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>Créer un compte</h3>
+        <p style="color: #64748b; margin-bottom: 1.5rem; font-size: 0.9rem;">Commencez votre essai gratuit</p>
+        
+        <div class="input-group">
+            <label>Email professionnel</label>
+            <div class="input-wrapper">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="regEmail" placeholder="nom@entreprise.com">
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <label>Mot de passe</label>
+            <div class="input-wrapper">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="regPass" placeholder="Minimum 6 caractères">
+                <i class="fas fa-eye toggle-password" onclick="Auth.togglePassword('regPass', this)"></i>
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <label>Nom de l'entreprise</label>
+            <div class="input-wrapper">
+                <i class="fas fa-building"></i>
+                <input type="text" id="compName" placeholder="Ex: MakMus SARL">
+            </div>
+        </div>
+        
+        <button class="btn-primary" id="btnRegister">Créer mon compte</button>
+        
+        <div class="footer-note" style="margin-top: 1rem;">
+            Déjà inscrit ? <span onclick="Auth.hideRegister()">Se connecter</span>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div id="resetModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>Réinitialisation</h3>
+        <p style="color: #64748b; margin-bottom: 1.5rem; font-size: 0.9rem;">Entrez votre email pour recevoir un lien</p>
+        
+        <div class="input-group">
+            <label>Email</label>
+            <div class="input-wrapper">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="resetEmail" placeholder="nom@entreprise.com">
+            </div>
+        </div>
+        
+        <button class="btn-primary" id="btnSendReset">Envoyer le lien</button>
+        
+        <div class="footer-note" style="margin-top: 1rem;">
+            <span onclick="Auth.hideResetModal()">Retour à la connexion</span>
+        </div>
+    </div>
+</div>
+
+<!-- Phone Login Modal -->
+<div id="phoneModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>Connexion par téléphone</h3>
+        <p style="color: #64748b; margin-bottom: 1.5rem; font-size: 0.9rem;">Recevez un code par SMS</p>
+        
+        <div class="input-group">
+            <label>Numéro de téléphone</label>
+            <div class="input-wrapper">
+                <i class="fas fa-phone-alt"></i>
+                <input type="tel" id="phoneNumber" placeholder="+243 XX XXX XXXX">
+            </div>
+        </div>
+        
+        <div id="otpSection" style="display: none;">
+            <div class="input-group">
+                <label>Code de vérification</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-key"></i>
+                    <input type="text" id="otpCode" placeholder="Code à 6 chiffres">
+                </div>
+            </div>
+        </div>
+        
+        <button class="btn-primary" id="btnSendOtp">Envoyer le code</button>
+        <button class="btn-primary" id="btnVerifyOtp" style="display: none; margin-top: 10px;">Vérifier</button>
+        
+        <div class="footer-note" style="margin-top: 1rem;">
+            <span onclick="Auth.hidePhoneModal()">Annuler</span>
+        </div>
+    </div>
+</div>
+
+<!-- Update Password Modal -->
+<div id="updatePasswordModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>Nouveau mot de passe</h3>
+        <p style="color: #64748b; margin-bottom: 1.5rem; font-size: 0.9rem;">Choisissez un mot de passe sécurisé</p>
+        
+        <div class="input-group">
+            <label>Nouveau mot de passe</label>
+            <div class="input-wrapper">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="newPass" placeholder="Minimum 6 caractères">
+                <i class="fas fa-eye toggle-password" onclick="Auth.togglePassword('newPass', this)"></i>
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <label>Confirmer</label>
+            <div class="input-wrapper">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="confirmPass" placeholder="Retapez votre mot de passe">
+                <i class="fas fa-eye toggle-password" onclick="Auth.togglePassword('confirmPass', this)"></i>
+            </div>
+        </div>
+        
+        <button class="btn-primary" id="btnUpdatePass">Mettre à jour</button>
+    </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const AppAuth = {
+const Auth = {
     config: {
         url: 'https://oysdycuouodarfkmdtop.supabase.co',
         key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c2R5Y3VvdW9kYXJma21kdG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjQ2ODYsImV4cCI6MjA4NzQwMDY4Nn0.9HQo_G4w7onI3ygJq0GprZxn-vgpXj2WdPnAgmqzv9k',
         target: 'dashboard.html'
     },
+    
+    db: null,
+    redirectLock: false,
+    phoneStep: 'send',
 
     async init() {
         this.db = supabase.createClient(this.config.url, this.config.key, {
             auth: {
-                storage: window.sessionStorage,
                 persistSession: true,
-                autoRefreshToken: true
+                autoRefreshToken: true,
+                detectSessionInUrl: true
             }
         });
 
-        this.runVanta();
-        this.initIcons();
-        this.setupAuthObserver();
-        this.checkInitialHash(); // Vérification immédiate du token dans l'URL
-        this.setupLiveRegistrationBranding();
-
-        const savedName = localStorage.getItem('moniteo_comp_name');
-        if (savedName) this.updateDynamicName(savedName);
+        this.setupEventListeners();
+        this.initVanta();
+        await this.checkSession();
+        await this.checkRecoveryHash();
     },
 
-    initIcons() { lucide.createIcons(); },
+    initVanta() {
+        if (typeof VANTA !== 'undefined' && window.innerWidth > 900) {
+            setTimeout(() => {
+                VANTA.WAVES({
+                    el: "#vanta-bg",
+                    mouseControls: true,
+                    touchControls: true,
+                    color: 0x0f172a,
+                    waveHeight: 18,
+                    waveSpeed: 0.65,
+                    zoom: 0.85,
+                    shininess: 30
+                });
+            }, 100);
+        }
+    },
 
-    setupAuthObserver() {
-        this.db.auth.onAuthStateChange(async (event, session) => {
-            console.log("Auth Event:", event);
-            
-            if (event === "PASSWORD_RECOVERY") {
-                document.getElementById('reset-modal').style.display = 'flex';
-            }
-            
-            if (session && event === "SIGNED_IN") {
-                // On évite la redirection si on est en train de réinitialiser le mdp
-                if (window.location.hash.includes('type=recovery')) return;
+    setupEventListeners() {
+        document.getElementById('btnLogin').addEventListener('click', () => this.login());
+        document.getElementById('btnRegister').addEventListener('click', () => this.register());
+        document.getElementById('btnSendReset').addEventListener('click', () => this.sendResetLink());
+        document.getElementById('btnUpdatePass').addEventListener('click', () => this.updatePassword());
+        document.getElementById('btnSendOtp').addEventListener('click', () => this.sendOtp());
+        document.getElementById('btnVerifyOtp').addEventListener('click', () => this.verifyOtp());
+        
+        document.getElementById('loginPass').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.login();
+        });
+    },
+
+    async checkSession() {
+        try {
+            const { data: { session } } = await this.db.auth.getSession();
+            if (session && !this.redirectLock && !window.location.hash.includes('type=recovery')) {
+                this.redirectLock = true;
                 window.location.replace(this.config.target);
             }
-        });
+        } catch (e) {
+            console.log("Session check error:", e);
+        }
     },
 
-    // Détection manuelle pour GitHub Pages (SPA)
-    checkInitialHash() {
+    async checkRecoveryHash() {
         const hash = window.location.hash;
-        if (hash && hash.includes("access_token=") && hash.includes("type=recovery")) {
-            document.getElementById('reset-modal').style.display = 'flex';
-        }
-    },
-
-    async confirmNewPassword() {
-        const newPass = document.getElementById('newPass').value;
-        if (newPass.length < 6) return alert("Minimum 6 caractères.");
-        
-        const btn = document.getElementById('btnUpdatePass');
-        btn.disabled = true;
-        btn.innerText = "Mise à jour...";
-
-        const { error } = await this.db.auth.updateUser({ password: newPass });
-
-        if (error) {
-            alert("Erreur : " + error.message);
-            btn.disabled = false;
-            btn.innerText = "Mettre à jour";
-        } else {
-            alert("✅ Mot de passe modifié avec succès !");
-            document.getElementById('reset-modal').style.display = 'none';
-            // Nettoyage de l'URL pour la sécurité
-            window.history.replaceState(null, null, window.location.pathname);
-            await this.db.auth.signOut();
-            window.location.reload();
-        }
-    },
-
-    async handleForgotPassword() {
-        const email = document.getElementById('loginEmail').value.trim();
-        if (!email) return alert("Veuillez saisir votre email dans le champ de connexion.");
-        
-        // Utilise l'URL actuelle propre (sans paramètres) comme redirection
-        const redirectUrl = window.location.origin + window.location.pathname;
-
-        const { error } = await this.db.auth.resetPasswordForEmail(email, {
-            redirectTo: redirectUrl
-        });
-
-        if (error) alert(error.message);
-        else alert("✉️ Un lien de réinitialisation a été envoyé à " + email);
-    },
-
-    async detectCompanyByEmail(email) {
-        if (!email.includes('@')) return;
-        try {
-            const { data } = await this.db.from('settings_public').select('company_name').eq('user_email', email).single();
-            if (data?.company_name) {
-                this.updateDynamicName(data.company_name);
-                localStorage.setItem('moniteo_comp_name', data.company_name);
+        if (hash && hash.includes('type=recovery')) {
+            const params = new URLSearchParams(hash.substring(1));
+            const accessToken = params.get('access_token');
+            
+            if (accessToken) {
+                sessionStorage.setItem('recovery_token', accessToken);
+                window.history.replaceState(null, null, window.location.pathname);
+                document.getElementById('updatePasswordModal').style.display = 'flex';
             }
-        } catch (e) {}
-    },
-
-    async handleLogin() {
-        const email = document.getElementById('loginEmail').value.trim();
-        const pass = document.getElementById('loginPass').value;
-        const btn = document.getElementById('btnLogin');
-
-        if (!email || !pass) return;
-        btn.disabled = true;
-        btn.innerHTML = "Connexion...";
-
-        const { error } = await this.db.auth.signInWithPassword({ email, password: pass });
-        if (error) {
-            alert("Erreur de connexion : " + error.message);
-            btn.disabled = false;
-            btn.innerHTML = "Se connecter";
         }
     },
 
-    async handleRegister() {
-        const email = document.getElementById('regEmail').value.trim();
-        const pass = document.getElementById('regPass').value;
-        const company = document.getElementById('compName').value.trim();
-        const btn = document.getElementById('btnReg');
-
-        if(!email || !pass || !company) return alert("Veuillez remplir tous les champs.");
+    async login() {
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPass').value;
+        const btn = document.getElementById('btnLogin');
+        
+        if (!email || !password) {
+            this.showToast("Veuillez remplir tous les champs", "warning");
+            return;
+        }
 
         btn.disabled = true;
-        btn.innerText = "Création...";
+        btn.textContent = "Connexion...";
+
+        const { error } = await this.db.auth.signInWithPassword({ email, password });
+        
+        btn.disabled = false;
+        btn.textContent = "Se connecter";
+
+        if (error) {
+            this.showToast(error.message, "error");
+        } else {
+            this.showToast("Connexion réussie", "success");
+            setTimeout(() => {
+                window.location.href = this.config.target;
+            }, 500);
+        }
+    },
+
+    async register() {
+        const email = document.getElementById('regEmail').value.trim();
+        const password = document.getElementById('regPass').value;
+        const company = document.getElementById('compName').value.trim();
+        const btn = document.getElementById('btnRegister');
+        
+        if (!email || !password || !company) {
+            this.showToast("Veuillez remplir tous les champs", "warning");
+            return;
+        }
+        
+        if (password.length < 6) {
+            this.showToast("Le mot de passe doit contenir au moins 6 caractères", "warning");
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = "Création...";
 
         const { data, error } = await this.db.auth.signUp({ 
             email, 
-            password: pass,
+            password,
             options: {
-                emailRedirectTo: window.location.origin + window.location.pathname
+                data: { company_name: company }
             }
         });
         
+        btn.disabled = false;
+        btn.textContent = "Créer mon compte";
+
         if (error) {
-            alert(error.message);
-            btn.disabled = false;
-            btn.innerText = "Créer mon accès";
+            this.showToast(error.message, "error");
             return;
         }
 
         if (data.user) {
-            // Optionnel: Stockage du nom d'entreprise en metadata ou table liée
-            alert("Compte créé ! Un e-mail de confirmation vous a été envoyé.");
-            this.toggleView(false);
+            try {
+                await this.db
+                    .from('settings')
+                    .insert([{ 
+                        user_id: data.user.id, 
+                        company_name: company,
+                        currency: 'FCFA',
+                        rate: 2800
+                    }]);
+            } catch(e) {
+                console.log("Settings error:", e);
+            }
+            
+            this.showToast("Compte créé ! Vérifiez vos emails.", "success");
+            this.hideRegister();
+            document.getElementById('loginEmail').value = email;
         }
     },
 
-    updateDynamicName(name) {
-        const el = document.getElementById('dynamic-company');
-        if (el) {
-            el.classList.remove('name-animate');
-            void el.offsetWidth;
-            el.innerText = name;
-            el.classList.add('name-animate');
+    async sendResetLink() {
+        const email = document.getElementById('resetEmail').value.trim();
+        const btn = document.getElementById('btnSendReset');
+        
+        if (!email) {
+            this.showToast("Veuillez saisir votre email", "warning");
+            return;
         }
-    },
 
-    setupLiveRegistrationBranding() {
-        document.getElementById('compName')?.addEventListener('input', (e) => {
-            this.updateDynamicName(e.target.value || "votre entreprise");
+        btn.disabled = true;
+        btn.textContent = "Envoi...";
+
+        const redirectUrl = window.location.origin + window.location.pathname;
+        const { error } = await this.db.auth.resetPasswordForEmail(email, {
+            redirectTo: redirectUrl
         });
-    },
 
-    togglePassword(id, iconEl) {
-        const input = document.getElementById(id);
-        input.type = input.type === "password" ? "text" : "password";
-        iconEl.setAttribute('data-lucide', input.type === "password" ? 'eye' : 'eye-off');
-        lucide.createIcons();
-    },
+        btn.disabled = false;
+        btn.textContent = "Envoyer le lien";
 
-    toggleView(isReg) {
-        document.getElementById('login-view').style.display = isReg ? 'none' : 'block';
-        document.getElementById('register-view').style.display = isReg ? 'block' : 'none';
-    },
-
-    runVanta() {
-        if (typeof VANTA !== 'undefined' && window.innerWidth > 1024) {
-            VANTA.WAVES({
-                el: "#vanta-bg",
-                mouseControls: true, touchControls: true,
-                color: 0x0f172a, waveHeight: 12, waveSpeed: 0.6, zoom: 0.9
-            });
+        if (error) {
+            this.showToast(error.message, "error");
+        } else {
+            this.showToast("Lien envoyé à " + email, "success");
+            this.hideResetModal();
         }
+    },
+
+    async updatePassword() {
+        const newPass = document.getElementById('newPass').value;
+        const confirmPass = document.getElementById('confirmPass').value;
+        const btn = document.getElementById('btnUpdatePass');
+        
+        if (newPass.length < 6) {
+            this.showToast("Minimum 6 caractères", "warning");
+            return;
+        }
+        
+        if (newPass !== confirmPass) {
+            this.showToast("Les mots de passe ne correspondent pas", "error");
+            return;
+        }
+
+        const recoveryToken = sessionStorage.getItem('recovery_token');
+        
+        if (!recoveryToken) {
+            this.showToast("Session invalide", "error");
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = "Mise à jour...";
+
+        try {
+            const { error: sessionError } = await this.db.auth.setSession({
+                access_token: recoveryToken,
+                refresh_token: ''
+            });
+            
+            if (sessionError) {
+                this.showToast("Session expirée", "error");
+                return;
+            }
+            
+            const { error: updateError } = await this.db.auth.updateUser({ 
+                password: newPass 
+            });
+            
+            if (updateError) {
+                this.showToast(updateError.message, "error");
+            } else {
+                this.showToast("Mot de passe modifié", "success");
+                document.getElementById('updatePasswordModal').style.display = 'none';
+                sessionStorage.removeItem('recovery_token');
+                await this.db.auth.signOut();
+                setTimeout(() => {
+                    window.location.href = window.location.pathname;
+                }, 1500);
+            }
+        } catch (err) {
+            this.showToast("Erreur: " + err.message, "error");
+        }
+        
+        btn.disabled = false;
+        btn.textContent = "Mettre à jour";
+    },
+
+    async socialLogin(provider) {
+        const { error } = await this.db.auth.signInWithOAuth({
+            provider: provider,
+            options: {
+                redirectTo: window.location.origin + this.config.target
+            }
+        });
+        
+        if (error) {
+            this.showToast(error.message, "error");
+        }
+    },
+
+    showPhoneLogin() {
+        this.phoneStep = 'send';
+        document.getElementById('otpSection').style.display = 'none';
+        document.getElementById('btnSendOtp').style.display = 'block';
+        document.getElementById('btnVerifyOtp').style.display = 'none';
+        document.getElementById('phoneNumber').value = '';
+        document.getElementById('phoneModal').style.display = 'flex';
+    },
+
+    async sendOtp() {
+        const phone = document.getElementById('phoneNumber').value.trim();
+        if (!phone) {
+            this.showToast("Veuillez saisir votre numéro", "warning");
+            return;
+        }
+        
+        this.showToast("Code envoyé (mode démonstration)", "info");
+        this.phoneStep = 'verify';
+        document.getElementById('otpSection').style.display = 'block';
+        document.getElementById('btnSendOtp').style.display = 'none';
+        document.getElementById('btnVerifyOtp').style.display = 'block';
+    },
+
+    async verifyOtp() {
+        const code = document.getElementById('otpCode').value;
+        if (!code) {
+            this.showToast("Veuillez saisir le code", "warning");
+            return;
+        }
+        
+        this.showToast("Connexion par téléphone (fonctionnalité à venir)", "info");
+        this.hidePhoneModal();
+    },
+
+    handleForgotPassword() {
+        document.getElementById('resetModal').style.display = 'flex';
+        document.getElementById('resetEmail').value = document.getElementById('loginEmail').value;
+    },
+
+    showRegister() {
+        document.getElementById('registerModal').style.display = 'flex';
+    },
+
+    hideRegister() {
+        document.getElementById('registerModal').style.display = 'none';
+    },
+
+    hideResetModal() {
+        document.getElementById('resetModal').style.display = 'none';
+    },
+
+    hidePhoneModal() {
+        document.getElementById('phoneModal').style.display = 'none';
+        document.getElementById('phoneNumber').value = '';
+        document.getElementById('otpCode').value = '';
+    },
+
+    togglePassword(inputId, icon) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = "password";
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    },
+
+    showToast(message, type = 'success') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        let icon = 'fa-check-circle';
+        if (type === 'error') icon = 'fa-exclamation-circle';
+        if (type === 'warning') icon = 'fa-exclamation-triangle';
+        if (type === 'info') icon = 'fa-info-circle';
+        
+        toast.innerHTML = `<i class="fas ${icon}"></i> ${message}`;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
     }
 };
 
-AppAuth.init();
+// Fermer les modaux
+document.querySelectorAll('.modal-overlay').forEach(modal => {
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.style.display = 'none';
+    });
+});
+
+Auth.init();
 </script>
 </body>
 </html>
